@@ -335,7 +335,7 @@ def update_project_fields(
         edit_project_field(project, item_id, field, issue.get(yaml_key), issue_id)
 
 
-def issue_exists(repo: str, issue_id: str) -> bool:
+def find_existing_issue(repo: str, issue_id: str) -> dict[str, Any] | None:
     result = run_gh(
         [
             "issue",
@@ -349,11 +349,51 @@ def issue_exists(repo: str, issue_id: str) -> bool:
             "--search",
             f"{issue_id} in:title",
             "--json",
-            "title",
+            "number,title,url",
         ]
     )
-    issues = json.loads(result.stdout)
-    return any(issue_id in issue["title"] for issue in issues)
+
+    issues = json.loads(result.stdout or "[]")
+    for issue in issues:
+        if issue_id in issue.get("title", ""):
+            return issue
+
+    return None
+
+def rename_existing_issue_if_needed(repo: str, existing_issue: dict[str, Any], new_title: str, issue_id: str) -> None:
+    current_title = existing_issue.get("title", "")
+    issue_number = existing_issue.get("number")
+
+    if not issue_number:
+        print(f"Rename warning for {issue_id}: issue number was not found.")
+        return
+
+    if current_title == new_title:
+        print(f"Existing issue title already correct: {issue_id}")
+        return
+
+    result = run_gh(
+        [
+            "issue",
+            "edit",
+            str(issue_number),
+            "-R",
+            repo,
+            "--title",
+            new_title,
+        ],
+        check=False,
+    )
+
+    if result.returncode != 0:
+        print(f"Rename warning for {issue_id}: could not update issue title.")
+        if result.stderr.strip():
+            print(f"  {result.stderr.strip()}")
+        return
+
+    print(f"Renamed issue: {issue_id}")
+    print(f"  From: {current_title}")
+    print(f"  To:   {new_title}")
 
 
 def checklist(items: list[str]) -> str:
@@ -405,9 +445,19 @@ def create_issue(
 ) -> None:
     issue_id = str(issue["id"])
     title = str(issue["title"])
-    assignee = issue.get("assignee")
-    if assignee in assignees:
-        assignee = assignees[assignee]
+    raw_assignees = issue.get("assignee") or issue.get("assignees")
+
+    if raw_assignees is None:
+        issue_assignees = []
+    elif isinstance(raw_assignees, list):
+        issue_assignees = raw_assignees
+    else:
+        issue_assignees = [raw_assignees]
+
+    resolved_assignees = []
+    for assignee in issue_assignees:
+        assignee = str(assignee)
+        resolved_assignees.append(str(assignees.get(assignee, assignee)))
     requested_labels = [str(label) for label in (issue.get("labels") or [])]
     labels = [label for label in requested_labels if label in existing_labels]
     for label in requested_labels:
@@ -419,7 +469,9 @@ def create_issue(
         milestone = None
     body = build_issue_body(issue)
 
-    if issue_exists(repo, issue_id):
+    existing_issue = find_existing_issue(repo, issue_id)
+    if existing_issue:
+        rename_existing_issue_if_needed(repo, existing_issue, title, issue_id)
         print(f"Skipped duplicate issue: {issue_id} — {title}")
         return
 
@@ -438,8 +490,8 @@ def create_issue(
         body_path,
     ]
 
-    if assignee:
-        args.extend(["--assignee", str(assignee)])
+    if resolved_assignees:
+        args.extend(["--assignee", ",".join(resolved_assignees)])
     if labels:
         args.extend(["--label", ",".join(str(label) for label in labels)])
     if milestone:
