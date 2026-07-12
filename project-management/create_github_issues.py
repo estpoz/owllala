@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""Create GitHub issues from issues.yaml.
+"""Create only missing GitHub issues from issues.yaml.
 
-The script uses the authenticated local GitHub CLI session. It is safe to
-rerun: existing repository labels and milestones are reused, and issues are
-skipped when the issue ID already appears in an existing issue title.
+This script is intentionally incremental:
+- Existing issues are detected by stable issue ID and skipped unchanged.
+- Existing Project items, titles, bodies, assignees, milestones, and fields
+  are never modified.
+- Only newly created issues are added to the GitHub Project, populated with
+  Project V2 fields, and linked to their configured parent issue.
+- Repository labels are not used. Role and PIC Area are GitHub Project fields.
+
+Requirements:
+    python3 -m pip install pyyaml
+    gh auth login
+    gh auth refresh -s project
 """
 
 from __future__ import annotations
@@ -15,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -22,382 +32,166 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_YAML_PATH = SCRIPT_DIR / "issues.yaml"
 
 
-def run_gh(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
-    command = ["gh", *args]
-    return subprocess.run(
-        command,
-        check=check,
+@dataclass
+class RunSummary:
+    created: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
+    project_added: list[str] = field(default_factory=list)
+    parent_linked: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    failed: list[str] = field(default_factory=list)
+
+
+def run_gh(
+    args: list[str],
+    *,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        ["gh", *args],
         text=True,
         capture_output=True,
+        check=False,
     )
+    if check and result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "GitHub CLI command failed.")
+    return result
 
 
 def normalize(value: str) -> str:
+    """Normalize names so hyphens, dashes, spaces, and case do not matter."""
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
-def load_yaml_source(path: Path) -> dict[str, Any]:
+def load_yaml(path: Path) -> dict[str, Any]:
     try:
         import yaml
     except ImportError:
-        print("Missing dependency: PyYAML. Install it with: python3 -m pip install pyyaml")
-        sys.exit(1)
+        raise RuntimeError(
+            "PyYAML is missing. Install it with: python3 -m pip install pyyaml"
+        )
 
-    text = path.read_text(encoding="utf-8")
-    data = yaml.safe_load(text)
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError(f"{path} must contain a YAML mapping at the top level.")
+        raise ValueError("issues.yaml must contain a YAML mapping.")
     return data
 
 
-def choose_yaml_path(cli_path: str | None) -> Path:
-    if cli_path:
-        return Path(cli_path).expanduser().resolve()
-    return DEFAULT_YAML_PATH
+def verify_authentication() -> None:
+    result = run_gh(["auth", "status"], check=False)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "GitHub CLI is not authenticated. Run 'gh auth login', then "
+            "'gh auth refresh -s project'."
+        )
 
 
-def existing_label_names(repo: str) -> set[str]:
-    result = run_gh(["label", "list", "-R", repo, "--limit", "1000", "--json", "name"])
-    labels = json.loads(result.stdout)
-    return {label["name"] for label in labels}
+def find_project(repo: str, title: str) -> dict[str, Any]:
+    owner = repo.split("/", 1)[0]
+    result = run_gh(
+        [
+            "project", "list",
+            "--owner", owner,
+            "--format", "json",
+            "--limit", "100",
+        ],
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            result.stderr.strip()
+            or "Unable to list projects. Run: gh auth refresh -s project"
+        )
+
+    for project in json.loads(result.stdout or "{}").get("projects", []):
+        if project.get("title") == title:
+            return {
+                "id": project["id"],
+                "number": str(project["number"]),
+                "owner": owner,
+                "title": title,
+            }
+
+    raise RuntimeError(f"Project '{title}' was not found for owner '{owner}'.")
 
 
-def verify_labels(repo: str, labels: list[dict[str, Any]]) -> set[str]:
-    existing = existing_label_names(repo)
-    for label in labels:
-        name = str(label["name"])
+def get_project_fields(project: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    result = run_gh(
+        [
+            "project", "field-list",
+            project["number"],
+            "--owner", project["owner"],
+            "--format", "json",
+            "--limit", "100",
+        ]
+    )
+    fields = json.loads(result.stdout or "{}").get("fields", [])
+    return {normalize(field["name"]): field for field in fields}
 
-        if name in existing:
-            print(f"Using existing label: {name}")
-            continue
 
-        print(f"Missing label warning: {name}")
-    return existing
-
-
-def existing_milestone_titles(repo: str) -> set[str]:
+def get_repository_milestones(repo: str) -> dict[str, str]:
     result = run_gh(
         [
             "api",
             f"repos/{repo}/milestones",
             "--paginate",
-            "--method",
-            "GET",
-            "-f",
-            "state=all",
+            "--method", "GET",
+            "-f", "state=all",
         ]
     )
     milestones = json.loads(result.stdout or "[]")
-    return {milestone["title"] for milestone in milestones}
+    return {normalize(item["title"]): item["title"] for item in milestones}
 
 
-def verify_milestones(repo: str, milestones: list[dict[str, Any]]) -> set[str]:
-    existing = existing_milestone_titles(repo)
-    for milestone in milestones:
-        title = str(milestone["title"])
-
-        if title in existing:
-            print(f"Using existing milestone: {title}")
-            continue
-
-        print(f"Missing milestone warning: {title}")
-    return existing
-
-
-def find_project(repo: str, project_title: str | None) -> dict[str, Any] | None:
-    if not project_title:
+def resolve_milestone(
+    requested: str | None,
+    milestones: dict[str, str],
+) -> str | None:
+    if not requested:
         return None
 
-    owner = repo.split("/", 1)[0]
-    result = run_gh(
-        ["project", "list", "--owner", owner, "--format", "json", "--limit", "100"],
-        check=False,
+    actual = milestones.get(normalize(requested))
+    if actual:
+        return actual
+
+    available = ", ".join(sorted(milestones.values()))
+    raise ValueError(
+        f"Milestone '{requested}' was not found. Available milestones: {available}"
     )
-    if result.returncode != 0:
-        print(f"Project warning: could not list projects for {owner}.")
-        if result.stderr.strip():
-            print(f"  {result.stderr.strip()}")
-        return None
-
-    projects = json.loads(result.stdout or "{}").get("projects", [])
-    for project in projects:
-        if project.get("title") == project_title:
-            print(f"Using project: {project_title}")
-            return {
-                "id": project["id"],
-                "number": str(project["number"]),
-                "owner": owner,
-                "title": project_title,
-            }
-
-    print(f"Project warning: project '{project_title}' was not found for owner '{owner}'.")
-    return None
-
-
-def project_fields(project: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    result = run_gh(
-        [
-            "project",
-            "field-list",
-            project["number"],
-            "--owner",
-            project["owner"],
-            "--format",
-            "json",
-            "--limit",
-            "100",
-        ],
-        check=False,
-    )
-    if result.returncode != 0:
-        print("Project field warning: could not list project fields.")
-        if result.stderr.strip():
-            print(f"  {result.stderr.strip()}")
-        return {}
-
-    fields = json.loads(result.stdout or "{}").get("fields", [])
-    return {normalize(field["name"]): field for field in fields}
-
-
-def extract_project_item_id(output: str) -> str | None:
-    if not output.strip():
-        return None
-
-    try:
-        data = json.loads(output)
-    except json.JSONDecodeError:
-        return None
-
-    if isinstance(data, dict):
-        if isinstance(data.get("id"), str):
-            return data["id"]
-        item = data.get("item")
-        if isinstance(item, dict) and isinstance(item.get("id"), str):
-            return item["id"]
-
-    return None
-
-
-def find_project_item_id(project: dict[str, Any], issue_url: str) -> str | None:
-    for _ in range(3):
-        result = run_gh(
-            [
-                "project",
-                "item-list",
-                project["number"],
-                "--owner",
-                project["owner"],
-                "--format",
-                "json",
-                "--limit",
-                "1000",
-            ],
-            check=False,
-        )
-        if result.returncode == 0:
-            items = json.loads(result.stdout or "{}").get("items", [])
-            for item in items:
-                content = item.get("content") or {}
-                if content.get("url") == issue_url:
-                    return item.get("id")
-        time.sleep(1)
-    return None
-
-
-def add_issue_to_project(project: dict[str, Any] | None, issue_url: str, issue_id: str) -> str | None:
-    if not project:
-        return None
-
-    result = run_gh(
-        [
-            "project",
-            "item-add",
-            project["number"],
-            "--owner",
-            project["owner"],
-            "--url",
-            issue_url,
-            "--format",
-            "json",
-        ],
-        check=False,
-    )
-    if result.returncode != 0:
-        print(
-            f"Project-add warning for {issue_id}: issue was created, but it could not be "
-            f"added to project '{project['title']}'."
-        )
-        if result.stderr.strip():
-            print(f"  {result.stderr.strip()}")
-        return None
-
-    item_id = extract_project_item_id(result.stdout)
-    if item_id:
-        print(f"Added to project: {issue_id}")
-        return item_id
-
-    item_id = find_project_item_id(project, issue_url)
-    if item_id:
-        print(f"Added to project: {issue_id}")
-        return item_id
-
-    print(f"Project-add warning for {issue_id}: issue was added, but project item ID was not found.")
-    return None
-
-
-def single_select_option_id(field: dict[str, Any], value: str) -> str | None:
-    wanted = normalize(value)
-    aliases = {
-        "inprogress": "inprogress",
-        "inreview": "inreview",
-    }
-    wanted = aliases.get(wanted, wanted)
-
-    for option in field.get("options", []):
-        if normalize(option["name"]) == wanted:
-            return option["id"]
-    return None
-
-
-def edit_project_field(
-    project: dict[str, Any],
-    item_id: str,
-    field: dict[str, Any],
-    value: Any,
-    issue_id: str,
-) -> None:
-    if value in (None, ""):
-        return
-
-    args = [
-        "project",
-        "item-edit",
-        "--id",
-        item_id,
-        "--project-id",
-        project["id"],
-        "--field-id",
-        field["id"],
-    ]
-
-    field_type = field.get("type", "")
-    if field_type == "ProjectV2SingleSelectField":
-        option_id = single_select_option_id(field, str(value))
-        if not option_id:
-            print(
-                f"Project field warning for {issue_id}: option '{value}' was not found "
-                f"for field '{field['name']}'."
-            )
-            return
-        args.extend(["--single-select-option-id", option_id])
-    elif normalize(field.get("name", "")).endswith("date"):
-        args.extend(["--date", str(value)])
-    else:
-        args.extend(["--text", str(value)])
-
-    result = run_gh(args, check=False)
-    if result.returncode != 0:
-        print(
-            f"Project field warning for {issue_id}: could not update field "
-            f"'{field['name']}' with value '{value}'."
-        )
-        if result.stderr.strip():
-            print(f"  {result.stderr.strip()}")
-
-
-def update_project_fields(
-    project: dict[str, Any] | None,
-    fields: dict[str, dict[str, Any]],
-    item_id: str | None,
-    issue: dict[str, Any],
-) -> None:
-    if not project or not item_id:
-        return
-
-    field_mapping = {
-        "status": "Status",
-        "start_date": "Start Date",
-        "target_date": "Target Date",
-        "priority": "Priority",
-        "role": "Role",
-        "pic_area": "PIC Area",
-    }
-
-    issue_id = str(issue["id"])
-    for yaml_key, project_field_name in field_mapping.items():
-        field = fields.get(normalize(project_field_name))
-        if not field:
-            print(
-                f"Project field warning for {issue_id}: field '{project_field_name}' "
-                "was not found."
-            )
-            continue
-        edit_project_field(project, item_id, field, issue.get(yaml_key), issue_id)
 
 
 def find_existing_issue(repo: str, issue_id: str) -> dict[str, Any] | None:
     result = run_gh(
         [
-            "issue",
-            "list",
-            "-R",
-            repo,
-            "--state",
-            "all",
-            "--limit",
-            "100",
-            "--search",
-            f"{issue_id} in:title",
-            "--json",
-            "number,title,url",
+            "issue", "list",
+            "-R", repo,
+            "--state", "all",
+            "--limit", "1000",
+            "--search", f'"{issue_id}" in:title',
+            "--json", "number,title,url",
         ]
     )
 
-    issues = json.loads(result.stdout or "[]")
-    for issue in issues:
-        if issue_id in issue.get("title", ""):
+    exact_id = re.compile(
+        rf"(?<![A-Za-z0-9]){re.escape(issue_id)}(?![A-Za-z0-9])",
+        re.IGNORECASE,
+    )
+    for issue in json.loads(result.stdout or "[]"):
+        if exact_id.search(str(issue.get("title", ""))):
             return issue
-
     return None
 
-def rename_existing_issue_if_needed(repo: str, existing_issue: dict[str, Any], new_title: str, issue_id: str) -> None:
-    current_title = existing_issue.get("title", "")
-    issue_number = existing_issue.get("number")
 
-    if not issue_number:
-        print(f"Rename warning for {issue_id}: issue number was not found.")
-        return
+def resolve_assignees(
+    issue: dict[str, Any],
+    aliases: dict[str, str],
+) -> list[str]:
+    raw = issue.get("assignee") or issue.get("assignees")
+    if raw is None:
+        return []
 
-    if current_title == new_title:
-        print(f"Existing issue title already correct: {issue_id}")
-        return
-
-    result = run_gh(
-        [
-            "issue",
-            "edit",
-            str(issue_number),
-            "-R",
-            repo,
-            "--title",
-            new_title,
-        ],
-        check=False,
-    )
-
-    if result.returncode != 0:
-        print(f"Rename warning for {issue_id}: could not update issue title.")
-        if result.stderr.strip():
-            print(f"  {result.stderr.strip()}")
-        return
-
-    print(f"Renamed issue: {issue_id}")
-    print(f"  From: {current_title}")
-    print(f"  To:   {new_title}")
-
-
-def checklist(items: list[str]) -> str:
-    return "\n".join(f"- [ ] {item}" for item in items)
+    values = raw if isinstance(raw, list) else [raw]
+    return [str(aliases.get(str(value), value)) for value in values]
 
 
 def build_issue_body(issue: dict[str, Any]) -> str:
@@ -405,20 +199,18 @@ def build_issue_body(issue: dict[str, Any]) -> str:
     if not isinstance(criteria, list):
         criteria = [str(criteria)]
 
+    checklist = "\n".join(f"- [ ] {item}" for item in criteria)
     return f"""## Issue ID
 {issue.get("id", "")}
 
 ## Description
-{issue.get("description", "").strip()}
+{str(issue.get("description", "")).strip()}
 
 ## Role
 {issue.get("role", "")}
 
 ## PIC Area
 {issue.get("pic_area", "")}
-
-## Status
-{issue.get("status", "")}
 
 ## Priority
 {issue.get("priority", "")}
@@ -430,120 +222,380 @@ def build_issue_body(issue: dict[str, Any]) -> str:
 {issue.get("target_date", "")}
 
 ## Acceptance Criteria
-{checklist([str(item) for item in criteria])}
+{checklist}
 """
 
 
 def create_issue(
     repo: str,
-    project: dict[str, Any] | None,
-    fields: dict[str, dict[str, Any]],
-    existing_labels: set[str],
-    existing_milestones: set[str],
-    assignees: dict[str, Any],
     issue: dict[str, Any],
-) -> None:
+    assignee_aliases: dict[str, str],
+    repository_milestones: dict[str, str],
+    *,
+    dry_run: bool,
+) -> str | None:
     issue_id = str(issue["id"])
     title = str(issue["title"])
-    raw_assignees = issue.get("assignee") or issue.get("assignees")
+    assignees = resolve_assignees(issue, assignee_aliases)
+    milestone = resolve_milestone(issue.get("milestone"), repository_milestones)
 
-    if raw_assignees is None:
-        issue_assignees = []
-    elif isinstance(raw_assignees, list):
-        issue_assignees = raw_assignees
-    else:
-        issue_assignees = [raw_assignees]
+    if dry_run:
+        print(f"[DRY RUN] Create {issue_id}: {title}")
+        return None
 
-    resolved_assignees = []
-    for assignee in issue_assignees:
-        assignee = str(assignee)
-        resolved_assignees.append(str(assignees.get(assignee, assignee)))
-    requested_labels = [str(label) for label in (issue.get("labels") or [])]
-    labels = [label for label in requested_labels if label in existing_labels]
-    for label in requested_labels:
-        if label not in existing_labels:
-            print(f"Missing label warning for {issue_id}: omitting '{label}'.")
-    milestone = issue.get("milestone")
-    if milestone and str(milestone) not in existing_milestones:
-        print(f"Missing milestone warning for {issue_id}: omitting '{milestone}'.")
-        milestone = None
-    body = build_issue_body(issue)
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        delete=False,
+    ) as body_file:
+        body_file.write(build_issue_body(issue))
+        body_path = Path(body_file.name)
 
-    existing_issue = find_existing_issue(repo, issue_id)
-    if existing_issue:
-        rename_existing_issue_if_needed(repo, existing_issue, title, issue_id)
-        print(f"Skipped duplicate issue: {issue_id} — {title}")
+    try:
+        args = [
+            "issue", "create",
+            "-R", repo,
+            "--title", title,
+            "--body-file", str(body_path),
+        ]
+        if assignees:
+            args.extend(["--assignee", ",".join(assignees)])
+        if milestone:
+            args.extend(["--milestone", milestone])
+
+        result = run_gh(args, check=False)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "Issue creation failed.")
+        return result.stdout.strip()
+    finally:
+        body_path.unlink(missing_ok=True)
+
+
+def extract_project_item_id(output: str) -> str | None:
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError:
+        return None
+
+    if isinstance(data, dict):
+        if isinstance(data.get("id"), str):
+            return data["id"]
+        item = data.get("item")
+        if isinstance(item, dict) and isinstance(item.get("id"), str):
+            return item["id"]
+    return None
+
+
+def find_project_item_id(
+    project: dict[str, Any],
+    issue_url: str,
+) -> str | None:
+    for _ in range(4):
+        result = run_gh(
+            [
+                "project", "item-list",
+                project["number"],
+                "--owner", project["owner"],
+                "--format", "json",
+                "--limit", "1000",
+            ],
+            check=False,
+        )
+        if result.returncode == 0:
+            for item in json.loads(result.stdout or "{}").get("items", []):
+                content = item.get("content") or {}
+                if content.get("url") == issue_url:
+                    return item.get("id")
+        time.sleep(1)
+    return None
+
+
+def add_to_project(
+    project: dict[str, Any],
+    issue_url: str,
+) -> str:
+    result = run_gh(
+        [
+            "project", "item-add",
+            project["number"],
+            "--owner", project["owner"],
+            "--url", issue_url,
+            "--format", "json",
+        ],
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            result.stderr.strip() or "Unable to add issue to project."
+        )
+
+    item_id = extract_project_item_id(result.stdout)
+    if item_id:
+        return item_id
+
+    item_id = find_project_item_id(project, issue_url)
+    if item_id:
+        return item_id
+
+    raise RuntimeError(
+        "The issue was added to the project, but its Project item ID was not found."
+    )
+
+
+def find_single_select_option(
+    field_data: dict[str, Any],
+    requested: str,
+) -> str:
+    requested_normalized = normalize(requested)
+    for option in field_data.get("options", []):
+        if normalize(option["name"]) == requested_normalized:
+            return option["id"]
+
+    options = ", ".join(
+        str(option["name"]) for option in field_data.get("options", [])
+    )
+    raise ValueError(
+        f"Option '{requested}' was not found for Project field "
+        f"'{field_data['name']}'. Available options: {options}"
+    )
+
+
+def set_project_field(
+    project: dict[str, Any],
+    item_id: str,
+    field_data: dict[str, Any],
+    value: Any,
+) -> None:
+    if value in (None, ""):
         return
-
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as body_file:
-        body_file.write(body)
-        body_path = body_file.name
 
     args = [
-        "issue",
-        "create",
-        "-R",
-        repo,
-        "--title",
-        title,
-        "--body-file",
-        body_path,
+        "project", "item-edit",
+        "--id", item_id,
+        "--project-id", project["id"],
+        "--field-id", field_data["id"],
     ]
 
-    if resolved_assignees:
-        args.extend(["--assignee", ",".join(resolved_assignees)])
-    if labels:
-        args.extend(["--label", ",".join(str(label) for label in labels)])
-    if milestone:
-        args.extend(["--milestone", str(milestone)])
+    field_type = field_data.get("type", "")
+    if field_type == "ProjectV2SingleSelectField":
+        option_id = find_single_select_option(field_data, str(value))
+        args.extend(["--single-select-option-id", option_id])
+    elif normalize(field_data.get("name", "")).endswith("date"):
+        args.extend(["--date", str(value)])
+    else:
+        args.extend(["--text", str(value)])
+
     result = run_gh(args, check=False)
-
-    Path(body_path).unlink(missing_ok=True)
-
     if result.returncode != 0:
-        print(f"Failed to create issue: {issue_id} — {title}")
-        print(result.stderr.strip())
+        raise RuntimeError(
+            result.stderr.strip()
+            or f"Unable to update Project field '{field_data['name']}'."
+        )
+
+
+def populate_project_fields(
+    project: dict[str, Any],
+    fields: dict[str, dict[str, Any]],
+    item_id: str,
+    issue: dict[str, Any],
+) -> list[str]:
+    mapping = {
+        "status": "Status",
+        "start_date": "Start Date",
+        "target_date": "Target Date",
+        "priority": "Priority",
+        "role": "Role",
+        "pic_area": "PIC Area",
+    }
+    warnings: list[str] = []
+
+    for yaml_key, project_field_name in mapping.items():
+        value = issue.get(yaml_key)
+        if value in (None, ""):
+            continue
+
+        field_data = fields.get(normalize(project_field_name))
+        if not field_data:
+            warnings.append(
+                f"Project field '{project_field_name}' was not found."
+            )
+            continue
+
+        try:
+            set_project_field(project, item_id, field_data, value)
+        except (RuntimeError, ValueError) as exc:
+            warnings.append(str(exc))
+
+    return warnings
+
+
+def issue_number_from_url(issue_url: str) -> int:
+    match = re.search(r"/issues/(\d+)$", issue_url)
+    if not match:
+        raise ValueError(f"Could not read issue number from URL: {issue_url}")
+    return int(match.group(1))
+
+
+def repository_issue_database_id(repo: str, issue_number: int) -> int:
+    result = run_gh(
+        ["api", f"repos/{repo}/issues/{issue_number}", "--jq", ".id"]
+    )
+    return int(result.stdout.strip())
+
+
+def link_to_parent(
+    repo: str,
+    parent_number: int,
+    child_number: int,
+) -> None:
+    child_database_id = repository_issue_database_id(repo, child_number)
+    result = run_gh(
+        [
+            "api",
+            "--method", "POST",
+            "-H", "Accept: application/vnd.github+json",
+            "-H", "X-GitHub-Api-Version: 2022-11-28",
+            f"repos/{repo}/issues/{parent_number}/sub_issues",
+            "-F", f"sub_issue_id={child_database_id}",
+        ],
+        check=False,
+    )
+    if result.returncode == 0:
         return
 
-    created_url = result.stdout.strip()
-    print(f"Created issue: {issue_id} — {title}")
-    if created_url:
-        print(f"  {created_url}")
+    error = result.stderr.strip() or "Unable to create sub-issue relationship."
+    if "already" in error.lower():
+        return
+    raise RuntimeError(error)
 
-    item_id = add_issue_to_project(project, created_url, issue_id) if created_url else None
-    update_project_fields(project, fields, item_id, issue)
+
+def print_summary(summary: RunSummary) -> None:
+    print("\n=== Automation summary ===")
+    print(f"Created:          {len(summary.created)}")
+    print(f"Skipped existing: {len(summary.skipped)}")
+    print(f"Added to project: {len(summary.project_added)}")
+    print(f"Linked to parent: {len(summary.parent_linked)}")
+    print(f"Warnings:         {len(summary.warnings)}")
+    print(f"Failed:           {len(summary.failed)}")
+
+    for label, items in (
+        ("Created", summary.created),
+        ("Skipped existing", summary.skipped),
+        ("Warnings", summary.warnings),
+        ("Failed", summary.failed),
+    ):
+        if items:
+            print(f"\n{label}:")
+            for item in items:
+                print(f"  - {item}")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create GitHub issues from issues.yaml.")
-    parser.add_argument("--yaml", dest="yaml_path", help="Path to issues.yaml")
+    parser = argparse.ArgumentParser(
+        description="Create missing GitHub issues and configure new Project items."
+    )
+    parser.add_argument(
+        "--yaml",
+        default=str(DEFAULT_YAML_PATH),
+        help="Path to issues.yaml.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show missing issues without creating them.",
+    )
     args = parser.parse_args()
 
-    yaml_path = choose_yaml_path(args.yaml_path)
+    yaml_path = Path(args.yaml).expanduser().resolve()
     if not yaml_path.exists():
         print(f"YAML file not found: {yaml_path}")
         return 1
 
-    data = load_yaml_source(yaml_path)
-    repo = str(data["repo"])
-    project_title = data.get("project_title")
+    try:
+        verify_authentication()
+        data = load_yaml(yaml_path)
 
-    print(f"Repository: {repo}")
-    print(f"YAML: {yaml_path}")
-    if project_title:
-        print(f"Project title: {project_title}")
+        repo = str(data["repo"])
+        project_title = str(data["project_title"])
+        assignee_aliases = {
+            str(key): str(value)
+            for key, value in (data.get("assignees") or {}).items()
+        }
+        parent_map = data.get("parents") or {}
 
-    existing_labels = verify_labels(repo, data.get("labels") or [])
-    existing_milestones = verify_milestones(repo, data.get("milestones") or [])
+        project = find_project(repo, project_title)
+        fields = get_project_fields(project)
+        milestones = get_repository_milestones(repo)
+        summary = RunSummary()
 
-    project = find_project(repo, str(project_title) if project_title else None)
-    fields = project_fields(project) if project else {}
-    assignees = data.get("assignees") or {}
-    for issue in data.get("issues") or []:
-        create_issue(repo, project, fields, existing_labels, existing_milestones, assignees, issue)
+        print(f"Repository: {repo}")
+        print(f"Project:    {project_title}")
+        print(f"YAML:       {yaml_path}")
+        print(f"Mode:       {'DRY RUN' if args.dry_run else 'CREATE NEW ONLY'}\n")
 
-    print("Done.")
-    return 0
+        for issue in data.get("issues") or []:
+            issue_id = str(issue["id"])
+
+            existing = find_existing_issue(repo, issue_id)
+            if existing:
+                print(f"Skip existing: {issue_id} — {existing['title']}")
+                summary.skipped.append(issue_id)
+                continue
+
+            try:
+                issue_url = create_issue(
+                    repo,
+                    issue,
+                    assignee_aliases,
+                    milestones,
+                    dry_run=args.dry_run,
+                )
+                if args.dry_run:
+                    continue
+                if not issue_url:
+                    raise RuntimeError("GitHub did not return the new issue URL.")
+
+                summary.created.append(issue_id)
+                print(f"Created: {issue_id}")
+                print(f"  {issue_url}")
+
+                item_id = add_to_project(project, issue_url)
+                summary.project_added.append(issue_id)
+                print(f"Added to project: {issue_id}")
+
+                for warning in populate_project_fields(
+                    project,
+                    fields,
+                    item_id,
+                    issue,
+                ):
+                    message = f"{issue_id}: {warning}"
+                    summary.warnings.append(message)
+                    print(f"Warning: {message}")
+
+                parent_key = str(issue.get("parent", "")).strip()
+                if parent_key:
+                    parent_number = parent_map.get(parent_key)
+                    if not parent_number:
+                        raise ValueError(
+                            f"Parent mapping '{parent_key}' is not defined."
+                        )
+                    child_number = issue_number_from_url(issue_url)
+                    link_to_parent(repo, int(parent_number), child_number)
+                    summary.parent_linked.append(issue_id)
+                    print(f"Linked to parent #{parent_number}: {issue_id}")
+
+            except Exception as exc:
+                message = f"{issue_id}: {exc}"
+                summary.failed.append(message)
+                print(f"Failed: {message}")
+
+        print_summary(summary)
+        return 1 if summary.failed else 0
+
+    except Exception as exc:
+        print(f"Fatal error: {exc}")
+        return 1
 
 
 if __name__ == "__main__":

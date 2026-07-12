@@ -1,605 +1,984 @@
-repo: "estpoz/CVDApp"
-project_title: "CVDApp"
-default_status: "Backlog"
+repo: estpoz/CVDApp
+project_title: CVDApp
+default_status: Backlog
 year: 2026
-
 assignees:
-  steven: "sevet15"
-  stanley: "stanleyy30"
-  farrell: "fsudjatmiko"
-  amanda: "amandamich"
-  heidy: "estpoz"
-
-labels:
-  - name: "design"
-    color: "BFD4F2"
-    description: "Visual design, assets, layout, storyboard, character, and scene work"
-  - name: "frontend"
-    color: "C2E0C6"
-    description: "SwiftUI screen and UI implementation"
-  - name: "logic"
-    color: "F9D0C4"
-    description: "Game rules, validation, scoring, progress tracking, and local storage"
-  - name: "content"
-    color: "FEF2C0"
-    description: "Story text, instruction copy, feedback, dialogue, and wording"
-  - name: "research"
-    color: "D4C5F9"
-    description: "Learning objective, cue validation, concept testing, and research alignment"
-  - name: "testing"
-    color: "FAD8C7"
-    description: "Usability, QA, bug checking, and validation testing"
-  - name: "accessibility"
-    color: "FBCA04"
-    description: "CVD-safe design, sufficient contrast, Dynamic Type, and color filter"
-  - name: "profile"
-    color: "D93F0B"
-    description: "Profile View, progress tracking, cue strength graph, and parent-facing progress"
-  - name: "gameplay"
-    color: "0E8A16"
-    description: "Mini-game mechanics, story gameplay, and replayable practice"
-
+  steven: sevet15
+  stanley: stanleyy30
+  farrell: fsudjatmiko
+  amanda: amandamich
+  heidy: estpoz
 milestones:
-  - title: "M1 — Concept + Foundation"
-    due_date: "2026-07-10"
-    description: "Concept testing, challenge response refinement, lo-fi prototype, technical setup, and project foundation."
-  - title: "M2 — Core Mini-Games"
-    due_date: "2026-07-14"
-    description: "Core implementation of Chapter 1-4 mini-games with basic validation and scoring criteria."
-  - title: "M3 — Full MVP Flow"
-    due_date: "2026-07-17"
-    description: "End-to-end Story 1 flow, final mission, scoring, profile, and practice playground integration."
-  - title: "M4 — MVP Test Ready"
-    due_date: "2026-07-21"
-    description: "Bug fixing, accessibility checks, final dry run, and MVP preparation for usability testing."
-
+- title: M1 - Concept + Foundation
+  due_date: '2026-07-10'
+  description: Concept testing, challenge response refinement, lo-fi prototype, technical setup, and project foundation.
+- title: M2 - Core Build Foundation
+  due_date: '2026-07-15'
+  description: Establish the development foundation and complete the first implementation cycle for the core learning experience,
+    including project architecture, unit testing setup, Xcode Cloud and TestFlight automation, Chapter 1-4 mini-games, shared
+    assets, answer validation, and at least 50% of the core hi-fi wireflow.
+- title: M3 - Integrated Working MVP
+  due_date: '2026-07-21'
+  description: Deliver a functional end-to-end MVP integrating Cerita Utama, Mode Berlatih, chapter progression, feedback,
+    scoring, local progress, accessibility support, final hi-fi wireflow, and feature integration.
+- title: M4 - Usability Validation + Final Delivery
+  due_date: '2026-08-04'
+  description: Validate the integrated MVP through accessibility checks and usability testing, synthesize findings, iterate
+    the working MVP and final prototype, stabilize the final build, and prepare the presentation and app demonstration.
 project_fields:
   status:
-    type: "single_select"
-    options: ["Backlog", "In Progress", "Review", "Done"]
-  start_date:
-    type: "date"
-  target_date:
-    type: "date"
-  priority:
-    type: "single_select"
-    options: ["High", "Medium", "Low"]
-  role:
-    type: "single_select"
-    options: ["Design", "Frontend", "Logic", "Content", "Research", "Testing", "Accessibility", "Project Management"]
-  pic_area:
-    type: "single_select"
+    type: single_select
     options:
-      - "Shape"
-      - "Labels/Symbols/Text"
-      - "Brightness/Contrast"
-      - "Pattern/Texture"
-      - "Story Flow"
-      - "Feedback"
-      - "Navigation"
-      - "Scoring"
-      - "Profile"
-      - "Practice Playground"
-      - "Color Filter"
-      - "Larger Text"
-      - "Sufficient Contrast"
-      - "Assets"
-      - "Testing"
-
+    - Backlog
+    - In Progress
+    - Review
+    - Done
+  start_date:
+    type: date
+  target_date:
+    type: date
+  priority:
+    type: single_select
+    options:
+    - High
+    - Medium
+    - Low
+  role:
+    type: single_select
+    options:
+    - Design
+    - Frontend
+    - Logic
+    - Content
+    - Research
+    - Testing
+    - Accessibility
+    - Project Management
+  pic_area:
+    type: single_select
+    options:
+    - Shape
+    - Labels/Symbols/Text
+    - Brightness/Contrast
+    - Pattern/Texture
+    - Story Flow
+    - Feedback
+    - Navigation
+    - Scoring
+    - Profile
+    - Practice Playground
+    - Color Filter
+    - Larger Text
+    - Sufficient Contrast
+    - Assets
+    - Testing
 issues:
-  - id: "US1-01"
-    title: "[M1] US1-01 — Design Story 1 chapter flow"
-    assignee: "sevet15"
-    labels: ["design", "content"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-06"
-    target_date: "2026-07-09"
-    role: "Design"
-    pic_area: "Story Flow"
-    description: |
-      Create the full chapter flow for Story 1: The Lost Lunchbox Mystery, from Chapter 1 to Chapter 5.
-    acceptance_criteria:
-      - "Need to define the story sequence from Chapter 1 to Chapter 5."
-      - "Need to make each chapter feel connected to Mika finding her lunchbox."
-      - "Need to define the cue focus and mini-game purpose for each chapter."
-      - "Need to keep the story short and child-friendly."
+- id: US1-01
+  title: '[M1] US1-01 — Design Story 1 chapter flow'
+  assignee: sevet15
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-06'
+  target_date: '2026-07-09'
+  role: Design
+  pic_area: Story Flow
+  description: 'Create the full chapter flow for Story 1: The Lost Lunchbox Mystery, from Chapter 1 to Chapter 5.
 
-  - id: "US1-02"
-    title: "[M1] US1-02 — Create character and mascot dialogue guide"
-    assignee: "sevet15"
-    labels: ["design", "content"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-06"
-    target_date: "2026-07-10"
-    role: "Content"
-    pic_area: "Story Flow"
-    description: |
-      Define how Mika and Cluey communicate during the story, including guide dialogue, hints, encouragement, and celebration.
-    acceptance_criteria:
-      - "Need to define Mika's role as the child character in the story."
-      - "Need to define Cluey's role as the visual clue guide."
-      - "Need to create short dialogue for story intro, hints, retries, and success."
-      - "Need to keep wording simple for children aged 5-12."
+    '
+  acceptance_criteria:
+  - Need to define the story sequence from Chapter 1 to Chapter 5.
+  - Need to make each chapter feel connected to Mika finding her lunchbox.
+  - Need to define the cue focus and mini-game purpose for each chapter.
+  - Need to keep the story short and child-friendly.
+  parent: USER_STORY_1
+- id: US1-02
+  title: '[M1] US1-02 — Create character and mascot dialogue guide'
+  assignee: sevet15
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-06'
+  target_date: '2026-07-10'
+  role: Content
+  pic_area: Story Flow
+  description: 'Define how Mika and Cluey communicate during the story, including guide dialogue, hints, encouragement, and
+    celebration.
 
-  - id: "US1-03"
-    title: "[M2] US1-03 — Build Chapter 1 mini-game: Silhouette Match"
-    assignee: "amandamich"
-    labels: ["design", "frontend", "logic", "gameplay"]
-    milestone: "M2 — Core Mini-Games"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-13"
-    target_date: "2026-07-14"
-    role: "Frontend"
-    pic_area: "Shape"
-    description: |
-      Create the Chapter 1 mini-game where children identify Mika's lunchbox using shape.
-    acceptance_criteria:
-      - "Need to show a target silhouette or outline."
-      - "Need to provide multiple object choices."
-      - "Need to allow children to tap the matching object."
-      - "Need to validate the answer based on shape, not color."
-      - "Need to show feedback after the child selects an answer."
-      - "Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star."
+    '
+  acceptance_criteria:
+  - Need to define Mika's role as the child character in the story.
+  - Need to define Cluey's role as the visual clue guide.
+  - Need to create short dialogue for story intro, hints, retries, and success.
+  - Need to keep wording simple for children aged 5-12.
+  parent: USER_STORY_1
+- id: US1-03
+  title: '[M2] US1-03 — Build Chapter 1 mini-game: Silhouette Match'
+  assignee: amandamich
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-14'
+  role: Frontend
+  pic_area: Shape
+  description: 'Create the Chapter 1 mini-game where children identify Mika''s lunchbox using shape.
 
-  - id: "US1-04"
-    title: "[M2] US1-04 — Build Chapter 2 mini-game: Match the Sign"
-    assignee: "fsudjatmiko"
-    labels: ["design", "frontend", "logic", "gameplay"]
-    milestone: "M2 — Core Mini-Games"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-13"
-    target_date: "2026-07-14"
-    role: "Frontend"
-    pic_area: "Labels/Symbols/Text"
-    description: |
-      Create the Chapter 2 mini-game where children match signs, labels, or symbols to the correct place.
-    acceptance_criteria:
-      - "Need to show clear signs, icons, or text labels."
-      - "Need to allow tap-to-match or drag-and-drop interaction."
-      - "Need to validate the answer based on symbol/label meaning."
-      - "Need to make text and icons readable."
-      - "Need to show feedback after the child selects an answer."
-      - "Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star."
+    '
+  acceptance_criteria:
+  - Need to show a target silhouette or outline.
+  - Need to provide multiple object choices.
+  - Need to allow children to tap the matching object.
+  - Need to validate the answer based on shape, not color.
+  - Need to show feedback after the child selects an answer.
+  - Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star.
+  parent: USER_STORY_1
+- id: US1-04
+  title: '[M2] US1-04 — Build Chapter 2 mini-game: Match the Sign'
+  assignee: fsudjatmiko
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-14'
+  role: Frontend
+  pic_area: Labels/Symbols/Text
+  description: 'Create the Chapter 2 mini-game where children match signs, labels, or symbols to the correct place.
 
-  - id: "US1-05"
-    title: "[M2] US1-05 — Build Chapter 3 mini-game: Find the Clear Object"
-    assignee: "stanleyy30"
-    labels: ["design", "frontend", "logic", "gameplay", "accessibility"]
-    milestone: "M2 — Core Mini-Games"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-13"
-    target_date: "2026-07-14"
-    role: "Frontend"
-    pic_area: "Brightness/Contrast"
-    description: |
-      Create the Chapter 3 mini-game where children identify an object using brightness and contrast.
-    acceptance_criteria:
-      - "Need to show objects with different visibility or contrast levels."
-      - "Need to guide children to notice light and dark differences."
-      - "Need to allow children to select the object with the clearest boundary."
-      - "Need to avoid low-contrast red/green-dependent visuals."
-      - "Need to show feedback after the child selects an answer."
-      - "Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star."
+    '
+  acceptance_criteria:
+  - Need to show clear signs, icons, or text labels.
+  - Need to allow tap-to-match or drag-and-drop interaction.
+  - Need to validate the answer based on symbol/label meaning.
+  - Need to make text and icons readable.
+  - Need to show feedback after the child selects an answer.
+  - Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star.
+  parent: USER_STORY_1
+- id: US1-05
+  title: '[M2] US1-05 — Build Chapter 3 mini-game: Find the Clear Object'
+  assignee: stanleyy30
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-14'
+  role: Frontend
+  pic_area: Brightness/Contrast
+  description: 'Create the Chapter 3 mini-game where children identify an object using brightness and contrast.
 
-  - id: "US1-06"
-    title: "[M2] US1-06 — Build Chapter 4 mini-game: Pattern Tracker"
-    assignee: "estpoz"
-    labels: ["design", "frontend", "logic", "gameplay", "accessibility"]
-    milestone: "M2 — Core Mini-Games"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-13"
-    target_date: "2026-07-14"
-    role: "Frontend"
-    pic_area: "Pattern/Texture"
-    description: |
-      Create the Chapter 4 mini-game where children identify the lunchbox using pattern or texture.
-    acceptance_criteria:
-      - "Need to show a target pattern or texture."
-      - "Need to provide multiple object options with different patterns."
-      - "Need to use patterns that are clear, simple, and distinguishable."
-      - "Need to validate the answer based on pattern/texture, not color."
-      - "Need to show feedback after the child selects an answer."
-      - "Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star."
+    '
+  acceptance_criteria:
+  - Need to show objects with different visibility or contrast levels.
+  - Need to guide children to notice light and dark differences.
+  - Need to allow children to select the object with the clearest boundary.
+  - Need to avoid low-contrast red/green-dependent visuals.
+  - Need to show feedback after the child selects an answer.
+  - Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star.
+  parent: USER_STORY_1
+- id: US1-06
+  title: '[M2] US1-06 — Build Chapter 4 mini-game: Pattern Tracker'
+  assignee: estpoz
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-14'
+  role: Frontend
+  pic_area: Pattern/Texture
+  description: 'Create the Chapter 4 mini-game where children identify the lunchbox using pattern or texture.
 
-  - id: "US1-07"
-    title: "[M3] US1-07 — Build Chapter 5 final mission: Find Mika's Lunchbox"
-    assignee: "stanleyy30"
-    labels: ["design", "frontend", "logic", "gameplay"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-16"
-    target_date: "2026-07-17"
-    role: "Frontend"
-    pic_area: "Brightness/Contrast"
-    description: |
-      Create the final story mission where children use all visual cues together to find Mika's lunchbox in the cafeteria.
-    acceptance_criteria:
-      - "Need to include shape, sign, light/contrast, pattern/texture, and context clues."
-      - "Need to present the challenge in a real-life cafeteria scene."
-      - "Need to require children to use more than one clue to identify the correct lunchbox."
-      - "Need to complete the story when the correct lunchbox is found."
-      - "Need to show final celebration feedback."
-      - "Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star."
+    '
+  acceptance_criteria:
+  - Need to show a target pattern or texture.
+  - Need to provide multiple object options with different patterns.
+  - Need to use patterns that are clear, simple, and distinguishable.
+  - Need to validate the answer based on pattern/texture, not color.
+  - Need to show feedback after the child selects an answer.
+  - Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star.
+  parent: USER_STORY_1
+- id: US1-07
+  title: '[M3] US1-07 — Build Chapter 5 final mission: Find Mika''s Lunchbox'
+  assignee: stanleyy30
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-16'
+  target_date: '2026-07-17'
+  role: Frontend
+  pic_area: Brightness/Contrast
+  description: 'Create the final story mission where children use all visual cues together to find Mika''s lunchbox in the
+    cafeteria.
 
-  - id: "US1-08"
-    title: "[M3] US1-08 — Implement feedback and hint system"
-    assignee: "fsudjatmiko"
-    labels: ["frontend", "logic", "content"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-10"
-    target_date: "2026-07-17"
-    role: "Frontend"
-    pic_area: "Feedback"
-    description: |
-      Create immediate feedback and simple hints for correct and incorrect answers.
-    acceptance_criteria:
-      - "Need to show positive feedback when the child answers correctly."
-      - "Need to show helpful retry feedback when the child answers incorrectly."
-      - "Need to mention the visual cue being used in the feedback."
-      - "Need to avoid discouraging wording."
-      - "Need to allow Cluey to give simple hints when needed."
+    '
+  acceptance_criteria:
+  - Need to include shape, sign, light/contrast, pattern/texture, and context clues.
+  - Need to present the challenge in a real-life cafeteria scene.
+  - Need to require children to use more than one clue to identify the correct lunchbox.
+  - Need to complete the story when the correct lunchbox is found.
+  - Need to show final celebration feedback.
+  - Need to define scoring criteria for mini-game 1 star, 2 star, and 3 star.
+  parent: USER_STORY_1
+- id: US1-08
+  title: '[M3] US1-08 — Implement feedback and hint system'
+  assignee: fsudjatmiko
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-10'
+  target_date: '2026-07-17'
+  role: Frontend
+  pic_area: Feedback
+  description: 'Create immediate feedback and simple hints for correct and incorrect answers.
 
-  - id: "US1-09"
-    title: "[M3] US1-09 — Build chapter navigation and story progress"
-    assignee: "amandamich"
-    labels: ["frontend", "logic"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-10"
-    target_date: "2026-07-17"
-    role: "Frontend"
-    pic_area: "Navigation"
-    description: |
-      Implement chapter navigation and completion tracking for Story 1.
-    acceptance_criteria:
-      - "Need to unlock the next chapter after the current chapter is completed."
-      - "Need to show current chapter progress."
-      - "Need to prevent children from skipping directly to the final mission before completing earlier chapters."
-      - "Need to save story progress locally."
+    '
+  acceptance_criteria:
+  - Need to show positive feedback when the child answers correctly.
+  - Need to show helpful retry feedback when the child answers incorrectly.
+  - Need to mention the visual cue being used in the feedback.
+  - Need to avoid discouraging wording.
+  - Need to allow Cluey to give simple hints when needed.
+  parent: USER_STORY_1
+- id: US1-09
+  title: '[M3] US1-09 — Build chapter navigation and story progress'
+  assignee: amandamich
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-10'
+  target_date: '2026-07-17'
+  role: Frontend
+  pic_area: Navigation
+  description: 'Implement chapter navigation and completion tracking for Story 1.
 
-  - id: "US2-01"
-    title: "[M1] US2-01 — Define visual cue learning objectives and chapter mapping"
-    assignee: "sevet15"
-    labels: ["research", "content", "design"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-06"
-    target_date: "2026-07-09"
-    role: "Research"
-    pic_area: "Story Flow"
-    description: |
-      Define what each visual cue teaches and how it appears in Story 1.
-    acceptance_criteria:
-      - "Need to define the learning objective for shape."
-      - "Need to define the learning objective for labels/symbols/text."
-      - "Need to define the learning objective for brightness/contrast."
-      - "Need to define the learning objective for pattern/texture."
-      - "Need to define the learning objective for context in the final mission."
-      - "Need to connect each cue objective to the correct chapter."
+    '
+  acceptance_criteria:
+  - Need to unlock the next chapter after the current chapter is completed.
+  - Need to show current chapter progress.
+  - Need to prevent children from skipping directly to the final mission before completing earlier chapters.
+  - Need to save story progress locally.
+  parent: USER_STORY_1
+- id: US2-01
+  title: '[M1] US2-01 — Define visual cue learning objectives and chapter mapping'
+  assignee: sevet15
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-06'
+  target_date: '2026-07-09'
+  role: Research
+  pic_area: Story Flow
+  description: 'Define what each visual cue teaches and how it appears in Story 1.
 
-  - id: "US2-02"
-    title: "[M2] US2-02 — Create everyday object and scene assets"
-    assignee: "sevet15"
-    labels: ["design", "accessibility"]
-    milestone: "M2 — Core Mini-Games"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-10"
-    target_date: "2026-07-16"
-    role: "Design"
-    pic_area: "Assets"
-    description: |
-      Prepare object and scene assets for Story 1.
-    acceptance_criteria:
-      - "Need to create distinguishable lunchbox and school object assets."
-      - "Need to create sign, label, and icon assets."
-      - "Need to create clear pattern and texture variations."
-      - "Need to create classroom, hallway, locker, playground, and cafeteria scenes."
-      - "Need to keep assets readable and not dependent on red/green differences."
+    '
+  acceptance_criteria:
+  - Need to define the learning objective for shape.
+  - Need to define the learning objective for labels/symbols/text.
+  - Need to define the learning objective for brightness/contrast.
+  - Need to define the learning objective for pattern/texture.
+  - Need to define the learning objective for context in the final mission.
+  - Need to connect each cue objective to the correct chapter.
+  parent: USER_STORY_2
+- id: US2-02
+  title: '[M2] US2-02 — Create everyday object and scene assets'
+  assignee: sevet15
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-10'
+  target_date: '2026-07-16'
+  role: Design
+  pic_area: Assets
+  description: 'Prepare object and scene assets for Story 1.
 
-  - id: "US2-03"
-    title: "[M2] US2-03 — Implement non-color cue answer validation"
-    assignee: "fsudjatmiko"
-    labels: ["logic", "frontend", "gameplay"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-13"
-    target_date: "2026-07-17"
-    role: "Logic"
-    pic_area: "Navigation"
-    description: |
-      Implement answer validation based on the intended non-color cue for each mini-game. Each visual cue PIC should implement their own validation logic, while Farrell coordinates the shared structure.
-    acceptance_criteria:
-      - "Need to validate Chapter 1 answers based on shape."
-      - "Need to validate Chapter 2 answers based on sign/label match."
-      - "Need to validate Chapter 3 answers based on contrast/visibility target."
-      - "Need to validate Chapter 4 answers based on pattern/texture match."
-      - "Need to validate Chapter 5 answers using multiple cue requirements."
+    '
+  acceptance_criteria:
+  - Need to create distinguishable lunchbox and school object assets.
+  - Need to create sign, label, and icon assets.
+  - Need to create clear pattern and texture variations.
+  - Need to create classroom, hallway, locker, playground, and cafeteria scenes.
+  - Need to keep assets readable and not dependent on red/green differences.
+  parent: USER_STORY_2
+- id: US2-03
+  title: '[M2] US2-03 — Implement non-color cue answer validation'
+  assignee: fsudjatmiko
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-17'
+  role: Logic
+  pic_area: Navigation
+  description: 'Implement answer validation based on the intended non-color cue for each mini-game. Each visual cue PIC should
+    implement their own validation logic, while Farrell coordinates the shared structure.
 
-  - id: "US2-04"
-    title: "[M3] US2-04 — Build Practice Playground with replayable cue games"
-    assignee: "estpoz"
-    labels: ["frontend", "logic", "gameplay"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "Medium"
-    start_date: "2026-07-16"
-    target_date: "2026-07-20"
-    role: "Frontend"
-    pic_area: "Practice Playground"
-    description: |
-      Create a Practice Playground that unlocks after Story 1 is completed and allows children to replay cue mini-games.
-    acceptance_criteria:
-      - "Need to unlock Practice Playground only after Story 1 is completed."
-      - "Need to show unlocked mini-games from completed chapters."
-      - "Need to allow children to replay shape, sign, light/contrast, and pattern/texture games."
-      - "Need to keep Practice Playground separate from Story Mode."
+    '
+  acceptance_criteria:
+  - Need to validate Chapter 1 answers based on shape.
+  - Need to validate Chapter 2 answers based on sign/label match.
+  - Need to validate Chapter 3 answers based on contrast/visibility target.
+  - Need to validate Chapter 4 answers based on pattern/texture match.
+  - Need to validate Chapter 5 answers using multiple cue requirements.
+  parent: USER_STORY_2
+- id: US2-04
+  title: '[M3] US2-04 — Build Practice Playground with replayable cue games'
+  assignee: estpoz
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: Medium
+  start_date: '2026-07-16'
+  target_date: '2026-07-20'
+  role: Frontend
+  pic_area: Practice Playground
+  description: 'Create a Practice Playground that unlocks after Story 1 is completed and allows children to replay cue mini-games.
 
-  - id: "US2-05"
-    title: "[M3] US2-05 — Build Profile View for learning progress"
-    assignee: "estpoz"
-    labels: ["frontend", "logic", "design", "profile"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "Medium"
-    start_date: "2026-07-16"
-    target_date: "2026-07-20"
-    role: "Frontend"
-    pic_area: "Profile"
-    description: |
-      Create a parent-facing Profile View that summarizes the child's progress and learning strength.
-    acceptance_criteria:
-      - "Need to show total stars collected."
-      - "Need to show completed chapters or levels."
-      - "Need to show learning strength for each visual cue."
-      - "Need to visualize cue strength using a simple graph or radar chart."
-      - "Need to make the view readable for parents."
+    '
+  acceptance_criteria:
+  - Need to unlock Practice Playground only after Story 1 is completed.
+  - Need to show unlocked mini-games from completed chapters.
+  - Need to allow children to replay shape, sign, light/contrast, and pattern/texture games.
+  - Need to keep Practice Playground separate from Story Mode.
+  parent: USER_STORY_2
+- id: US2-05
+  title: '[M3] US2-05 — Build Profile View for learning progress'
+  assignee: estpoz
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: Medium
+  start_date: '2026-07-16'
+  target_date: '2026-07-20'
+  role: Frontend
+  pic_area: Profile
+  description: 'Create a parent-facing Profile View that summarizes the child''s progress and learning strength.
 
-  - id: "US2-06"
-    title: "[M3] US2-06 — Implement cue scoring system"
-    assignee: "estpoz"
-    labels: ["logic", "profile"]
-    milestone: "M3 — Full MVP Flow"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-10"
-    target_date: "2026-07-16"
-    role: "Logic"
-    pic_area: "Scoring"
-    description: |
-      Create a simple scoring system that calculates learning strength for each cue based on child performance.
-    acceptance_criteria:
-      - "Need to track correct answers per visual cue."
-      - "Need to track stars earned per visual cue."
-      - "Need to update cue strength after each completed mini-game."
-      - "Need to provide cue scores for the Profile View graph."
-      - "Need to save cue scores locally."
+    '
+  acceptance_criteria:
+  - Need to show total stars collected.
+  - Need to show completed chapters or levels.
+  - Need to show learning strength for each visual cue.
+  - Need to visualize cue strength using a simple graph or radar chart.
+  - Need to make the view readable for parents.
+  parent: USER_STORY_2
+- id: US2-06
+  title: '[M3] US2-06 — Implement cue scoring system'
+  assignee: estpoz
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-10'
+  target_date: '2026-07-16'
+  role: Logic
+  pic_area: Scoring
+  description: 'Create a simple scoring system that calculates learning strength for each cue based on child performance.
 
-  - id: "US2-07"
-    title: "[M1] US2-07 — Add CVD-safe visual design rules"
-    assignee: "stanleyy30"
-    labels: ["design", "frontend", "accessibility"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-06"
-    target_date: "2026-07-10"
-    role: "Accessibility"
-    pic_area: "Sufficient Contrast"
-    description: |
-      Apply visual design rules so the app is usable for children with partial red-green CVD.
-    acceptance_criteria:
-      - "Need to use color as decoration, not as the only source of meaning."
-      - "Need to pair color-coded elements with icons, text, shapes, or patterns."
-      - "Need to maintain sufficient luminance contrast."
-      - "Need to use clear and distinguishable patterns."
-      - "Need to avoid red/green-dependent answer states."
+    '
+  acceptance_criteria:
+  - Need to track correct answers per visual cue.
+  - Need to track stars earned per visual cue.
+  - Need to update cue strength after each completed mini-game.
+  - Need to provide cue scores for the Profile View graph.
+  - Need to save cue scores locally.
+  parent: USER_STORY_2
+- id: US2-07
+  title: '[M1] US2-07 — Add CVD-safe visual design rules'
+  assignee: stanleyy30
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-06'
+  target_date: '2026-07-10'
+  role: Accessibility
+  pic_area: Sufficient Contrast
+  description: 'Apply visual design rules so the app is usable for children with partial red-green CVD.
 
-  - id: "US2-08"
-    title: "[M4] US2-08 — Implement in-app color blind filter mode"
-    assignee: "fsudjatmiko"
-    labels: ["frontend", "accessibility"]
-    milestone: "M4 — MVP Test Ready"
-    status: "Backlog"
-    priority: "Medium"
-    start_date: "2026-07-10"
-    target_date: "2026-07-21"
-    role: "Accessibility"
-    pic_area: "Color Filter"
-    description: |
-      Add an in-app color blind filter or color-safe display mode for MVP demonstration.
-    acceptance_criteria:
-      - "Need to provide an in-app toggle for color blind filter mode."
-      - "Need to apply the selected filter consistently across main app screens."
-      - "Need to include at least red-green CVD relevant options, such as protan/deutan or a general red-green safe mode."
-      - "Need to make sure the app still uses icons, labels, contrast, and patterns instead of relying on the filter alone."
+    '
+  acceptance_criteria:
+  - Need to use color as decoration, not as the only source of meaning.
+  - Need to pair color-coded elements with icons, text, shapes, or patterns.
+  - Need to maintain sufficient luminance contrast.
+  - Need to use clear and distinguishable patterns.
+  - Need to avoid red/green-dependent answer states.
+  parent: USER_STORY_2
+- id: US2-08
+  title: '[M4] US2-08 — Implement in-app color blind filter mode'
+  assignee: fsudjatmiko
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: Medium
+  start_date: '2026-07-10'
+  target_date: '2026-07-21'
+  role: Accessibility
+  pic_area: Color Filter
+  description: 'Add an in-app color blind filter or color-safe display mode for MVP demonstration.
 
-  - id: "US2-09"
-    title: "[M4] US2-09 — Support Dynamic Type / Larger Text"
-    assignee: "amandamich"
-    labels: ["frontend", "accessibility"]
-    milestone: "M4 — MVP Test Ready"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-10"
-    target_date: "2026-07-21"
-    role: "Accessibility"
-    pic_area: "Larger Text"
-    description: |
-      Implement text scaling support so key text can follow iPadOS Larger Text settings.
-    acceptance_criteria:
-      - "Need to use scalable SwiftUI text styles where possible."
-      - "Need to avoid fixed text containers that cut off larger text."
-      - "Need to support Dynamic Type for instructions, labels, buttons, and feedback text."
-      - "Need to test main screens with larger text sizes."
+    '
+  acceptance_criteria:
+  - Need to provide an in-app toggle for color blind filter mode.
+  - Need to apply the selected filter consistently across main app screens.
+  - Need to include at least red-green CVD relevant options, such as protan/deutan or a general red-green safe mode.
+  - Need to make sure the app still uses icons, labels, contrast, and patterns instead of relying on the filter alone.
+  parent: USER_STORY_2
+- id: US2-09
+  title: '[M4] US2-09 — Support Dynamic Type / Larger Text'
+  assignee: amandamich
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-10'
+  target_date: '2026-07-21'
+  role: Accessibility
+  pic_area: Larger Text
+  description: 'Implement text scaling support so key text can follow iPadOS Larger Text settings.
 
-  - id: "US2-10"
-    title: "[M4] US2-10 — Check sufficient contrast across main screens"
-    assignee: "stanleyy30"
-    labels: ["design", "testing", "accessibility"]
-    milestone: "M4 — MVP Test Ready"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-17"
-    target_date: "2026-07-21"
-    role: "Accessibility"
-    pic_area: "Sufficient Contrast"
-    description: |
-      Review the app screens to ensure important text, buttons, objects, and interactive elements have sufficient contrast.
-    acceptance_criteria:
-      - "Need to check contrast for text and buttons."
-      - "Need to check contrast between objects and backgrounds."
-      - "Need to check contrast in story scenes and mini-game screens."
-      - "Need to check contrast with color blind filter mode enabled."
-      - "Need to revise visuals that fail contrast checks."
+    '
+  acceptance_criteria:
+  - Need to use scalable SwiftUI text styles where possible.
+  - Need to avoid fixed text containers that cut off larger text.
+  - Need to support Dynamic Type for instructions, labels, buttons, and feedback text.
+  - Need to test main screens with larger text sizes.
+  parent: USER_STORY_2
+- id: US2-10
+  title: '[M4] US2-10 — Check sufficient contrast across main screens'
+  assignee: stanleyy30
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-17'
+  target_date: '2026-07-21'
+  role: Accessibility
+  pic_area: Sufficient Contrast
+  description: 'Review the app screens to ensure important text, buttons, objects, and interactive elements have sufficient
+    contrast.
 
-  - id: "US2-11"
-    title: "[M4] US2-11 — Test cue recognition and accessibility"
-    assignee: "estpoz"
-    labels: ["testing", "research", "accessibility"]
-    milestone: "M4 — MVP Test Ready"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-06"
-    target_date: "2026-07-24"
-    role: "Testing"
-    pic_area: "Testing"
-    description: |
-      Test whether users can understand and complete the cue-based mini-games without relying on color. This issue covers concept testing on 6-7 July and usability testing on 23-24 July.
-    acceptance_criteria:
-      - "Need to test whether users understand each mini-game objective."
-      - "Need to check whether correct answers can be identified without color alone."
-      - "Need to collect notes on confusing visuals, unclear instructions, or low-contrast elements."
-      - "Need to revise visuals or instructions based on testing feedback."
+    '
+  acceptance_criteria:
+  - Need to check contrast for text and buttons.
+  - Need to check contrast between objects and backgrounds.
+  - Need to check contrast in story scenes and mini-game screens.
+  - Need to check contrast with color blind filter mode enabled.
+  - Need to revise visuals that fail contrast checks.
+  parent: USER_STORY_2
+- id: US2-11
+  title: '[M4] US2-11 — Test cue recognition and accessibility'
+  assignee: estpoz
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-06'
+  target_date: '2026-07-24'
+  role: Testing
+  pic_area: Testing
+  description: 'Test whether users can understand and complete the cue-based mini-games without relying on color. This issue
+    covers concept testing on 6-7 July and usability testing on 23-24 July.
 
-  - id: "TEST-01"
-    title: "[M1] TEST-01 — Synthesize concept testing findings"
-    assignee: "estpoz"
-    labels: ["testing", "research"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-08"
-    target_date: "2026-07-08"
-    role: "Testing"
-    pic_area: "Testing"
-    description: |
-      Synthesize the concept testing results into clear findings that can guide the updated challenge response, refined lo-fi prototype, and next design decisions.
-    acceptance_criteria:
-      - "Concept testing notes are reviewed and grouped into key findings."
-      - "User pain points, confusions, and positive feedback are summarized."
-      - "Findings are connected to the app concept and learning flow."
-      - "Actionable recommendations are listed for prototype refinement."
+    '
+  acceptance_criteria:
+  - Need to test whether users understand each mini-game objective.
+  - Need to check whether correct answers can be identified without color alone.
+  - Need to collect notes on confusing visuals, unclear instructions, or low-contrast elements.
+  - Need to revise visuals or instructions based on testing feedback.
+  parent: USER_STORY_2
+- id: TEST-01
+  title: '[M1] TEST-01 — Synthesize concept testing findings'
+  assignee: estpoz
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-08'
+  target_date: '2026-07-08'
+  role: Testing
+  pic_area: Testing
+  description: 'Synthesize the concept testing results into clear findings that can guide the updated challenge response,
+    refined lo-fi prototype, and next design decisions.
 
-  - id: "PM-01"
-    title: "[M1] PM-01 — Update challenge response package"
-    assignee: "estpoz"
-    labels: ["research", "content", "design"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-09"
-    target_date: "2026-07-09"
-    role: "Project Management"
-    pic_area: "Story Flow"
-    description: |
-      Update the challenge response package based on the concept testing synthesis, including the one app statement, milestone direction, and refined lo-fi prototype.
-    acceptance_criteria:
-      - "One app statement is updated and aligned with the current concept."
-      - "Concept testing synthesis is included or referenced."
-      - "Refined lo-fi prototype direction is documented."
-      - "Updated challenge response is ready to be submitted or presented."
+    '
+  acceptance_criteria:
+  - Concept testing notes are reviewed and grouped into key findings.
+  - User pain points, confusions, and positive feedback are summarized.
+  - Findings are connected to the app concept and learning flow.
+  - Actionable recommendations are listed for prototype refinement.
+  parent: PROJECT_MANAGER
+- id: PM-01
+  title: '[M1] PM-01 — Update challenge response package'
+  assignee: estpoz
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-09'
+  target_date: '2026-07-09'
+  role: Project Management
+  pic_area: Story Flow
+  description: 'Update the challenge response package based on the concept testing synthesis, including the one app statement,
+    milestone direction, and refined lo-fi prototype.
 
-  - id: "TECH-01"
-    title: "[M1] TECH-01 — Create development agreement"
-    assignees: ["amandamich", "fsudjatmiko", "stanleyy30", "estpoz"]
-    labels: ["frontend", "logic"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "Medium"
-    start_date: "2026-07-08"
-    target_date: "2026-07-09"
-    role: "Project Management"
-    pic_area: "Navigation"
-    description: |
-      Create the team development agreement so the technical workflow is consistent before implementation starts.
-    acceptance_criteria:
-      - "Git strategy is defined, including branch naming and commit convention."
-      - "Project structure and foldering structure are agreed."
-      - "Naming convention for files, views, models, and components is defined."
-      - "Rules for what to use and not use AI for are documented."
-      - "Team development agreement is accessible to all tech members."
+    '
+  acceptance_criteria:
+  - One app statement is updated and aligned with the current concept.
+  - Concept testing synthesis is included or referenced.
+  - Refined lo-fi prototype direction is documented.
+  - Updated challenge response is ready to be submitted or presented.
+  parent: PROJECT_MANAGER
+- id: TECH-01
+  title: '[M1] TECH-01 — Create development agreement'
+  assignees:
+  - amandamich
+  - fsudjatmiko
+  - stanleyy30
+  - estpoz
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: Medium
+  start_date: '2026-07-08'
+  target_date: '2026-07-09'
+  role: Project Management
+  pic_area: Navigation
+  description: 'Create the team development agreement so the technical workflow is consistent before implementation starts.
 
-  - id: "TECH-02"
-    title: "[M1] TECH-02 — Discuss technical feasibility and tech stack"
-    assignees: ["amandamich", "fsudjatmiko", "stanleyy30", "estpoz"]
-    labels: ["frontend", "logic", "accessibility"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "Low"
-    start_date: "2026-07-07"
-    target_date: "2026-07-07"
-    role: "Project Management"
-    pic_area: "Navigation"
-    description: |
-      Discuss the technical feasibility of the current app concept and confirm the tech stack for MVP development.
-    acceptance_criteria:
-      - "SwiftUI implementation feasibility is discussed."
-      - "MVVM architecture usage is confirmed."
-      - "UserDefaults usage for local progress storage is confirmed."
-      - "Accessibility implementation feasibility is discussed, including Dynamic Type, sufficient contrast, and color filter mode."
-      - "Technical risks or blockers are listed."
+    '
+  acceptance_criteria:
+  - Git strategy is defined, including branch naming and commit convention.
+  - Project structure and foldering structure are agreed.
+  - Naming convention for files, views, models, and components is defined.
+  - Rules for what to use and not use AI for are documented.
+  - Team development agreement is accessible to all tech members.
+  parent: TECH
+- id: TECH-02
+  title: '[M1] TECH-02 — Discuss technical feasibility and tech stack'
+  assignees:
+  - amandamich
+  - fsudjatmiko
+  - stanleyy30
+  - estpoz
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: Low
+  start_date: '2026-07-07'
+  target_date: '2026-07-07'
+  role: Project Management
+  pic_area: Navigation
+  description: 'Discuss the technical feasibility of the current app concept and confirm the tech stack for MVP development.
 
-  - id: "DESIGN-01"
-    title: "[M1] DESIGN-01 — Finalize asset list, app concept, and design guide"
-    assignee: "sevet15"
-    labels: ["design", "content", "accessibility"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-07"
-    target_date: "2026-07-09"
-    role: "Design"
-    pic_area: "Assets"
-    description: |
-      Finalize the required asset list, fixed app concept, and design guide for the MVP.
-    acceptance_criteria:
-      - "Required asset list for Story 1 and main app screens is documented."
-      - "Fixed app concept is clearly defined."
-      - "Color direction is documented with CVD-safe considerations."
-      - "Font direction and typography usage are documented."
-      - "Basic visual style guide is ready to guide hi-fi prototype work."
+    '
+  acceptance_criteria:
+  - SwiftUI implementation feasibility is discussed.
+  - MVVM architecture usage is confirmed.
+  - UserDefaults usage for local progress storage is confirmed.
+  - Accessibility implementation feasibility is discussed, including Dynamic Type, sufficient contrast, and color filter mode.
+  - Technical risks or blockers are listed.
+  parent: TECH
+- id: DESIGN-01
+  title: '[M1] DESIGN-01 — Finalize asset list, app concept, and design guide'
+  assignee: sevet15
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-07'
+  target_date: '2026-07-09'
+  role: Design
+  pic_area: Assets
+  description: 'Finalize the required asset list, fixed app concept, and design guide for the MVP.
 
-  - id: "DESIGN-02"
-    title: "[M1] DESIGN-02 — Gather page-level design references for hi-fi prototype"
-    assignee: "sevet15"
-    labels: ["design", "research"]
-    milestone: "M1 — Concept + Foundation"
-    status: "Backlog"
-    priority: "High"
-    start_date: "2026-07-08"
-    target_date: "2026-07-09"
-    role: "Design"
-    pic_area: "Assets"
-    description: |
-      Gather design references for each important page so the hi-fi prototype has a clear visual direction.
-    acceptance_criteria:
-      - "Design references are gathered for main app pages."
-      - "Design references are gathered for Story Mode pages."
-      - "Design references are gathered for mini-game pages."
-      - "References are organized by page or flow."
-      - "References support the intended child-friendly and CVD-safe visual direction."
+    '
+  acceptance_criteria:
+  - Required asset list for Story 1 and main app screens is documented.
+  - Fixed app concept is clearly defined.
+  - Color direction is documented with CVD-safe considerations.
+  - Font direction and typography usage are documented.
+  - Basic visual style guide is ready to guide hi-fi prototype work.
+  parent: DESIGN
+- id: DESIGN-02
+  title: '[M1] DESIGN-02 — Gather page-level design references for hi-fi prototype'
+  assignee: sevet15
+  milestone: M1 - Concept + Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-08'
+  target_date: '2026-07-09'
+  role: Design
+  pic_area: Assets
+  description: 'Gather design references for each important page so the hi-fi prototype has a clear visual direction.
+
+    '
+  acceptance_criteria:
+  - Design references are gathered for main app pages.
+  - Design references are gathered for Story Mode pages.
+  - Design references are gathered for mini-game pages.
+  - References are organized by page or flow.
+  - References support the intended child-friendly and CVD-safe visual direction.
+  parent: DESIGN
+- id: TECH-03
+  parent: TECH
+  title: '[M2] TECH-03 — Set up project structure and MVVM architecture'
+  assignee: farrell
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-13'
+  role: Project Management
+  pic_area: Navigation
+  description: 'Set up the initial Xcode project structure based on the agreed MVVM architecture and separation-of-concern
+    rules.
+
+    '
+  acceptance_criteria:
+  - The Xcode project builds successfully on the agreed iPadOS target.
+  - The project follows the agreed MVVM architecture.
+  - Folders or groups are prepared for Models, Views, ViewModels, Services, Components, Resources, and Utilities.
+  - Feature-specific files are separated from shared files.
+  - Naming conventions follow the development agreement.
+  - The initial app entry point and navigation structure are available.
+  - The structure is documented so all developers know where to place their files.
+  - The project structure is stable and ready for Xcode Cloud and TestFlight configuration.
+- id: TECH-04
+  parent: TECH
+  title: '[M2] TECH-04 — Configure unit testing infrastructure'
+  assignee: amanda
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-13'
+  role: Testing
+  pic_area: Testing
+  description: 'Prepare the unit testing infrastructure and organize the testing scenarios already defined by the team.
+
+    '
+  acceptance_criteria:
+  - A unit test target is configured and runs successfully.
+  - Test files follow the project naming and folder conventions.
+  - Existing testing scenarios are organized by feature or module.
+  - At least one representative test is implemented successfully.
+  - The team can run tests locally through Xcode.
+  - Testing responsibilities and expected coverage areas are documented.
+  - Failed tests produce clear and readable results.
+- id: TECH-05
+  parent: TECH
+  title: '[M2] TECH-05 — Configure Xcode Cloud and TestFlight automation'
+  assignee: heidy
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-14'
+  target_date: '2026-07-15'
+  role: Project Management
+  pic_area: Testing
+  description: 'Configure App Store Connect, Xcode Cloud, and TestFlight so successful builds from the staging branch are
+    automatically archived and distributed for internal testing.
+
+    '
+  acceptance_criteria:
+  - App Store Connect is configured for the project.
+  - Xcode Cloud is connected to the GitHub repository.
+  - The staging branch is configured as the build source.
+  - Automatic build triggers are configured for the staging branch.
+  - Successful commits to the staging branch generate a cloud build.
+  - Successful cloud builds are uploaded to TestFlight.
+  - Internal testers can access the generated TestFlight builds.
+  - Build versioning and release-note responsibilities are defined.
+  - Failed builds provide accessible logs for debugging.
+  - The automation is verified before feature integration begins.
+- id: DESIGN-03
+  parent: DESIGN
+  title: '[M2] DESIGN-03 — Complete 50% of core hi-fi wireflow'
+  assignee: steven
+  milestone: M2 - Core Build Foundation
+  status: Backlog
+  priority: High
+  start_date: '2026-07-13'
+  target_date: '2026-07-15'
+  role: Design
+  pic_area: Story Flow
+  description: 'Complete at least 50% of the high-fidelity wireflow for Cerita Utama and Mode Berlatih.
+
+    '
+  acceptance_criteria:
+  - At least 50% of the required Cerita Utama and Mode Berlatih screens are completed in hi-fi.
+  - The threshold excludes Statistics because it is the lowest-priority feature.
+  - At least one complete chapter flow is represented.
+  - At least one Mode Berlatih mini-game flow is represented.
+  - Main navigation between Cerita Utama and Mode Berlatih is represented.
+  - Correct, incorrect, hint, retry, and completion states are included where relevant.
+  - The screens follow the agreed visual guide.
+  - Important information does not rely on color alone.
+  - Reusable components are applied consistently.
+- id: DESIGN-04
+  parent: DESIGN
+  title: '[M3] DESIGN-04 — Complete final hi-fi wireflow'
+  assignee: steven
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-16'
+  target_date: '2026-07-20'
+  role: Design
+  pic_area: Story Flow
+  description: 'Complete the final high-fidelity wireflow required for MVP implementation and usability testing.
+
+    '
+  acceptance_criteria:
+  - The complete Cerita Utama flow is represented.
+  - All chapter introductions, activities, feedback states, summaries, and transitions are represented.
+  - The collective learning reflection is represented.
+  - The complete Mode Berlatih flow is represented.
+  - Locked and unlocked practice states are represented.
+  - Statistics is represented at an MVP level.
+  - Empty, retry, error, and completion states are included where relevant.
+  - The prototype is navigable for usability testing.
+  - Assets and reusable components are organized for developer handoff.
+  - The wireflow is consistent with the agreed MVP scope.
+- id: TECH-06
+  parent: TECH
+  title: '[M3] TECH-06 — Integrate feature branches into the working MVP'
+  assignees:
+  - amanda
+  - farrell
+  - stanley
+  - heidy
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-16'
+  target_date: '2026-07-21'
+  role: Project Management
+  pic_area: Navigation
+  description: 'Integrate feature work into a stable end-to-end MVP through the agreed Git workflow. Each feature PIC remains
+    responsible for integrating their own feature.
+
+    '
+  acceptance_criteria:
+  - Each feature PIC integrates their feature into the shared test branch.
+  - Merge conflicts are resolved before merging.
+  - The primary navigation works.
+  - Cerita Utama can be played end-to-end.
+  - Chapter progression works.
+  - Mode Berlatih can be accessed according to the unlock rules.
+  - Feedback and hint states work.
+  - Scores and progress are saved locally.
+  - Statistics displays available progress data at an MVP level.
+  - Accessibility implementation does not block the main journey.
+  - No critical crash blocks the main flow.
+  - The integrated build can be archived.
+- id: PM-02
+  parent: PROJECT_MANAGER
+  title: '[M3] PM-02 — Validate working MVP readiness'
+  assignee: heidy
+  milestone: M3 - Integrated Working MVP
+  status: Backlog
+  priority: High
+  start_date: '2026-07-20'
+  target_date: '2026-07-21'
+  role: Project Management
+  pic_area: Testing
+  description: 'Confirm that the integrated MVP satisfies the agreed functional scope and is ready to enter usability testing
+    preparation.
+
+    '
+  acceptance_criteria:
+  - Cerita Utama is playable from beginning to end.
+  - All planned chapters are included.
+  - Mode Berlatih supports replayable activities.
+  - Chapter and practice progress persist after reopening the app.
+  - Statistics is available at an MVP level.
+  - Dynamic Type support is implemented on primary screens.
+  - The planned color filter or color-safe display mode is implemented.
+  - No placeholder screen blocks the primary flow.
+  - No critical crash blocks the primary flow.
+  - A TestFlight build is available for internal testing.
+  - Known non-critical limitations are documented.
+- id: TEST-02
+  parent: PROJECT_MANAGER
+  title: '[M4] TEST-02 — Prepare usability testing plan'
+  assignee: heidy
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-20'
+  target_date: '2026-07-22'
+  role: Testing
+  pic_area: Testing
+  description: 'Prepare the usability testing plan for evaluating the main learning journey and interaction usability of the
+    MVP.
+
+    '
+  acceptance_criteria:
+  - The usability testing objectives are defined.
+  - The primary research questions are documented.
+  - Participant criteria are documented.
+  - The plan remains valid even if the final participant count changes.
+  - Test tasks cover Cerita Utama.
+  - Test tasks cover Mode Berlatih.
+  - Statistics is included where relevant.
+  - Moderator questions and observation points are prepared.
+  - Consent and ethical requirements are identified.
+  - Required devices and testing setup are listed.
+  - A findings or observation template is prepared.
+- id: TEST-03
+  parent: PROJECT_MANAGER
+  title: '[M4] TEST-03 — Conduct usability testing'
+  assignee: heidy
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-23'
+  target_date: '2026-07-23'
+  role: Testing
+  pic_area: Testing
+  description: 'Conduct the confirmed usability testing sessions using the agreed plan.
+
+    '
+  acceptance_criteria:
+  - All confirmed sessions are conducted.
+  - The agreed testing protocol is followed.
+  - Task completion is observed.
+  - Participant confusion and hesitation are recorded.
+  - Interaction, instruction, and visual issues are documented.
+  - Relevant participant comments are captured.
+  - Session evidence is organized for synthesis.
+  - Critical usability problems are escalated immediately.
+- id: TEST-04
+  parent: PROJECT_MANAGER
+  title: '[M4] TEST-04 — Synthesize usability testing findings'
+  assignee: heidy
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-23'
+  target_date: '2026-07-24'
+  role: Testing
+  pic_area: Testing
+  description: 'Synthesize usability testing results into prioritized and actionable findings for the final iteration.
+
+    '
+  acceptance_criteria:
+  - Findings are grouped into meaningful themes.
+  - Findings identify task-completion problems.
+  - Findings identify confusing interactions or instructions.
+  - Findings identify visual and accessibility issues.
+  - Issues are categorized as critical, major, or minor.
+  - Supporting evidence is connected to important findings.
+  - Recommended changes are documented.
+  - Each action item is mapped to the relevant feature or PIC.
+  - Deferred findings are documented with reasoning.
+  - The synthesis is ready to guide the July 27–28 iteration.
+- id: TECH-07
+  parent: TECH
+  title: '[M4] TECH-07 — Iterate and stabilize MVP from usability findings'
+  assignees:
+  - amanda
+  - farrell
+  - stanley
+  - heidy
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-27'
+  target_date: '2026-07-28'
+  role: Testing
+  pic_area: Testing
+  description: 'Apply prioritized usability testing findings to the working MVP and stabilize the final build.
+
+    '
+  acceptance_criteria:
+  - Critical usability findings are resolved.
+  - Major findings are resolved or explicitly deferred.
+  - Each feature PIC implements fixes for their feature.
+  - Updated features are reintegrated into the shared branch.
+  - Cerita Utama is regression-tested.
+  - Mode Berlatih is regression-tested.
+  - Progress persistence is retested.
+  - Accessibility-related fixes are verified.
+  - Relevant tests are updated where logic changes.
+  - No critical regression remains.
+  - A stable final build can be archived.
+  - Remaining limitations are documented.
+- id: DESIGN-05
+  parent: DESIGN
+  title: '[M4] DESIGN-05 — Finalize iterated prototype'
+  assignee: steven
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-27'
+  target_date: '2026-07-28'
+  role: Design
+  pic_area: Story Flow
+  description: 'Update the final hi-fi prototype based on usability testing findings and align it with the iterated working
+    MVP.
+
+    '
+  acceptance_criteria:
+  - Relevant usability findings are reflected in the prototype.
+  - Revised navigation and interaction states are included.
+  - Revised instructions and feedback are included.
+  - Accessibility-related design fixes are reflected.
+  - The prototype and implemented MVP remain aligned on primary flows.
+  - Any unavoidable differences between prototype and implementation are documented.
+  - Final presentation-ready screens are complete.
+  - Final assets are organized.
+- id: PM-03
+  parent: PROJECT_MANAGER
+  title: '[M4] PM-03 — Prepare presentation and app demo'
+  assignees:
+  - heidy
+  - amanda
+  - farrell
+  - stanley
+  - steven
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-07-27'
+  target_date: '2026-07-31'
+  role: Project Management
+  pic_area: Testing
+  description: 'Prepare the final project presentation and a reliable app demonstration for the challenge response presentation.
+
+    '
+  acceptance_criteria:
+  - The presentation structure is agreed.
+  - The user problem and research findings are explained.
+  - The app concept and learning strategy are explained.
+  - Cerita Utama, Mode Berlatih, and Statistics are presented.
+  - Concept-testing and usability-testing findings are summarized.
+  - Major iterations are shown.
+  - The technical implementation is summarized.
+  - The app demo follows a defined scenario.
+  - Presenter responsibilities are assigned.
+  - A backup prototype or recorded demo is available.
+  - Demo devices and presentation files are prepared.
+  - At least one full rehearsal is completed.
+  - The presentation fits the required duration.
+- id: PM-04
+  parent: PROJECT_MANAGER
+  title: '[M4] PM-04 — Deliver challenge response presentation'
+  assignee: heidy
+  milestone: M4 - Usability Validation + Final Delivery
+  status: Backlog
+  priority: High
+  start_date: '2026-08-03'
+  target_date: '2026-08-04'
+  role: Project Management
+  pic_area: Testing
+  description: 'Finalize and deliver the challenge response presentation and app demonstration.
+
+    '
+  acceptance_criteria:
+  - The final presentation deck is complete.
+  - The final demo build is available.
+  - The deck reflects the latest MVP and prototype.
+  - Research and testing evidence is included.
+  - The team completes a final rehearsal.
+  - Presenter transitions are finalized.
+  - Presentation and backup materials are accessible.
+  - The final challenge response is delivered on August 4.
+parents:
+  USER_STORY_1: 70
+  USER_STORY_2: 71
+  PROJECT_MANAGER: 72
+  DESIGN: 73
+  TECH: 74
+automation:
+  existing_issue_behavior: skip
+  update_existing_issues: false
+  delete_unlisted_issues: false
+  add_existing_to_project: false
