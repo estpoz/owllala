@@ -7,100 +7,72 @@
 
 import Foundation
 
-// MARK: - Game Session Statistics
+// MARK: - Game Statistics
 
-/// Represents the result of one mini-game session.
+/// Stores the accumulated mini-game statistics for one chapter.
 ///
-/// Each completed or abandoned play session produces one `GameStats` value.
-/// Long-term progress is aggregated separately inside `UserStats`.
+/// A chapter has at most one `GameStats` value. The value stores:
+/// - The highest star result earned for the chapter.
+/// - The number of completed game sessions.
+///
+/// Abandoned sessions are not recorded. Main Story and Training Mode update
+/// the same statistics because both modes use the same chapter mini-game.
 struct GameStats: Identifiable, Codable, Hashable, Sendable {
 
-    /// A unique identifier for this individual play session.
-    let id: UUID
-
-    /// The chapter associated with the played mini-game.
+    /// The chapter associated with these statistics.
+    ///
+    /// The chapter identifier also acts as the stable identifier of this model.
     let chapterID: String
 
-    /// The interaction format used during the session.
-    let gameType: GameType
-
-    /// The application mode from which the game was launched.
-    let mode: GameplayMode
-
-    /// The date and time at which the session began.
-    let startedAt: Date
-
-    /// The date and time at which the session ended.
+    /// The highest star result earned for this chapter.
     ///
-    /// This remains `nil` while the session has not been completed.
-    let completedAt: Date?
+    /// The value is always between one and `Chapter.maximumStars`.
+    /// A chapter that has never been completed does not have a `GameStats`
+    /// record.
+    private(set) var bestStars: Int
 
-    /// The total number of questions available in the session.
-    let totalQuestions: Int
-
-    /// The number of questions answered correctly.
-    let correctAnswers: Int
-
-    /// The number of incorrect answer attempts.
-    let wrongAnswers: Int
-
-    /// The number of questions skipped by the learner.
-    let skippedAnswers: Int
-
-    /// The final number of stars awarded for the session.
-    let earnedStars: Int
-
-    /// Indicates whether the learner reached the end of the session.
-    let isCompleted: Bool
-
-    /// The proportion of questions answered correctly.
+    /// The number of times the child has completed this chapter's mini-game.
     ///
-    /// The value is between zero and one. Zero is returned when the session
-    /// contains no questions.
-    var accuracy: Double {
-        guard totalQuestions > 0 else {
-            return 0
-        }
+    /// Abandoned sessions do not increase this value.
+    private(set) var playCount: Int
 
-        return Double(correctAnswers) / Double(totalQuestions)
+    /// Uses the chapter identifier as the stable model identifier.
+    var id: String {
+        chapterID
     }
 
-    /// The elapsed session time, or `nil` when the game has not ended.
-    var duration: TimeInterval? {
-        guard let completedAt else {
-            return nil
-        }
-
-        return completedAt.timeIntervalSince(startedAt)
-    }
-
-    /// Calculates the stars earned from the number of incorrect answers.
-    ///
-    /// Star rules:
-    /// - Three stars: no incorrect answers.
-    /// - Two stars: one incorrect answer.
-    /// - One star: two or more incorrect answers.
-    /// - Zero stars: the game was not completed.
+    /// Creates statistics for a chapter's first completed game.
     ///
     /// - Parameters:
-    ///   - wrongAnswers: The number of incorrect answer attempts.
-    ///   - isCompleted: Whether the learner completed the game.
-    /// - Returns: A star value between zero and three.
-    static func calculateStars(
-        wrongAnswers: Int,
-        isCompleted: Bool
-    ) -> Int {
-        guard isCompleted else {
-            return 0
-        }
+    ///   - chapterID: The stable identifier of the completed chapter.
+    ///   - earnedStars: The stars earned from the completed game.
+    init(
+        chapterID: String,
+        earnedStars: Int
+    ) {
+        precondition(
+            (1...Chapter.maximumStars).contains(earnedStars),
+            "Earned stars must be between 1 and \(Chapter.maximumStars)."
+        )
 
-        switch wrongAnswers {
-        case 0:
-            return 3
-        case 1:
-            return 2
-        default:
-            return 1
-        }
+        self.chapterID = chapterID
+        self.bestStars = earnedStars
+        self.playCount = 1
+    }
+
+    /// Records another completed game for the same chapter.
+    ///
+    /// The play count always increases. The stored star result only changes
+    /// when the new result is higher than the previous best.
+    ///
+    /// - Parameter earnedStars: The stars earned from the completed game.
+    mutating func recordCompletedGame(earnedStars: Int) {
+        precondition(
+            (1...Chapter.maximumStars).contains(earnedStars),
+            "Earned stars must be between 1 and \(Chapter.maximumStars)."
+        )
+
+        bestStars = max(bestStars, earnedStars)
+        playCount += 1
     }
 }

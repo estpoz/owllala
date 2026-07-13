@@ -9,50 +9,60 @@ import Foundation
 
 // MARK: - Chapter
 
-/// Represents one learning chapter in the main story.
+/// Represents one learning chapter inside a story.
 ///
-/// A chapter combines its story presentation, learning competency, reusable
-/// mini-game configuration, and end-of-chapter learning summary.
+/// Each chapter contains:
+/// - A sequence of illustrated story pages.
+/// - One tap-to-select mini-game with one question.
+/// - One learning summary shown on the stage-cleared screen.
 ///
-/// The model contains static chapter content. Completion state and earned stars
-/// are stored in `UserStats`.
+/// The same mini-game is used in both Main Story and Training Mode.
+/// Training Mode skips the story pages and starts directly from the game.
+///
+/// User progress and earned stars are not stored in this model.
+/// They are handled separately through `GameStats` and `UserStats`.
 struct Chapter: Identifiable, Codable, Hashable, Sendable {
 
-    /// A stable identifier used by progress and statistics records.
+    /// The maximum number of stars that can be earned in any chapter.
+    static let maximumStars = 3
+
+    /// A stable identifier used for navigation, progress, and statistics.
+    ///
+    /// Example: `"chapter-shape"`
     let id: String
 
-    /// The identifier of the story that contains this chapter.
-    let storyID: String
-
-    /// The chapter's position in the story sequence.
+    /// The chapter's position within its parent story.
+    ///
+    /// The first chapter should use `1`.
     let order: Int
 
-    /// The title displayed on chapter-selection and gameplay screens.
+    /// The main chapter title displayed in chapter selection and gameplay.
     let title: String
 
     /// Optional supporting text displayed below the chapter title.
     let subtitle: String?
 
-    /// A short description of the chapter's story and learning objective.
+    /// A short explanation of the chapter's story and learning objective.
     let description: String
 
     /// The asset-catalog name of the chapter thumbnail.
     let thumbnailAssetName: String
 
-    /// The non-color visual cue practiced in this chapter.
+    /// The non-color visual cue taught in this chapter.
     let competency: Competency
 
-    /// The ordered storybook pages presented during the chapter.
+    /// The ordered pages displayed before the mini-game in Main Story mode.
+    ///
+    /// Training Mode does not display these pages.
     let storyPages: [StoryPage]
 
-    /// The mini-game content and scoring configuration for this chapter.
+    /// The reusable mini-game configuration for this chapter.
+    ///
+    /// Each chapter currently contains exactly one question.
     let gameConfiguration: GameConfiguration
 
-    /// The learning reflection presented after completing the chapter.
+    /// The chapter-specific content displayed after the game is completed.
     let learningSummary: LearningSummary
-
-    /// The maximum number of stars available in this chapter.
-    let maximumStars: Int
 }
 
 // MARK: - Learning Competency
@@ -60,36 +70,40 @@ struct Chapter: Identifiable, Codable, Hashable, Sendable {
 /// A non-color visual cue that children can use to identify objects.
 enum Competency: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
 
-    /// Identifying an object using its outline or geometric form.
+    /// Identifying objects through outlines and geometric forms.
     case shape
 
-    /// Identifying an object using repeated visual markings or textures.
+    /// Identifying objects through repeated markings, details, or textures.
     case pattern
 
-    /// Distinguishing objects using differences in lightness and contrast.
+    /// Distinguishing objects through differences in lightness and contrast.
     case brightnessContrast
 
-    /// Identifying an object using written labels, symbols, or icons.
+    /// Identifying objects through labels, symbols, signs, or icons.
     case labelSymbol
 
-    /// Identifying an object using its surroundings or expected use.
+    /// Identifying objects through their environment or expected use.
     case context
 
     var id: String {
         rawValue
     }
 
-    /// The Indonesian name displayed in the user interface.
+    /// The fixed Indonesian name displayed in the user interface.
     var displayName: String {
         switch self {
         case .shape:
             return "Bentuk"
+
         case .pattern:
             return "Pola"
+
         case .brightnessContrast:
             return "Terang dan Kontras"
+
         case .labelSymbol:
             return "Label dan Simbol"
+
         case .context:
             return "Konteks"
         }
@@ -98,54 +112,155 @@ enum Competency: String, Codable, CaseIterable, Identifiable, Hashable, Sendable
 
 // MARK: - Story Page
 
-/// Represents one illustrated page in a chapter's storybook sequence.
+/// Represents one illustrated page in a chapter's story sequence.
+///
+/// Each page uses one complete static illustration asset.
+/// Dialogue and speech bubbles are not rendered separately.
+///
+/// The narration is displayed below the illustration and may be supported by
+/// an optional recorded voice-over.
 struct StoryPage: Identifiable, Codable, Hashable, Sendable {
 
-    /// A stable identifier for navigation and page tracking.
+    /// A stable identifier used for page navigation and tracking.
+    ///
+    /// Example: `"chapter-1-page-1"`
     let id: String
 
     /// The page's position within the chapter.
+    ///
+    /// The first page should use `1`.
     let order: Int
 
-    /// The asset-catalog name of the page's background illustration.
-    let backgroundAssetName: String
+    /// The asset-catalog name of the complete page illustration.
+    let illustrationAssetName: String
 
-    /// The optional asset-catalog name of the character illustration.
-    let characterAssetName: String?
+    /// The fixed Indonesian narration displayed below the illustration.
+    let narration: String
 
-    /// The optional name of the character currently speaking.
-    let speakerName: String?
-
-    /// The dialogue displayed in the story's speech area.
-    let dialogue: String
-
-    /// Optional narration displayed separately from character dialogue.
-    let narration: String?
-
-    /// Optional audio-resource name used for spoken narration.
-    let audioAssetName: String?
+    /// The optional audio-resource name used to read the narration aloud.
+    ///
+    /// Use `nil` when the page does not provide voice-over audio.
+    let voiceOverAssetName: String?
 }
 
 // MARK: - Game Configuration
 
-/// Defines the reusable mini-game content associated with a chapter.
+/// Defines the reusable mini-game associated with a chapter.
 ///
-/// The same configuration may be launched from the main-story mode or
-/// training mode.
+/// The same configuration is launched from Main Story and Training Mode.
+/// Each chapter currently contains one tap-to-select question.
 struct GameConfiguration: Codable, Hashable, Sendable {
 
-    /// The interaction format used to present the mini-game.
-    let gameType: GameType
+    /// The single question presented in this chapter's mini-game.
+    let question: GameQuestion
+}
 
-    /// The child-friendly instruction displayed before gameplay begins.
-    let instructions: String
+// MARK: - Game Question
 
-    /// The questions presented during the game session.
-    let questions: [GameQuestion]
+/// Represents one tap-to-select question.
+///
+/// A question always contains text and may optionally include a supporting
+/// image above the answer options.
+///
+/// The child must select the correct answer before continuing. Incorrect
+/// answers remain selectable and each incorrect selection counts as one
+/// wrong attempt.
+struct GameQuestion: Identifiable, Codable, Hashable, Sendable {
 
-    /// The highest number of wrong answers that still earns two stars.
-    let maximumWrongAnswersForTwoStars: Int
+    /// A stable identifier used for gameplay and statistics.
+    ///
+    /// Example: `"chapter-1-question"`
+    let id: String
 
-    /// The highest number of wrong answers that still earns three stars.
-    let maximumWrongAnswersForThreeStars: Int
+    /// The question or instruction displayed to the child.
+    let prompt: String
+
+    /// An optional supporting image displayed with the question.
+    ///
+    /// Use `nil` for text-only questions.
+    let promptImageAssetName: String?
+
+    /// The selectable answers displayed for this question.
+    ///
+    /// Each answer may contain text, an image, or both.
+    let answerOptions: [AnswerOption]
+
+    /// The identifier of the correct answer in `answerOptions`.
+    let correctAnswerID: String
+
+    /// The chapter-specific clue shown after the second wrong attempt.
+    ///
+    /// Only the speech-bubble text is dynamic. The overlay illustration,
+    /// encouragement text, and action button are handled by the reusable
+    /// immediate-feedback component.
+    let hintText: String
+
+    /// Returns the answer option marked as correct.
+    ///
+    /// Returns `nil` when `correctAnswerID` does not match any option.
+    var correctAnswer: AnswerOption? {
+        answerOptions.first { $0.id == correctAnswerID }
+    }
+}
+
+// MARK: - Answer Option
+
+/// Represents one selectable answer in a mini-game question.
+///
+/// An answer can contain:
+/// - Text only.
+/// - An image only.
+/// - Both text and an image.
+///
+/// At least one of `text` or `imageAssetName` should contain a value.
+struct AnswerOption: Identifiable, Codable, Hashable, Sendable {
+
+    /// A stable identifier used to evaluate the selected answer.
+    ///
+    /// Example: `"blue-lunchbox"`
+    let id: String
+
+    /// Optional text displayed inside the answer option.
+    let text: String?
+
+    /// Optional asset-catalog name displayed inside the answer option.
+    let imageAssetName: String?
+
+    /// Indicates whether this option contains displayable content.
+    var hasContent: Bool {
+        let hasText = !(text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        let hasImage = !(imageAssetName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+
+        return hasText || hasImage
+    }
+}
+
+// MARK: - Learning Summary
+
+/// Contains chapter-specific content for the reusable stage-cleared screen.
+///
+/// Layout, star rendering, navigation, and reusable labels are handled by
+/// the `StageCleared` component. This model only stores content that differs
+/// between chapters.
+struct LearningSummary: Codable, Hashable, Sendable {
+
+    /// The short success message displayed after solving the chapter.
+    ///
+    /// Example: `"Lala berhasil menemukan kotak makannya!"`
+    let successMessage: String
+
+    /// The learning reflection explaining the visual cue used in the chapter.
+    ///
+    /// Example: `"Bentuk membantu kita mengenali benda meskipun warnanya sulit dibedakan."`
+    let explanation: String
+
+    /// The asset-catalog name of the main stage-cleared illustration.
+    let mainIllustrationAssetName: String
+
+    /// The asset-catalog names of the visual examples shown in the learning
+    /// summary panel.
+    ///
+    /// The current design uses three example assets, but the array remains
+    /// flexible for future chapter content.
+    let exampleAssetNames: [String]
 }
