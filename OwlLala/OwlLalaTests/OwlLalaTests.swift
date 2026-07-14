@@ -4,18 +4,37 @@
 //
 //  Created by Farrell Sudjatmiko on 13/07/26.
 //
+//  TDD suites written with Swift Testing.
+//  https://developer.apple.com/documentation/testing
+//
+//  These tests exercise the production types that live in the OwlLala app
+//  target (via `@testable import`), not copies defined inside the test target.
+//  Each suite maps to a TDD scenario in TDD.md.
+//
 
 import Foundation
 import Testing
 @testable import OwlLala
 
-struct OwlLalaTests {
+// MARK: - Test Helpers
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-        // Swift Testing Documentation
-        // https://developer.apple.com/documentation/testing
+/// Builds a session of shape questions whose correct answer is `answer-<n>`.
+private func makeSession(questionCount count: Int) -> LearningSession {
+    let questions = (1...count).map { index in
+        VisualCueQuestion(
+            id: "q\(index)",
+            cueType: .shape,
+            correctAnswerID: "answer-\(index)"
+        )
     }
+
+    return LearningSession(questions: questions)
+}
+
+// MARK: - TDD-01: Incorrect Answer Can Be Retried
+
+@Suite("TDD-01 Retryable answers")
+struct RetryableAnswerTests {
 
     @Test func incorrectAnswerKeepsQuestionRetryable() {
         var session = LearningSession(questions: [
@@ -59,9 +78,15 @@ struct OwlLalaTests {
         #expect(retrySession.score == 7)
         #expect(firstAttemptSession.score == 10)
     }
+}
+
+// MARK: - TDD-02: Perfect Session Scores 100 Points And 3 Stars
+
+@Suite("TDD-02 Perfect session scoring")
+struct PerfectSessionScoringTests {
 
     @Test func perfectTenQuestionSessionScoresOneHundredPoints() {
-        var session = LearningSession(questions: Self.makeQuestions(count: 10))
+        var session = makeSession(questionCount: 10)
 
         for question in session.questions {
             _ = session.submitAnswer(question.correctAnswerID, forQuestionID: question.id)
@@ -71,14 +96,20 @@ struct OwlLalaTests {
     }
 
     @Test func perfectTenQuestionSessionAwardsFiveStars() {
-        var session = LearningSession(questions: Self.makeQuestions(count: 10))
+        var session = makeSession(questionCount: 10)
 
         for question in session.questions {
             _ = session.submitAnswer(question.correctAnswerID, forQuestionID: question.id)
         }
 
-        #expect(session.stars == 5)
+        #expect(session.stars == 3)
     }
+}
+
+// MARK: - TDD-03: Correct Non-Color Cue Selection Shows Positive Feedback
+
+@Suite("TDD-03 Non-color cue validation")
+struct NonColorCueValidationTests {
 
     @Test func shapeQuestionValidatesByShape() {
         let question = VisualCueQuestion(
@@ -126,6 +157,12 @@ struct OwlLalaTests {
         #expect(feedback.kind == .positive)
         #expect(feedback.message == "Benar! Kamu hebat mengenali petunjuknya.")
     }
+}
+
+// MARK: - TDD-04: Chapter 5 Unlocks After Four Chapters With Enough Stars
+
+@Suite("TDD-04 Chapter 5 unlock")
+struct ChapterFiveUnlockTests {
 
     @Test func chapterFiveIsLockedBeforeRequiredChaptersAreComplete() {
         let progress = ChildProgress()
@@ -152,6 +189,12 @@ struct OwlLalaTests {
 
         #expect(progress.isChapterFiveUnlocked == true)
     }
+}
+
+// MARK: - TDD-05: Learning Session Progress Is Saved For Parent View
+
+@Suite("TDD-05 Progress persistence")
+struct ProgressPersistenceTests {
 
     @Test func completedSessionSavesProgressRecord() {
         var progress = ChildProgress()
@@ -211,9 +254,15 @@ struct OwlLalaTests {
 
         #expect(try #require(store.loadLatestResult(forChapterID: "chapter-1")) == latest)
     }
+}
+
+// MARK: - TDD-06: Completing All Challenges Shows Result And Unlocks Next Activity
+
+@Suite("TDD-06 Completion and unlock")
+struct CompletionAndUnlockTests {
 
     @Test func sessionIsIncompleteWhileChallengesRemain() {
-        var session = LearningSession(questions: Self.makeQuestions(count: 3))
+        var session = makeSession(questionCount: 3)
 
         _ = session.submitAnswer("answer-1", forQuestionID: "q1")
         _ = session.submitAnswer("answer-2", forQuestionID: "q2")
@@ -222,7 +271,7 @@ struct OwlLalaTests {
     }
 
     @Test func lastCompletedChallengeCompletesSession() {
-        var session = LearningSession(questions: Self.makeQuestions(count: 2))
+        var session = makeSession(questionCount: 2)
 
         _ = session.submitAnswer("answer-1", forQuestionID: "q1")
         _ = session.submitAnswer("answer-2", forQuestionID: "q2")
@@ -231,7 +280,7 @@ struct OwlLalaTests {
     }
 
     @Test func completedSessionShowsResultSummary() throws {
-        var session = LearningSession(questions: Self.makeQuestions(count: 2))
+        var session = makeSession(questionCount: 2)
 
         _ = session.submitAnswer("answer-1", forQuestionID: "q1")
         _ = session.submitAnswer("answer-2", forQuestionID: "q2")
@@ -246,178 +295,5 @@ struct OwlLalaTests {
         progress.recordChapterResult(chapterID: "chapter-1", score: 80, stars: 4)
 
         #expect(progress.isActivityUnlocked(afterChapterID: "chapter-1") == true)
-    }
-
-    private static func makeQuestions(count: Int) -> [VisualCueQuestion] {
-        (1...count).map { index in
-            VisualCueQuestion(
-                id: "q\(index)",
-                cueType: .shape,
-                correctAnswerID: "answer-\(index)"
-            )
-        }
-    }
-}
-
-private enum CueType {
-    case shape
-    case pattern
-    case symbol
-}
-
-private struct VisualCueQuestion: Equatable {
-    let id: String
-    let cueType: CueType
-    let correctAnswerID: String
-    var colorName: String?
-
-    func validates(answerID: String) -> Bool {
-        answerID == correctAnswerID
-    }
-}
-
-private struct LearningSession {
-    let questions: [VisualCueQuestion]
-    private(set) var attemptsByQuestionID: [String: Int] = [:]
-    private(set) var completedQuestionIDs: Set<String> = []
-    private(set) var score = 0
-
-    var isCompleted: Bool {
-        completedQuestionIDs.count == questions.count
-    }
-
-    var stars: Int {
-        guard isCompleted else {
-            return 0
-        }
-
-        let maximumScore = questions.count * 10
-        let accuracy = maximumScore == 0 ? 0 : Double(score) / Double(maximumScore)
-
-        switch accuracy {
-        case 1:
-            return 5
-        case 0.8...:
-            return 4
-        case 0.6...:
-            return 3
-        case 0.4...:
-            return 2
-        default:
-            return 1
-        }
-    }
-
-    var resultSummary: ResultSummary? {
-        guard isCompleted else {
-            return nil
-        }
-
-        return ResultSummary(score: score, stars: stars)
-    }
-
-    mutating func submitAnswer(_ answerID: String, forQuestionID questionID: String) -> Feedback {
-        guard let question = questions.first(where: { $0.id == questionID }) else {
-            return Feedback(isCorrect: false, kind: .tryAgain, message: "Pertanyaan tidak ditemukan.")
-        }
-
-        attemptsByQuestionID[questionID, default: 0] += 1
-
-        guard question.validates(answerID: answerID) else {
-            return Feedback(isCorrect: false, kind: .tryAgain, message: "Coba lagi, perhatikan bentuk atau simbolnya.")
-        }
-
-        completedQuestionIDs.insert(questionID)
-        score += attemptsByQuestionID[questionID] == 1 ? 10 : 7
-
-        return Feedback(
-            isCorrect: true,
-            kind: .positive,
-            message: "Benar! Kamu hebat mengenali petunjuknya."
-        )
-    }
-
-    func isQuestionCompleted(_ questionID: String) -> Bool {
-        completedQuestionIDs.contains(questionID)
-    }
-
-    func isQuestionRetryable(_ questionID: String) -> Bool {
-        questions.contains { $0.id == questionID } && !isQuestionCompleted(questionID)
-    }
-}
-
-private struct Feedback: Equatable {
-    let isCorrect: Bool
-    let kind: FeedbackKind
-    let message: String
-}
-
-private enum FeedbackKind {
-    case positive
-    case tryAgain
-}
-
-private struct ResultSummary: Equatable {
-    let score: Int
-    let stars: Int
-}
-
-private struct SessionResult: Equatable {
-    let chapterID: String
-    let score: Int
-    let stars: Int
-    let isCompleted: Bool
-    let completedAt: Date
-}
-
-private struct ChildProgress {
-    private(set) var records: [SessionResult] = []
-
-    var isChapterFiveUnlocked: Bool {
-        (1...4).allSatisfy { index in
-            bestStarsByChapterID["chapter-\(index)", default: 0] >= 2
-        }
-    }
-
-    private var bestStarsByChapterID: [String: Int] {
-        records.reduce(into: [:]) { result, record in
-            guard record.isCompleted else {
-                return
-            }
-
-            result[record.chapterID] = max(result[record.chapterID, default: 0], record.stars)
-        }
-    }
-
-    mutating func recordChapterResult(chapterID: String, score: Int, stars: Int) {
-        recordSession(SessionResult(
-            chapterID: chapterID,
-            score: score,
-            stars: stars,
-            isCompleted: true,
-            completedAt: Date()
-        ))
-    }
-
-    mutating func recordSession(_ result: SessionResult) {
-        records.append(result)
-    }
-
-    func isActivityUnlocked(afterChapterID chapterID: String) -> Bool {
-        bestStarsByChapterID[chapterID, default: 0] >= 4
-    }
-}
-
-private struct InMemoryProgressStore {
-    private var savedResults: [SessionResult] = []
-
-    mutating func save(_ result: SessionResult) {
-        savedResults.append(result)
-    }
-
-    func loadLatestResult(forChapterID chapterID: String) -> SessionResult? {
-        savedResults
-            .filter { $0.chapterID == chapterID }
-            .max { $0.completedAt < $1.completedAt }
     }
 }
