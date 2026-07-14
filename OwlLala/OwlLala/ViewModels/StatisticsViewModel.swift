@@ -42,68 +42,82 @@ enum StatisticsGuidanceContent {
     static let guidanceItems: [CompetencyGuidance] = [
         CompetencyGuidance(
             competency: .shape,
-            learningSummary: "Anak belajar mengenali benda dari bentuk dan garis luarnya.",
+            learningSummary: "Kemampuan anak dalam mengenali bentuk sudah baik. Anak mampu menggunakan bentuk, outline, dan siluet sebagai petunjuk untuk mengenali objek. Anak sudah cukup mandiri dalam membedakan benda berdasarkan bentuk, tetapi masih perlu latihan pada objek yang bentuknya mirip atau memiliki detail kecil.",
             masteredItems: [
-                "Membedakan benda dengan bentuk berbeda.",
-                "Menggunakan siluet sebagai petunjuk."
+                "Anak mampu mengenali bentuk dasar pada benda sehari-hari.",
+                "Anak dapat mencocokkan siluet dengan objek yang sesuai.",
+                "Anak mampu membedakan benda berwarna mirip berdasarkan bentuk.",
+                "Anak mulai menggunakan bentuk sebagai petunjuk utama sebelum melihat warna."
             ],
             practiceItems: [
-                "Cari benda di rumah yang bentuknya mirip.",
-                "Bandingkan bentuk sebelum melihat warna."
+                "Anak masih perlu latihan membedakan objek dengan bentuk yang hampir sama.",
+                "Anak perlu lebih teliti melihat detail bentuk kecil seperti sisi, ujung, atau lengkungan.",
+                "Anak perlu dilatih menggunakan bentuk bersama petunjuk lain seperti pola, teks, atau kontras."
             ],
-            parentTip: "Ajak anak menyebut bentuk utama sebuah benda sebelum menyebut warnanya."
+            parentTip: "Latih anak mengenali benda dari bentuknya sebelum membahas warna. Gunakan pertanyaan seperti: \"Bentuknya bulat atau kotak?\", \"Panjang atau pendek?\", atau \"Kalau dari bayangannya saja, ini benda apa?\""
         ),
         CompetencyGuidance(
             competency: .pattern,
-            learningSummary: "Anak belajar memakai pola dan tekstur sebagai petunjuk visual.",
+            learningSummary: "Kemampuan anak dalam mengenali pola dan tekstur masih perlu ditingkatkan. Anak sudah mulai memperhatikan pola seperti garis, titik, atau motif sederhana, tetapi masih sering tertukar dan belum konsisten menggunakan pola sebagai petunjuk. Area ini adalah salah satu petunjuk visual non-warna yang perlu lebih sering dilatih.",
             masteredItems: [
-                "Mengenali garis, titik, dan motif berulang.",
-                "Memakai tekstur untuk membedakan objek."
+                "Anak mulai menyadari bahwa benda bisa memiliki pola atau tekstur.",
+                "Anak dapat mengenali pola yang sangat jelas.",
+                "Anak mulai memahami bahwa warna yang mirip bisa dibedakan melalui motif."
             ],
             practiceItems: [
-                "Bandingkan benda polos dan bermotif.",
-                "Cari pola yang berulang pada pakaian atau mainan."
+                "Anak masih perlu banyak latihan mencocokkan pola yang sama.",
+                "Anak masih kesulitan membedakan pola yang mirip.",
+                "Anak masih cenderung menebak saat warna benda terlihat sama.",
+                "Anak perlu lebih teliti melihat detail seperti garis, titik, kotak, dan tekstur permukaan."
             ],
-            parentTip: "Tanyakan pola apa yang terlihat sebelum membantu anak memilih benda."
+            parentTip: "Mulai dari latihan sederhana dengan dua pilihan saja. Gunakan baju, tas, buku, gelas, atau mainan berpola. Tanyakan: \"Mana yang bergaris?\", \"Mana yang bertitik?\", atau \"Motifnya sama atau berbeda?\""
         ),
         CompetencyGuidance(
             competency: .brightnessContrast,
-            learningSummary: "Anak belajar memperhatikan terang, gelap, dan kontras.",
+            learningSummary: "Kemampuan anak dalam membedakan kecerahan dan kontras sudah cukup berkembang. Anak mulai bisa melihat perbedaan terang, gelap, dan objek yang lebih jelas dari background. Namun, kemampuan ini belum kuat pada perbedaan yang halus. Anak masih perlu latihan untuk membedakan shade yang mirip dan objek dengan kontras rendah.",
             masteredItems: [
-                "Membedakan area terang dan gelap.",
-                "Memakai kontras untuk menemukan objek."
+                "Anak mulai dapat membedakan benda yang lebih terang dan lebih gelap.",
+                "Anak dapat menemukan objek yang terlihat lebih jelas dari background.",
+                "Anak mulai memahami bahwa kontras dapat membantu saat warna tidak jelas."
             ],
             practiceItems: [
-                "Cari benda yang terlihat jelas karena kontras.",
-                "Bandingkan gambar dengan tingkat terang berbeda."
+                "Anak masih perlu latihan membedakan shade yang hampir sama.",
+                "Anak masih perlu meningkatkan kemampuan mengenali objek dengan kontras rendah.",
+                "Anak perlu membiasakan diri membandingkan terang-gelap sebelum memilih.",
+                "Anak perlu mengurangi ketergantungan pada warna yang terlihat."
             ],
-            parentTip: "Bantu anak melihat perbedaan terang dan gelap tanpa menebak warna."
+            parentTip: "Latih anak membandingkan benda terang dan gelap di rumah. Tanyakan: \"Mana yang lebih terang?\", \"Mana yang lebih gelap?\", atau \"Mana yang paling jelas terlihat dari background?\" Gunakan senter kecil untuk latihan mencari benda di area redup."
         ),
         CompetencyGuidance(
             competency: .labelSymbol,
-            learningSummary: "Anak belajar membaca label, tulisan, dan simbol sebagai petunjuk.",
+            learningSummary: "Kemampuan anak dalam menggunakan teks dan label sudah berada di tingkat cukup berkembang. Anak sudah mulai memahami bahwa tulisan dapat membantu mengenali benda, tempat, atau arah saat warna tidak jelas. Namun, kemampuan ini belum konsisten. Anak masih perlu latihan agar lebih teliti membaca label dan tidak langsung menebak.",
             masteredItems: [
-                "Memakai ikon untuk mengenali fungsi benda.",
-                "Memperhatikan tulisan atau label sederhana."
+                "Anak sudah mulai mengenali tulisan dan label sederhana.",
+                "Anak dapat menggunakan teks sebagai petunjuk tambahan.",
+                "Anak mulai memahami bahwa tulisan bisa membantu memastikan pilihan."
             ],
             practiceItems: [
-                "Cari simbol pada kemasan atau papan tanda.",
-                "Cocokkan ikon dengan fungsi benda."
+                "Anak masih perlu meningkatkan ketelitian saat membaca label.",
+                "Anak masih perlu latihan menghubungkan tulisan dengan fungsi benda atau tempat.",
+                "Anak masih perlu mengurangi kebiasaan menebak berdasarkan warna, posisi, atau bentuk."
             ],
-            parentTip: "Arahkan anak ke simbol atau label saat warna sulit dibedakan."
+            parentTip: "Latih anak membaca label sederhana di rumah atau tempat umum, seperti nama ruangan, label buku, menu, papan arah, atau kemasan makanan. Minta anak menjawab berdasarkan tulisan, bukan warna."
         ),
         CompetencyGuidance(
             competency: .context,
-            learningSummary: "Anak belajar memakai tempat dan situasi untuk mengenali benda.",
+            learningSummary: "Kemampuan anak dalam memahami simbol dan ikon sudah sangat baik. Anak mampu mengenali simbol umum, memahami maknanya, dan menggunakan ikon sebagai petunjuk visual secara mandiri. Ini menunjukkan bahwa simbol adalah salah satu kekuatan utama anak dalam mengenali informasi tanpa bergantung pada warna.",
             masteredItems: [
-                "Menghubungkan benda dengan lokasi biasanya.",
-                "Menggunakan beberapa petunjuk sekaligus."
+                "Anak mampu mengenali simbol umum dengan sangat baik.",
+                "Anak dapat menghubungkan ikon dengan arti, tempat, atau fungsi.",
+                "Anak mampu mengikuti petunjuk visual seperti panah atau tanda arah.",
+                "Anak dapat menggunakan simbol sebagai petunjuk utama saat warna tidak jelas."
             ],
             practiceItems: [
-                "Tebak benda dari tempat ditemukannya.",
-                "Gabungkan bentuk, pola, label, dan konteks."
+                "Anak dapat mulai dilatih dengan simbol yang lebih kompleks.",
+                "Anak perlu dibiasakan menggunakan simbol di situasi nyata yang lebih ramai.",
+                "Anak dapat dilatih menggabungkan simbol dengan teks, bentuk, dan arah."
             ],
-            parentTip: "Tanyakan di mana benda biasanya dipakai untuk membantu anak menalar jawabannya."
+            parentTip: "Gunakan kemampuan ini dalam kehidupan nyata. Saat di sekolah, mall, rumah sakit, atau restoran, minta anak membaca simbol seperti toilet, kantin, keluar, tangga, lift, atau panah arah."
         )
     ]
 
@@ -117,6 +131,15 @@ enum StatisticsGuidanceContent {
 /// Transforms static chapter content and persisted progress into statistics presentation data.
 @MainActor
 final class StatisticsViewModel: ObservableObject {
+
+    /// The fixed presentation order for the Statistics screen.
+    static let competencyOrder: [Competency] = [
+        .labelSymbol,
+        .pattern,
+        .context,
+        .shape,
+        .brightnessContrast
+    ]
 
     let stories: [Story]
 
@@ -136,12 +159,21 @@ final class StatisticsViewModel: ObservableObject {
     }
 
     var competencyItems: [CompetencyProgressItem] {
-        playableChapters.map { chapter in
-            CompetencyProgressItem(
-                competency: chapter.competency,
-                score: storageService.userStats.competencyScore(for: chapter),
+        Self.competencyOrder.map { competency in
+            if let chapter = playableChapters.first(where: { $0.competency == competency }) {
+                return CompetencyProgressItem(
+                    competency: chapter.competency,
+                    score: storageService.userStats.competencyScore(for: chapter),
+                    maximumScore: 5,
+                    chapterID: chapter.id
+                )
+            }
+
+            return CompetencyProgressItem(
+                competency: competency,
+                score: 0,
                 maximumScore: 5,
-                chapterID: chapter.id
+                chapterID: ""
             )
         }
     }
@@ -174,5 +206,9 @@ final class StatisticsViewModel: ObservableObject {
 
     func guidance(for competency: Competency) -> CompetencyGuidance? {
         StatisticsGuidanceContent.guidance(for: competency)
+    }
+
+    func competencyItem(for competency: Competency) -> CompetencyProgressItem? {
+        competencyItems.first { $0.competency == competency }
     }
 }
