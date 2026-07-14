@@ -20,6 +20,10 @@
 //  • `SettingsOverlay`    — the same settings content as a modal over gameplay.
 //  • `SettingsPanelBody`  — private shared body used by the two settings views
 //                           so they can never drift apart visually.
+//  • `SettingsSlider` /
+//    `SettingsToggle`     — private pure-SwiftUI replacements for the system
+//                           `Slider`/`Toggle`, which are UIKit-backed and would
+//                           vanish under the whole-screen color-vision filter.
 //
 //  WHERE THESE ARE USED
 //  --------------------
@@ -251,6 +255,12 @@ private struct SettingsPanelBody: View {
     @ScaledMetric(relativeTo: .title3) private var labelScale: CGFloat = 1
 
     var body: some View {
+        // NOTE: no `ScrollView`, and the slider/toggle below are custom
+        // SwiftUI-drawn controls (`SettingsSlider`/`SettingsToggle`) instead of
+        // the system `Slider`/`Toggle`. UIKit-backed views can't be rasterized
+        // by shader effects, so keeping this subtree pure-SwiftUI is what lets
+        // the host apply the color-vision filter to the WHOLE screen without
+        // any content disappearing (see `DisplayFilters.swift`).
         VStack(spacing: 0) {
             // Screen/card title.
             Text("Pengaturan")
@@ -258,27 +268,26 @@ private struct SettingsPanelBody: View {
                 .foregroundStyle(.black)
                 .padding(.top, 28)
 
-            ScrollView {
-                // Side-by-side (controls | image) when there's width; stacks
-                // vertically when narrow. `ScrollView` keeps everything
-                // reachable at large text sizes.
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 48) {
-                        controls
-                            .frame(maxWidth: 460, alignment: .leading)
+            // Side-by-side (controls | image) when there's width; stacks
+            // vertically when narrow.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 48) {
+                    controls
+                        .frame(maxWidth: 460, alignment: .leading)
 
-                        previewImage
-                    }
-                    .padding(.horizontal, 56)
-
-                    VStack(alignment: .leading, spacing: 32) {
-                        controls
-                        previewImage
-                    }
-                    .padding(.horizontal, 32)
+                    previewImage
                 }
-                .padding(.top, 44)
+                .padding(.horizontal, 56)
+
+                VStack(alignment: .leading, spacing: 32) {
+                    controls
+                    previewImage
+                }
+                .padding(.horizontal, 32)
             }
+            .padding(.top, 44)
+
+            Spacer(minLength: 16)
 
             // Save action, shared style from `PrimaryActionButton`.
             PrimaryActionButton(title: saveTitle, action: onSave)
@@ -300,17 +309,18 @@ private struct SettingsPanelBody: View {
 
             // Brightness slider, bounded by the Settings model's supported
             // range so the UI can never produce an out-of-range value.
+            // `SettingsSlider` is SwiftUI-drawn so the whole-screen color
+            // filter can rasterize it (a system `Slider` would vanish).
             HStack(spacing: 14) {
                 Image(systemName: "sun.min")
                     .font(.system(size: 20 * labelScale, weight: .semibold))
                     .foregroundStyle(.black)
 
-                Slider(
+                SettingsSlider(
                     value: $brightness,
-                    in: Settings.minimumBackgroundBrightness...Settings.maximumBackgroundBrightness
+                    range: Settings.minimumBackgroundBrightness...Settings.maximumBackgroundBrightness,
+                    accessibilityLabel: "Kecerahan Latar Belakang"
                 )
-                .tint(.blue)
-                .accessibilityLabel("Kecerahan Latar Belakang")
 
                 Image(systemName: "sun.max")
                     .font(.system(size: 26 * labelScale, weight: .semibold))
@@ -318,19 +328,21 @@ private struct SettingsPanelBody: View {
             }
 
             // Color-filter on/off. Turning it off clears any chosen simulation.
+            // `SettingsToggle` is SwiftUI-drawn for the same shader reason.
             HStack(spacing: 16) {
                 Text("Filter Warna")
                     .font(.system(size: 24 * labelScale, weight: .bold))
                     .foregroundStyle(.black)
 
-                Toggle("", isOn: $isFilterEnabled)
-                    .labelsHidden()
-                    .accessibilityLabel("Filter Warna")
-                    .onChange(of: isFilterEnabled) { _, isEnabled in
-                        if !isEnabled {
-                            colorVisionSimulation = nil
-                        }
+                SettingsToggle(
+                    isOn: $isFilterEnabled,
+                    accessibilityLabel: "Filter Warna"
+                )
+                .onChange(of: isFilterEnabled) { _, isEnabled in
+                    if !isEnabled {
+                        colorVisionSimulation = nil
                     }
+                }
             }
             .padding(.top, 6)
 
@@ -396,6 +408,10 @@ private struct SettingsPanelBody: View {
     /// If the asset is missing — or on non-UIKit platforms, e.g. macOS previews —
     /// it falls back to `previewPlaceholder` so the layout never breaks. Framed
     /// at a 3:2 aspect ratio to match the source artwork.
+    ///
+    /// No filter is applied to the image itself: the host wraps the whole
+    /// screen in `colorVisionFilter`, and filtering here too would apply the
+    /// matrix twice and distort the preview.
     @ViewBuilder
     private var previewImage: some View {
         Group {
@@ -436,6 +452,117 @@ private struct SettingsPanelBody: View {
                 .font(.system(size: 44, weight: .regular))
                 .foregroundStyle(.white.opacity(0.85))
         }
+    }
+}
+
+// MARK: - Shader-Safe Controls
+
+/// A pure-SwiftUI slider used instead of the system `Slider`.
+///
+/// The system slider is UIKit-backed (`UISlider`) and disappears when a parent
+/// applies a shader effect like the whole-screen color-vision filter. This one
+/// is drawn entirely with SwiftUI shapes, so it rasterizes (and re-colors)
+/// correctly under `colorVisionFilter`. Supports drag, tap-to-set, and
+/// VoiceOver increment/decrement.
+private struct SettingsSlider: View {
+    /// The value being edited, kept within `range`.
+    @Binding var value: Double
+    /// The allowed value range (e.g. the Settings brightness bounds).
+    let range: ClosedRange<Double>
+    /// Spoken label for VoiceOver.
+    let accessibilityLabel: String
+
+    /// Thumb diameter in points.
+    private let thumbSize: CGFloat = 26
+    /// Track height in points.
+    private let trackHeight: CGFloat = 6
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let travel = max(width - thumbSize, 1)
+            let fraction = (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+
+            ZStack(alignment: .leading) {
+                // Inactive track.
+                Capsule()
+                    .fill(Color(white: 0.85))
+                    .frame(height: trackHeight)
+
+                // Filled (active) portion.
+                Capsule()
+                    .fill(.blue)
+                    .frame(width: thumbSize / 2 + fraction * travel, height: trackHeight)
+
+                // Thumb.
+                Circle()
+                    .fill(.white)
+                    .overlay(Circle().stroke(Color(white: 0.82), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.22), radius: 3, x: 0, y: 1)
+                    .frame(width: thumbSize, height: thumbSize)
+                    .offset(x: fraction * travel)
+            }
+            .frame(maxHeight: .infinity, alignment: .center)
+            .contentShape(Rectangle())
+            // One gesture covers both dragging and tapping anywhere on the track.
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        let tapped = (gesture.location.x - thumbSize / 2) / travel
+                        let clamped = min(max(tapped, 0), 1)
+                        value = range.lowerBound + clamped * (range.upperBound - range.lowerBound)
+                    }
+            )
+        }
+        .frame(height: 32)
+        .accessibilityElement()
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(Int(((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * 100)) persen")
+        .accessibilityAdjustableAction { direction in
+            let step = (range.upperBound - range.lowerBound) / 10
+            switch direction {
+            case .increment:
+                value = min(value + step, range.upperBound)
+            case .decrement:
+                value = max(value - step, range.lowerBound)
+            @unknown default:
+                break
+            }
+        }
+    }
+}
+
+/// A pure-SwiftUI switch used instead of the system `Toggle`.
+///
+/// Same rationale as `SettingsSlider`: the system toggle (`UISwitch`) vanishes
+/// under shader effects, so this one is drawn with SwiftUI shapes to stay
+/// visible — and correctly re-colored — under the whole-screen filter.
+private struct SettingsToggle: View {
+    /// The on/off state being edited.
+    @Binding var isOn: Bool
+    /// Spoken label for VoiceOver.
+    let accessibilityLabel: String
+
+    var body: some View {
+        Button {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.9)) {
+                isOn.toggle()
+            }
+        } label: {
+            Capsule()
+                .fill(isOn ? Color.green : Color(white: 0.85))
+                .frame(width: 58, height: 34)
+                .overlay(alignment: isOn ? .trailing : .leading) {
+                    Circle()
+                        .fill(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
+                        .padding(3)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(isOn ? "Aktif" : "Nonaktif")
+        .accessibilityAddTraits(.isToggle)
     }
 }
 
