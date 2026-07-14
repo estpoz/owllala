@@ -29,6 +29,23 @@
 		D365F995300475C800F0D436 /* OwlLalaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwlLalaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B91B12E13004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				UnitTesting.swift,
+			);
+			target = D365F98A300475C800F0D436 /* OwlLalaTests */;
+		};
+		B91B12E23004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				UnitTesting.swift,
+			);
+			target = D365F994300475C800F0D436 /* OwlLalaUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D365F980300475C800F0D436 /* OwlLala */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -37,6 +54,10 @@
 		};
 		D365F98E300475C800F0D436 /* OwlLalaTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B91B12E13004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaTests" target */,
+				B91B12E23004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaUITests" target */,
+			);
 			path = OwlLalaTests;
 			sourceTree = "<group>";
 		};
