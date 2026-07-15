@@ -26,24 +26,22 @@ import SwiftUI
 
 // MARK: - Settings View (Main Menu)
 
-/// The full-screen settings page. Owns its `SettingsViewModel`, previews the
-/// draft live via `displayAdjustments`, and dismisses itself on save/back.
+/// The full-screen settings page, shown as an in-tree overlay from the main
+/// menu (`MainMenuView` presents it when the `.settings` destination is
+/// selected).
+///
+/// It renders inside the app's single view tree — NOT as a `fullScreenCover` —
+/// so the root `displayAdjustments(for:)` in `ContentView` covers it too, and
+/// changes preview live on every screen at once while editing.
 struct SettingsView: View {
 
-    /// The settings logic; created from the shared storage instance.
-    @StateObject private var viewModel: SettingsViewModel
+    /// The app-wide settings logic, shared through `ContentView` so the root
+    /// can render `activeDisplaySettings` while this page edits the draft.
+    @ObservedObject var viewModel: SettingsViewModel
 
-    /// Dismisses the presentation (`fullScreenCover` from `SettingsButton`).
-    @Environment(\.dismiss) private var dismiss
-
-    /// Creates the page, building its view model from the app's storage.
-    ///
-    /// - Parameter storageService: The app's shared storage instance.
-    init(storageService: StorageService) {
-        _viewModel = StateObject(
-            wrappedValue: SettingsViewModel(storageService: storageService)
-        )
-    }
+    /// Invoked after save/cancel; the host removes this page from the tree
+    /// (e.g. `MainMenuViewModel.clearDestination()`).
+    let onDismiss: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -52,7 +50,7 @@ struct SettingsView: View {
 
             SettingsPanelContent(viewModel: viewModel) {
                 viewModel.save()
-                dismiss()
+                onDismiss()
             }
 
             CircleIconButton(
@@ -60,13 +58,10 @@ struct SettingsView: View {
                 accessibilityLabel: "Kembali"
             ) {
                 viewModel.cancel()
-                dismiss()
+                onDismiss()
             }
             .padding(24)
         }
-        // Live preview: the draft's brightness and filter apply to this whole
-        // screen while editing, so the child sees the effect before saving.
-        .displayAdjustments(for: viewModel.draftSettings)
         .onAppear {
             viewModel.beginEditing()
         }
@@ -378,5 +373,8 @@ struct SettingsToggle: View {
 // MARK: - Preview
 
 #Preview("Settings View") {
-    SettingsView(storageService: StorageService())
+    SettingsView(
+        viewModel: SettingsViewModel(storageService: StorageService()),
+        onDismiss: {}
+    )
 }

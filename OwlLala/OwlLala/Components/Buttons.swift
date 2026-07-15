@@ -6,29 +6,24 @@
 //
 //  OVERVIEW
 //  --------
-//  Small reusable buttons. The settings *content* does not live here anymore:
-//  its logic is in `ViewModels/SettingsViewModel.swift` and its screens are in
+//  Small reusable buttons. The settings *content* does not live here: its
+//  logic is in `ViewModels/SettingsViewModel.swift` and its screens are in
 //  `Views/Settings/SettingsView.swift` (main menu) and
-//  `Views/Settings/SettingsModalView.swift` (gameplay overlay). This file only
-//  provides the entry-point buttons that present those views, plus the two
-//  generic button styles they share.
+//  `Views/Settings/SettingsModalView.swift` (gameplay overlay).
 //
 //  WHAT'S IN THIS FILE
 //  -------------------
-//  • `CircleIconButton`      — round blue icon button (back / close / gear).
-//  • `PrimaryActionButton`   — filled blue "Simpan"-style confirmation button.
-//  • `SettingsButton`        — gear button for the MAIN MENU; presents the
-//                              full-screen `SettingsView`.
-//  • `SettingsOverlayButton` — gear button for GAMEPLAY; presents the
-//                              `SettingsModalView` overlay on a clear cover so
-//                              the game stays visible behind the dimmed card.
+//  • `CircleIconButton`    — round blue icon button (back / close / gear).
+//  • `PrimaryActionButton` — filled blue "Simpan"-style confirmation button.
+//  • `SettingsButton`      — the gear entry point into Settings.
 //
-//  WHERE THESE ARE USED
-//  --------------------
-//  • `SettingsButton` → place on the main menu (e.g. `MainMenuView`).
-//  • `SettingsOverlayButton` → place on the gameplay screens' HUD.
-//  Both need only the shared `StorageService`; each presented view creates its
-//  own `SettingsViewModel` from it.
+//  HOW SETTINGS ARE PRESENTED
+//  --------------------------
+//  `SettingsButton` only *triggers* — the host presents the settings screen as
+//  an in-tree overlay (see `MainMenuView` for the pattern). Presentation must
+//  stay in-tree (no `fullScreenCover`): covers render in a separate layer that
+//  escapes the root `displayAdjustments(for:)` in `ContentView`, which is what
+//  applies brightness and the color filter to every view in the app.
 //
 
 import SwiftUI
@@ -42,8 +37,7 @@ private let primaryBlue = Color(red: 0.02, green: 0.28, blue: 0.70)
 // MARK: - Circle Icon Button
 
 /// A round, blue, filled icon button used for navigation controls — the back
-/// arrow and close (✕) in the settings views, and the gear in the settings
-/// entry buttons below.
+/// arrow and close (✕) in the settings views, and the gear in `SettingsButton`.
 ///
 /// Icon-only by design, so it takes an explicit `accessibilityLabel` rather
 /// than relying on the SF Symbol name. Scales with Dynamic Type.
@@ -102,73 +96,52 @@ struct PrimaryActionButton: View {
     }
 }
 
-// MARK: - Settings Button (Main Menu)
+// MARK: - Settings Button
 
-/// The gear button that opens Settings from the MAIN MENU.
+/// The gear button that opens Settings.
 ///
-/// Self-contained: tapping it presents the full-screen `SettingsView` as a
-/// cover. The host only supplies the shared `StorageService`:
+/// It only reports the tap — the host decides how to present the settings
+/// screen, keeping it inside the app's single view tree so the root display
+/// adjustments cover it. Typical gameplay usage:
 ///
-///     SettingsButton(storageService: storageService)
+///     @State private var isShowingSettings = false
+///
+///     SettingsButton { isShowingSettings = true }
+///
+///     // In the screen's ZStack:
+///     if isShowingSettings {
+///         SettingsModalView(viewModel: settingsViewModel) {
+///             isShowingSettings = false
+///         }
+///     }
+///
+/// (`MainMenuView` drives the same pattern through
+/// `MainMenuViewModel.Destination.settings` instead of local state.)
 struct SettingsButton: View {
 
-    /// The app's shared storage; handed to `SettingsView`, which builds its
-    /// own `SettingsViewModel` from it.
-    let storageService: StorageService
-
-    /// Whether the settings page is currently presented.
-    @State private var isPresentingSettings = false
+    /// Invoked on tap; the host presents the settings screen.
+    let action: () -> Void
 
     var body: some View {
         CircleIconButton(
             systemImageName: "gearshape.fill",
-            accessibilityLabel: "Pengaturan"
-        ) {
-            isPresentingSettings = true
-        }
-        .fullScreenCover(isPresented: $isPresentingSettings) {
-            SettingsView(storageService: storageService)
-        }
-    }
-}
-
-// MARK: - Settings Overlay Button (Gameplay)
-
-/// The gear button that opens the settings overlay DURING GAMEPLAY.
-///
-/// Self-contained like `SettingsButton`, but presents `SettingsModalView` on a
-/// clear full-screen cover, so the modal's own dimmed scrim shows the paused
-/// game behind the card:
-///
-///     SettingsOverlayButton(storageService: storageService)
-struct SettingsOverlayButton: View {
-
-    /// The app's shared storage; handed to `SettingsModalView`, which builds
-    /// its own `SettingsViewModel` from it.
-    let storageService: StorageService
-
-    /// Whether the settings overlay is currently presented.
-    @State private var isPresentingSettings = false
-
-    var body: some View {
-        CircleIconButton(
-            systemImageName: "gearshape.fill",
-            accessibilityLabel: "Pengaturan"
-        ) {
-            isPresentingSettings = true
-        }
-        .fullScreenCover(isPresented: $isPresentingSettings) {
-            SettingsModalView(storageService: storageService)
-                .presentationBackground(.clear)
-        }
+            accessibilityLabel: "Pengaturan",
+            action: action
+        )
     }
 }
 
 // MARK: - Previews
 
-#Preview("Settings Buttons") {
-    HStack(spacing: 40) {
-        SettingsButton(storageService: StorageService())
-        SettingsOverlayButton(storageService: StorageService())
+#Preview("Buttons") {
+    VStack(spacing: 32) {
+        SettingsButton {}
+
+        CircleIconButton(
+            systemImageName: "arrow.left",
+            accessibilityLabel: "Kembali"
+        ) {}
+
+        PrimaryActionButton(title: "Simpan") {}
     }
 }

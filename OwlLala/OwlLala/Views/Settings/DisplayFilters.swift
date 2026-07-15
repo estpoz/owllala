@@ -112,6 +112,47 @@ extension View {
     }
 }
 
+// MARK: - App-Wide Adjustments (Environment-Based)
+
+/// Applies the app's *current* display settings — the draft while the child is
+/// editing, the saved settings otherwise — read from the `SettingsViewModel`
+/// in the SwiftUI environment.
+///
+/// This is what lets ANY view opt in without plumbing: inject the shared view
+/// model once (`.environmentObject(settingsViewModel)`, done at the app root),
+/// then any screen can simply write:
+///
+///     SomeScreen()
+///         .appDisplayAdjustments()
+///
+/// ⚠️ Apply it once per layer (normally at a screen's root). A view already
+/// inside an adjusted ancestor must not apply it again, or the color matrix
+/// runs twice and distorts.
+private struct AppDisplayAdjustments: ViewModifier {
+
+    /// The shared settings logic, injected via `environmentObject`.
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
+    func body(content: Content) -> some View {
+        content.displayAdjustments(for: settingsViewModel.activeDisplaySettings)
+    }
+}
+
+extension View {
+
+    /// Applies the app's current display settings (brightness + color filter)
+    /// to this view, using the `SettingsViewModel` from the environment.
+    ///
+    /// Requires `.environmentObject(_: SettingsViewModel)` to have been
+    /// injected by an ancestor (the app root does this; previews must inject
+    /// their own). See `AppDisplayAdjustments` for usage rules.
+    ///
+    /// - Returns: The view with the app-wide adjustments applied.
+    func appDisplayAdjustments() -> some View {
+        modifier(AppDisplayAdjustments())
+    }
+}
+
 // MARK: - Simulation Matrices
 
 extension ColorVisionSimulation {

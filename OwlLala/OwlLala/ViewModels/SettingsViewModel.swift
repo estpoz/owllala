@@ -53,6 +53,16 @@ final class SettingsViewModel: ObservableObject {
     /// off clears the draft's simulation, which is what actually persists.
     @Published private(set) var isFilterEnabled: Bool
 
+    /// The settings the app should currently RENDER with: the draft while an
+    /// editing session is open (live preview), otherwise the saved settings.
+    ///
+    /// `ContentView` applies `displayAdjustments(for:)` with this value at the
+    /// root of the view tree, which is what makes brightness and the color
+    /// filter apply to every screen in the app at once.
+    var activeDisplaySettings: Settings {
+        isEditing ? draftSettings : savedSettings
+    }
+
     private let storageService: StorageService
     private var cancellables: Set<AnyCancellable> = []
 
