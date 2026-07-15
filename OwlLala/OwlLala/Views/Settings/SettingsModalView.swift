@@ -16,34 +16,39 @@
 //
 //  WHERE IT IS USED
 //  ----------------
-//  Presented by `SettingsOverlayButton` (`Components/Buttons.swift`) from the
-//  gameplay screens. The scrim/card sizing mirrors `ExitConfirmation` so all
-//  in-game modals feel consistent.
+//  Show it as an in-tree overlay from a gameplay screen's `ZStack` — NOT as a
+//  `fullScreenCover` — so the root `displayAdjustments(for:)` in `ContentView`
+//  keeps covering the whole app, and edits preview live on the paused game
+//  behind the card:
+//
+//      ZStack {
+//          GameplayContent(...)
+//          if isShowingSettings {
+//              SettingsModalView(viewModel: settingsViewModel) {
+//                  isShowingSettings = false
+//              }
+//          }
+//      }
+//
+//  The scrim/card sizing mirrors `ExitConfirmation` so all in-game modals feel
+//  consistent.
 //
 
 import SwiftUI
 
 // MARK: - Settings Modal View (Gameplay Overlay)
 
-/// The gameplay settings overlay. Owns its `SettingsViewModel`, previews the
-/// draft live on the card, and dismisses itself on save/close.
+/// The gameplay settings overlay. Presentation only: every control calls into
+/// the shared `SettingsViewModel`, and the host removes the overlay via
+/// `onDismiss`.
 struct SettingsModalView: View {
 
-    /// The settings logic; created from the shared storage instance.
-    @StateObject private var viewModel: SettingsViewModel
+    /// The app-wide settings logic, shared through `ContentView` so the root
+    /// can render `activeDisplaySettings` while this overlay edits the draft.
+    @ObservedObject var viewModel: SettingsViewModel
 
-    /// Dismisses the presentation (`fullScreenCover` from
-    /// `SettingsOverlayButton`).
-    @Environment(\.dismiss) private var dismiss
-
-    /// Creates the overlay, building its view model from the app's storage.
-    ///
-    /// - Parameter storageService: The app's shared storage instance.
-    init(storageService: StorageService) {
-        _viewModel = StateObject(
-            wrappedValue: SettingsViewModel(storageService: storageService)
-        )
-    }
+    /// Invoked after save/close; the host removes this overlay from the tree.
+    let onDismiss: () -> Void
 
     var body: some View {
         // Size the card from the available space, capped for large screens.
@@ -61,7 +66,7 @@ struct SettingsModalView: View {
                 ZStack(alignment: .topLeading) {
                     SettingsPanelContent(viewModel: viewModel) {
                         viewModel.save()
-                        dismiss()
+                        onDismiss()
                     }
 
                     CircleIconButton(
@@ -69,7 +74,7 @@ struct SettingsModalView: View {
                         accessibilityLabel: "Tutup"
                     ) {
                         viewModel.cancel()
-                        dismiss()
+                        onDismiss()
                     }
                     .padding(20)
                 }
@@ -77,9 +82,6 @@ struct SettingsModalView: View {
                 .background(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
-                // Live preview: the draft's adjustments apply to the card while
-                // editing. The game behind keeps the saved settings.
-                .displayAdjustments(for: viewModel.draftSettings)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -96,6 +98,9 @@ struct SettingsModalView: View {
         Color(white: 0.85)
             .ignoresSafeArea()
 
-        SettingsModalView(storageService: StorageService())
+        SettingsModalView(
+            viewModel: SettingsViewModel(storageService: StorageService()),
+            onDismiss: {}
+        )
     }
 }

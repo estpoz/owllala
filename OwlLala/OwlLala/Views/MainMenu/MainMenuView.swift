@@ -9,6 +9,13 @@ import SwiftUI
 
 struct MainMenuView: View {
 
+    /// The app's shared storage; handed to the screens opened from the menu.
+    let storageService: StorageService
+
+    /// The app-wide settings logic (owned by `ContentView`); handed to
+    /// `SettingsView` so the root can render its `activeDisplaySettings`.
+    let settingsViewModel: SettingsViewModel
+
     @StateObject private var viewModel = MainMenuViewModel()
     @Namespace private var owlNamespace
     @State private var isExpanded = false
@@ -91,6 +98,18 @@ struct MainMenuView: View {
             }
         }
         .ignoresSafeArea()
+        // Navigation for the `.settings` destination: selecting "Pengaturan"
+        // lays the full-screen `SettingsView` over the menu IN the same view
+        // tree (not a fullScreenCover), so the root `displayAdjustments` in
+        // `ContentView` keeps applying to it. Save/back clears the destination.
+        // The other destinations are wired here as their screens land.
+        .overlay {
+            if viewModel.destination == .settings {
+                SettingsView(viewModel: settingsViewModel) {
+                    viewModel.clearDestination()
+                }
+            }
+        }
     }
 
     private func title(for destination: MainMenuViewModel.Destination) -> String {
@@ -198,5 +217,10 @@ private struct MainMenuBackground: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    MainMenuView()
+    let storageService = StorageService()
+
+    return MainMenuView(
+        storageService: storageService,
+        settingsViewModel: SettingsViewModel(storageService: storageService)
+    )
 }
