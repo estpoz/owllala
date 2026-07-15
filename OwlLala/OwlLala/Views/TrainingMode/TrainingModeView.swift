@@ -4,35 +4,22 @@ struct TrainingModeView: View {
     @ObservedObject var viewModel: TrainingModeViewModel
     @Environment(\.dismiss) private var dismiss
     
-    // Core structural control parameter to handle the endless infinite looping track
     @State private var virtualIndex: Int = 1002
-    
-    // Explicit title mappings matching chapter selection design rules
-    private let chapterTitles = [
-        "Bentuk Membantu Mika di Kelas",
-        "Ikuti Tanda di Lorong Sekolah",
-        "Cahaya Kecil di Loker Gelap",
-        "Pola Rahasia di Taman Bermain",
-        "Misi Besar di Kantin Sekolah"
-    ]
     
     var body: some View {
         GeometryReader { fullScreenGeo in
             let screenWidth = fullScreenGeo.size.width
             let screenHeight = fullScreenGeo.size.height
             
-            // Dynamic proportional sizing constants mirroring the exact ChapterSelectionView layout
             let nodeDiameter = screenWidth * 0.24
             let titleBoxWidth = nodeDiameter * 1.15
             let titleBoxHeight = screenHeight * 0.12
             
-            // Core Geometry Settings matching ChapterSelectionView exactly
             let startPointY = screenHeight * 0.8
             let peakPointY = screenHeight * 0.5
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             ZStack {
-                // MARK: Background Canvas
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
@@ -43,7 +30,6 @@ struct TrainingModeView: View {
                     .foregroundColor(Color.gray.opacity(0.025))
                     .ignoresSafeArea()
                 
-                // MARK: Navigation Header Layer
                 VStack(spacing: 0) {
                     ZStack {
                         HStack {
@@ -68,10 +54,8 @@ struct TrainingModeView: View {
                     Spacer()
                 }
                 
-                // MARK: Endless Circular Roadmap Track
                 if !viewModel.items.isEmpty {
                     ZStack {
-                        // Dotted road vector path stretching from absolute edge 0 to screenWidth
                         Path { path in
                             path.move(to: CGPoint(x: 0, y: startPointY))
                             path.addQuadCurve(
@@ -81,45 +65,31 @@ struct TrainingModeView: View {
                         }
                         .stroke(Color(red: 0.15, green: 0.15, blue: 0.15), style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [14, 14]))
                         
-                        // Active Node Items
                         ForEach(-1...1, id: \.self) { offset in
                             let targetVirtualIndex = virtualIndex + offset
                             let actualIndex = determineModularIndex(targetVirtualIndex, total: viewModel.items.count)
                             let selectionItem = viewModel.items[actualIndex]
                             
-                            // Horizontal step arrangement mapping slots to Left (-1), Center (0), and Right (+1) columns
                             let currentXPosition = screenWidth * (0.5 + CGFloat(offset) * 0.32)
-                            
-                            // Parametric curve factor t matching horizontal alignment steps
                             let t: CGFloat = 0.5 + CGFloat(offset) * 0.32
-                            
-                            // Explicit Quad Bezier function calculating exact vertical point crossing intersection matching track geometry
                             let baseCurveY = (1 - t) * (1 - t) * startPointY + 2 * (1 - t) * t * controlPointY + t * t * startPointY
-                            
-                            // Adjust slightly down by a baseline fraction to shift circle middle directly over the line vector track
                             let currentYPosition = baseCurveY + (nodeDiameter * 0.20)
                             
-                            // Dimming scale factor: balanced out for a clear visible dim state without transparency loss
                             let calculatedOpacity = offset == 0 ? 1.0 : 0.85
                             
-                            // Mathematical sequencing rules to derive precise Story and Chapter counts dynamically
                             let rawOrder = selectionItem.chapter.order
                             let isComingSoon = rawOrder > 5
                             
-                            // Top Text Mapping: Auto-increments story context once bab sets hit limit 5
                             let labelTitleText = isComingSoon
                                 ? "Cerita 2 : Bab \(rawOrder - 5)"
                                 : "Cerita 1 : Bab \(rawOrder)"
                             
-                            // Bottom Text Mapping: Pulls direct metadata string index or displays Coming Soon
-                            let chapterIndex = rawOrder - 1
                             let finalSubtitleText = isComingSoon
                                 ? "Coming Soon"
-                                : (chapterTitles.indices.contains(chapterIndex) ? chapterTitles[chapterIndex] : "")
+                                : selectionItem.chapter.title
                             
                             VStack(spacing: screenHeight * 0.02) {
                                 ZStack(alignment: .top) {
-                                    // Main circular image thumbnail element housing structure
                                     Circle()
                                         .fill(Color(red: 0.0, green: 0.227, blue: 0.655))
                                         .frame(width: nodeDiameter, height: nodeDiameter)
@@ -138,7 +108,6 @@ struct TrainingModeView: View {
                                     .offset(x: 0, y: (nodeDiameter * 0.07) / 2)
                                     .clipShape(Circle())
                                     
-                                    // Padlock protection container matching user progression states and coming soon cap
                                     if !selectionItem.isUnlocked || isComingSoon {
                                         Circle()
                                             .fill(Color.black.opacity(0.3))
@@ -154,7 +123,6 @@ struct TrainingModeView: View {
                                             .offset(y: nodeDiameter * 0.32)
                                     }
                                     
-                                    // Floating stars score row with comfortable padding clearance
                                     HStack(spacing: 6) {
                                         ForEach(0..<3) { starIndex in
                                             Image(systemName: starIndex < selectionItem.bestStars ? "star.fill" : "star")
@@ -171,7 +139,6 @@ struct TrainingModeView: View {
                                     }
                                 }
                                 
-                                // Custom text info plates mapped underneath bubbles
                                 VStack(spacing: 4) {
                                     Text(labelTitleText)
                                         .font(.system(size: screenWidth * 0.016, weight: .bold, design: .default))
@@ -217,8 +184,6 @@ struct TrainingModeView: View {
         .navigationBarHidden(true)
     }
     
-    // MARK: - Helper Methods
-    
     private func determineModularIndex(_ index: Int, total: Int) -> Int {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
@@ -229,59 +194,40 @@ struct TrainingModeView: View {
     }
 }
 
-// MARK: - SwiftUI Preview Setup Container
-
 struct TrainingModePreviewContainer: View {
     let viewModel: TrainingModeViewModel
     
     init() {
-        // Build 6 items to verify active state text parsing loops and coming soon states cleanly
+        let titles = [
+            "Bentuk Membantu Mika di Kelas",
+            "Ikuti Tanda di Lorong Sekolah",
+            "Cahaya Kecil di Loker Gelap",
+            "Pola Rahasia di Taman Bermain",
+            "Misi Besar di Kantin Sekolah",
+            "Coming Soon"
+        ]
+        
         let mockChapters = (1...6).map { index -> Chapter in
-            let competency: Competency = [.shape, .labelSymbol, .brightnessContrast, .pattern, .context, .shape][index - 1]
-            return Chapter(
+            Chapter(
                 id: "chapter-\(index)",
                 order: index,
-                title: "Bab \(index)",
+                title: titles[index - 1],
                 subtitle: nil,
-                description: "Deskripsi bab \(index)",
+                description: "",
                 thumbnailAssetName: "",
-                competency: competency,
+                competency: .shape,
                 storyPages: [],
-                gameConfiguration: GameConfiguration(
-                    question: GameQuestion(id: "q\(index)", prompt: "Pertanyaan \(index)", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")
-                ),
+                gameConfiguration: GameConfiguration(question: GameQuestion(id: "q\(index)", prompt: "", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
                 learningSummary: LearningSummary(successMessage: "", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
             )
         }
-        
-        let mockStory = Story(
-            id: "story-1",
-            order: 1,
-            title: "Cerita 1",
-            subtitle: "Mode Berlatih",
-            description: "",
-            coverAssetName: "",
-            availability: .available,
-            chapters: mockChapters,
-            completionSummary: nil
-        )
+        let mockStory = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Mode Berlatih", description: "", coverAssetName: "", availability: .available, chapters: mockChapters, completionSummary: nil)
         
         let previewSuiteName = "owlLala.preview.training.suite.\(UUID().uuidString)"
         let volatileDefaults = UserDefaults(suiteName: previewSuiteName) ?? .standard
+        let storage = StorageService(firstChapterID: "chapter-1", userDefaults: volatileDefaults)
         
-        var initialStats = UserStats(firstChapterID: "chapter-1")
-        initialStats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
-        initialStats.unlockChapter("chapter-2")
-        initialStats.recordCompletedGame(chapterID: "chapter-2", earnedStars: 2)
-        initialStats.unlockChapter("chapter-3")
-        
-        if let encodedStats = try? JSONEncoder().encode(initialStats) {
-            volatileDefaults.set(encodedStats, forKey: "owlLala.userStats")
-        }
-        
-        let mockStorage = StorageService(firstChapterID: "chapter-1", userDefaults: volatileDefaults)
-        
-        self.viewModel = TrainingModeViewModel(story: mockStory, storageService: mockStorage)
+        self.viewModel = TrainingModeViewModel(story: mockStory, storageService: storage)
     }
     
     var body: some View {

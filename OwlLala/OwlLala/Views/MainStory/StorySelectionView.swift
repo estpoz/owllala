@@ -1,10 +1,3 @@
-//
-//  StorySelectionView.swift
-//  OwlLala
-//
-//  Created by Farrell Sudjatmiko on 13/07/26.
-//
-
 import SwiftUI
 
 struct StorySelectionView: View {
@@ -13,20 +6,16 @@ struct StorySelectionView: View {
     
     var body: some View {
         GeometryReader { fullScreenGeo in
-            // Capture overall screen context metrics to create responsive ratios
             let screenWidth = fullScreenGeo.size.width
             let screenHeight = fullScreenGeo.size.height
             
-            // Proportional layout scaling factors
-            let bookWidth = screenWidth * 0.22  // Scales book elements perfectly across display tracking
-            let bookHeight = bookWidth * 1.314  // Maintains the explicit custom book aspect ratio
+            let bookWidth = screenWidth * 0.22
+            let bookHeight = bookWidth * 1.314
             
             ZStack {
-                // MARK: Background Layer
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
-                // Background Decorative Asset Grid Track
                 Image(systemName: "square.dashed")
                     .resizable()
                     .scaledToFill()
@@ -34,10 +23,7 @@ struct StorySelectionView: View {
                     .foregroundColor(Color.gray.opacity(0.025))
                     .ignoresSafeArea()
                 
-                // MARK: Interface Layout Elements
                 VStack(spacing: 0) {
-                    
-                    // Top Header Bar Architecture
                     ZStack {
                         HStack {
                             Button(action: { dismiss() }) {
@@ -60,7 +46,6 @@ struct StorySelectionView: View {
                     
                     Spacer(minLength: 0)
                     
-                    // Horizontal Grid Row Arrangement
                     HStack(spacing: screenWidth * 0.045) {
                         ForEach(viewModel.items) { item in
                             StoryBookView(
@@ -83,8 +68,6 @@ struct StorySelectionView: View {
     }
 }
 
-// MARK: - Subviews
-
 struct StoryBookView: View {
     let item: StorySelectionItem
     let width: CGFloat
@@ -95,12 +78,10 @@ struct StoryBookView: View {
         Button(action: onTap) {
             VStack(spacing: 0) {
                 ZStack(alignment: .top) {
-                    // Base Outer Book Silhouette Dimensions
                     RoundedRectangle(cornerRadius: width * 0.08)
                         .fill(item.isAvailable ? Color(red: 0.278, green: 0.412, blue: 0.533) : Color(red: 0.733, green: 0.314, blue: 0.306))
                         .frame(width: width, height: height)
                     
-                    // White paper edge trim baseline placeholder at the bottom of the book layout
                     VStack {
                         Spacer()
                         UnevenRoundedRectangle(bottomLeadingRadius: width * 0.08, bottomTrailingRadius: width * 0.08)
@@ -109,7 +90,6 @@ struct StoryBookView: View {
                     }
                     .frame(width: width, height: height)
                     
-                    // Left Book Spine Binding Accents (Drawn in gold blocks)
                     HStack {
                         VStack(spacing: 0) {
                             RoundedRectangle(cornerRadius: 2)
@@ -139,18 +119,14 @@ struct StoryBookView: View {
                     }
                     .frame(width: width, height: height)
                     
-                    // MARK: Contextual Overlay Layout Blocks
                     if item.isAvailable {
-                        // Unlocked Playable Story Graphic Assembly
                         VStack(spacing: 0) {
-                            // Target Cover Image Display Block Layout
                             ZStack {
                                 RoundedRectangle(cornerRadius: 0)
                                     .fill(Color.white)
                                     .frame(width: width * 0.68, height: height * 0.36)
                                     .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
                                 
-                                // Placeholder vector graphics layout mimicking the character picture box
                                 Image(systemName: "person.crop.square.fill")
                                     .resizable()
                                     .scaledToFit()
@@ -170,16 +146,12 @@ struct StoryBookView: View {
                         .frame(width: width, height: height)
                         
                     } else {
-                        // Locked / Coming Soon Content Representation
                         VStack(spacing: 0) {
-                            
-                            // Dark red indicator accent strip matching mockup background element layout
                             Rectangle()
                                 .fill(Color.black.opacity(0.15))
                                 .frame(width: width * 0.68, height: height * 0.1)
                                 .padding(.top, height * 0.15)
                             
-                            // Security Padlock Container Design Architecture
                             Image(systemName: "lock.fill")
                                 .font(.system(size: width * 0.2, weight: .medium))
                                 .foregroundColor(.white)
@@ -207,81 +179,14 @@ struct StoryBookView: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-// MARK: - SwiftUI Preview
 
 #Preview {
-    // 1. Build a mock array of chapters to satisfy the Story model constraints
-    let mockChapters = (1...5).map { index -> Chapter in
-        let competency: Competency = [.shape, .labelSymbol, .brightnessContrast, .pattern, .context][index - 1]
-        return Chapter(
-            id: "chapter-\(index)",
-            order: index,
-            title: "Bab \(index)",
-            subtitle: nil,
-            description: "Deskripsi bab \(index)",
-            thumbnailAssetName: "",
-            competency: competency,
-            storyPages: [],
-            gameConfiguration: GameConfiguration(
-                question: GameQuestion(
-                    id: "q\(index)",
-                    prompt: "Pertanyaan \(index)",
-                    promptImageAssetName: nil,
-                    answerOptions: [],
-                    correctAnswerID: "",
-                    hintText: ""
-                )
-            ),
-            learningSummary: LearningSummary(
-                successMessage: "",
-                explanation: "",
-                mainIllustrationAssetName: "",
-                exampleAssetNames: []
-            )
-        )
-    }
+    let mockStory1 = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Hilangnya Kotak Bekal", description: "", coverAssetName: "", availability: .available, chapters: [], completionSummary: nil)
+    let mockStory2 = Story(id: "story-2", order: 2, title: "Cerita 2", subtitle: "Segera Hadir", description: "", coverAssetName: "", availability: .comingSoon, chapters: [], completionSummary: nil)
+    let mockStory3 = Story(id: "story-3", order: 3, title: "Cerita 3", subtitle: "Segera Hadir", description: "", coverAssetName: "", availability: .comingSoon, chapters: [], completionSummary: nil)
     
-    // 2. Setup the stories matching your MVP layout criteria
-    let mockStories = [
-        Story(
-            id: "story-1",
-            order: 1,
-            title: "Cerita 1",
-            subtitle: "Hilangnya Kotak Bekal",
-            description: "Bantu Lala menemukan kotak bekalnya.",
-            coverAssetName: "",
-            availability: .available,
-            chapters: mockChapters,
-            completionSummary: nil
-        ),
-        Story(
-            id: "story-2",
-            order: 2,
-            title: "Cerita 2",
-            subtitle: "Segera Hadir",
-            description: "Segera hadir.",
-            coverAssetName: "",
-            availability: .comingSoon,
-            chapters: [],
-            completionSummary: nil
-        ),
-        Story(
-            id: "story-3",
-            order: 3,
-            title: "Cerita 3",
-            subtitle: "Segera Hadir",
-            description: "Segera hadir.",
-            coverAssetName: "",
-            availability: .comingSoon,
-            chapters: [],
-            completionSummary: nil
-        )
-    ]
+    let viewModel = StorySelectionViewModel(stories: [mockStory1, mockStory2, mockStory3])
     
-    // 3. Instantiate the ViewModel with mock context data
-    let viewModel = StorySelectionViewModel(stories: mockStories)
-    
-    // 4. Return the configured view wrapped in a NavigationStack to match iPad landscape layout
     NavigationStack {
         StorySelectionView(viewModel: viewModel)
     }
