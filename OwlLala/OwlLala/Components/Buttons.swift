@@ -30,8 +30,12 @@ import SwiftUI
 
 // MARK: - Shared Palette
 
-/// The OwlLala brand blue (#0042AA), from the shared theme (`AppTheme.swift`).
-private let primaryBlue = AppColor.primary
+/// The OwlLala brand blue, shared by the buttons in this file. Kept in sync
+/// with the same value in `ExitConfirmation.swift` and `SettingsView.swift`.
+public let primaryBlue = Color(red: 0.02, green: 0.28, blue: 0.70)
+public let gold = Color(red: 1.0, green: 0.78, blue: 0.16)
+public let woodBrown = Color(red: 0.58, green: 0.38, blue: 0.22)
+public let cream = Color(red: 0.99, green: 0.96, blue: 0.88)
 
 // MARK: - Circle Icon Button
 
@@ -57,9 +61,9 @@ struct CircleIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImageName)
-                .font(.system(size: 26 * buttonScale, weight: .bold))
+                .font(.system(size: 40 * buttonScale, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 64 * buttonScale, height: 64 * buttonScale)
+                .frame(width: 85 * buttonScale, height: 85 * buttonScale)
                 .background(primaryBlue, in: Circle())
         }
         .accessibilityLabel(accessibilityLabel)
@@ -80,16 +84,23 @@ struct PrimaryActionButton: View {
     let action: () -> Void
 
     /// Grows the label and the button's minimum height with the text size.
-    @ScaledMetric(relativeTo: .title2) private var buttonScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .title3) private var buttonScale: CGFloat = 1
 
     var body: some View {
         Button(action: action) {
             // Button — SF Pro Rounded 44pt Bold, per the shared type scale.
             Text(title)
-                .font(.owlRounded(AppFontSize.button * buttonScale, .bold))
+//                .font(.system(size: 24 * buttonScale, weight: .semibold))
+//                .foregroundStyle(.white)
+//                .padding(.horizontal, 56 * buttonScale)
+                .font(.title)
+                .fontWeight(.bold)
                 .foregroundStyle(.white)
-                .padding(.horizontal, 48 * buttonScale)
-                .frame(minHeight: 72 * buttonScale)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 30)
+                .padding(.vertical, 16)
+                .frame(minHeight: 20 * buttonScale)
                 .background(primaryBlue)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
@@ -131,11 +142,28 @@ struct SettingsButton: View {
     }
 }
 
+// MARK: - Volume/Sounds Button
+struct VolumeButton: View {
+
+    /// Invoked on tap; the host presents the settings screen.
+    let action: () -> Void
+
+    var body: some View {
+        CircleIconButton(
+            systemImageName: "speaker.wave.2.fill",
+            accessibilityLabel: "Volume Suara",
+            action: action
+        )
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Buttons") {
     VStack(spacing: 32) {
         SettingsButton {}
+        VolumeButton {}
+        
 
         CircleIconButton(
             systemImageName: "arrow.left",
