@@ -28,7 +28,8 @@ struct MainMenuView: View {
                     // Designated background layer: only this dims with the
                     // "Kecerahan Latar Belakang" setting — the owl, buttons,
                     // and text stay at full brightness (Settings model rule).
-                    MainMenuBackground()
+                    Image("bgPattern")
+                        .resizable()
                         .appBackgroundBrightness()
 
                     HStack(spacing: 50) {
