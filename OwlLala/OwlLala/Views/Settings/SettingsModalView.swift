@@ -6,20 +6,18 @@
 //
 //  OVERVIEW
 //  --------
-//  The settings *overlay* shown during gameplay: the same panel as the
-//  full-screen `SettingsView`, presented as a card over a dimmed scrim with a
-//  close (✕) button instead of a back arrow.
+//  The settings *overlay* shown during gameplay: the EXACT same settings page
+//  as `SettingsView` (`SettingsSurface`, defined in SettingsView.swift),
+//  presented as a rounded card over a dimmed scrim — so the modal can never
+//  differ from the page; it is the page, in a modal state.
 //
-//  All logic lives in `SettingsViewModel`; the panel itself is the shared
-//  `SettingsPanelContent` (defined in `SettingsView.swift`), so the two
-//  settings surfaces always have identical functions and can't drift apart.
+//  All logic lives in `SettingsViewModel`.
 //
 //  WHERE IT IS USED
 //  ----------------
 //  Show it as an in-tree overlay from a gameplay screen's `ZStack` — NOT as a
-//  `fullScreenCover` — so the root `displayAdjustments(for:)` in `ContentView`
-//  keeps covering the whole app, and edits preview live on the paused game
-//  behind the card:
+//  `fullScreenCover` — so the root display adjustments keep covering the whole
+//  app, and edits preview live on the paused game behind the card:
 //
 //      ZStack {
 //          GameplayContent(...)
@@ -47,14 +45,20 @@ struct SettingsModalView: View {
     /// can render `activeDisplaySettings` while this overlay edits the draft.
     @ObservedObject var viewModel: SettingsViewModel
 
-    /// Invoked after save/close; the host removes this overlay from the tree.
+    /// Invoked after save/back; the host removes this overlay from the tree.
     let onDismiss: () -> Void
 
     var body: some View {
-        // Size the card from the available space, capped for large screens.
         GeometryReader { geometry in
-            let panelWidth = min(geometry.size.width * 0.82, 900)
-            let panelHeight = min(geometry.size.height * 0.86, 720)
+            // The card is a uniformly scaled-down copy of the FULL SCREEN: the
+            // surface is laid out at the screen's size, then shrunk by one
+            // factor, so the modal has exactly the same layout/proportions as
+            // `SettingsView` — just adjusted to the card's size. The factor is
+            // capped so the card never exceeds ~82% of the screen or 900pt.
+            let cardWidth = min(geometry.size.width * 0.82, 900)
+            let cardHeight = min(geometry.size.height * 0.86, 720)
+            let scale = min(cardWidth / max(geometry.size.width, 1),
+                            cardHeight / max(geometry.size.height, 1))
 
             ZStack {
                 // Dimmed backdrop over the game behind the card.
@@ -62,27 +66,25 @@ struct SettingsModalView: View {
                     .opacity(0.36)
                     .ignoresSafeArea()
 
-                // The white card: shared panel + corner close button.
-                ZStack(alignment: .topLeading) {
-                    SettingsPanelContent(viewModel: viewModel) {
-                        viewModel.save()
-                        onDismiss()
-                    }
-
-                    CircleIconButton(
-                        systemImageName: "xmark",
-                        accessibilityLabel: "Tutup"
-                    ) {
-                        viewModel.cancel()
-                        onDismiss()
-                    }
-                    .padding(20)
-                }
-                .frame(width: panelWidth, height: panelHeight)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // The EXACT same surface as the full-screen settings page
+                // (`SettingsSurface` in SettingsView.swift): full-screen
+                // layout, uniformly scaled into the card. The larger
+                // `saveBottomPadding` lifts the "Simpan" button higher than on
+                // the full-screen page.
+                SettingsSurface(
+                    viewModel: viewModel,
+                    saveBottomPadding: 96,
+                    onDismiss: onDismiss
+                )
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                    .scaleEffect(scale, anchor: .center)
+                    .frame(
+                        width: geometry.size.width * scale,
+                        height: geometry.size.height * scale
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .onAppear {

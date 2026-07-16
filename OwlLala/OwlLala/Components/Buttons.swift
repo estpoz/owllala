@@ -88,6 +88,7 @@ struct PrimaryActionButton: View {
 
     var body: some View {
         Button(action: action) {
+            // Button — SF Pro Rounded 44pt Bold, per the shared type scale.
             Text(title)
 //                .font(.system(size: 24 * buttonScale, weight: .semibold))
 //                .foregroundStyle(.white)
@@ -101,7 +102,7 @@ struct PrimaryActionButton: View {
                 .padding(.vertical, 16)
                 .frame(minHeight: 20 * buttonScale)
                 .background(primaryBlue)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
 }

@@ -74,7 +74,7 @@ struct ExitConfirmation: View {
 
     /// The brand blue used for the primary button fill and the secondary
     /// button's text/border. Kept in sync with the palette in `Buttons.swift`.
-    private let primaryBlue = Color(red: 0.02, green: 0.28, blue: 0.70)
+    private let primaryBlue = AppColor.primary
 
     var body: some View {
         // `GeometryReader` gives us the space the dialog is presented in so the
