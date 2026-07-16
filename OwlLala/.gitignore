@@ -1,5 +1,0 @@
-# Xcode user settings and build artifacts
-xcuserdata/
-DerivedData/
-.xcuserdata/
-*.xcuserstate
