@@ -100,8 +100,14 @@ final class SettingsViewModel: ObservableObject {
     /// Starts an editing session: refreshes the draft from the persisted
     /// settings so editing always begins from the saved state.
     ///
-    /// Called by the settings views in `onAppear`.
+    /// Called by the settings views in `onAppear`. Ignored while a session is
+    /// already open, so a re-fired `onAppear` (e.g. after a SwiftUI subtree
+    /// rebuild) can never wipe the child's in-progress edits.
     func beginEditing() {
+        guard !isEditing else {
+            return
+        }
+
         savedSettings = storageService.settings
         draftSettings = storageService.settings
         isFilterEnabled = draftSettings.isColorVisionSimulationEnabled

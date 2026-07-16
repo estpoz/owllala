@@ -44,16 +44,17 @@ struct ContentView: View {
     }
 
     var body: some View {
-        MainMenuView(
-//            storageService: storageService,
-//            settingsViewModel: settingsViewModel
-        )
-        .appDisplayAdjustments()
-        // Make the shared objects available to every view in the tree, so any
-        // screen can use `.appDisplayAdjustments()` or reach the settings
-        // logic without init plumbing.
-        .environmentObject(storageService)
-        .environmentObject(settingsViewModel)
+        // NOTE: `appDisplayAdjustments()` is deliberately NOT applied here.
+        // MainMenuView contains a NavigationStack (UIKit-backed), and wrapping
+        // it in the color shader makes SwiftUI render a yellow "no entry"
+        // placeholder instead of the app. Each screen applies the modifier at
+        // its own root instead (see MainMenuView.destinationView).
+        MainMenuView()
+            // Make the shared objects available to every view in the tree, so
+            // any screen can use `.appDisplayAdjustments()` or reach the
+            // settings logic without init plumbing.
+            .environmentObject(storageService)
+            .environmentObject(settingsViewModel)
     }
 }
 

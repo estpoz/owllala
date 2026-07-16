@@ -78,18 +78,19 @@ extension View {
     ///
     /// - Parameter simulation: The active filter type, or `nil` for none.
     /// - Returns: The filtered (or untouched) view.
-    @ViewBuilder
+    ///
+    /// IMPORTANT: this must stay branch-free (no `if let` around the view).
+    /// A structural branch changes the subtree's identity when the filter
+    /// toggles, which resets all `@State`/`onAppear` below it — that bug made
+    /// selecting a filter instantly undo itself. With `nil`, the shader runs
+    /// with an identity matrix (no visible change) so the view tree is stable.
     func colorVisionFilter(_ simulation: ColorVisionSimulation?) -> some View {
-        if let simulation {
-            compositingGroup()
-                .colorEffect(
-                    ShaderLibrary.colorVisionFilter(
-                        .floatArray(simulation.simulationMatrix)
-                    )
+        compositingGroup()
+            .colorEffect(
+                ShaderLibrary.colorVisionFilter(
+                    .floatArray(simulation?.simulationMatrix ?? ColorVisionSimulation.identityMatrix)
                 )
-        } else {
-            self
-        }
+            )
     }
 
     /// Applies both display adjustments from a `Settings` value in one call:
@@ -121,12 +122,16 @@ extension View {
     ///
     /// - Parameter settings: The settings whose text scale to apply.
     /// - Returns: The view with the adjusted type size.
-    @ViewBuilder
+    ///
+    /// Implemented with `transformEnvironment` so it is branch-free: an
+    /// `if let` around the view would change the subtree's identity whenever
+    /// the scale crosses 1.0, resetting state below (which made the Ukuran
+    /// Teks slider snap back while dragging).
     func textSizeAdjustment(for settings: Settings) -> some View {
-        if let dynamicTypeSize = settings.preferredDynamicTypeSize {
-            self.dynamicTypeSize(dynamicTypeSize)
-        } else {
-            self
+        transformEnvironment(\.dynamicTypeSize) { dynamicTypeSize in
+            if let preferred = settings.preferredDynamicTypeSize {
+                dynamicTypeSize = preferred
+            }
         }
     }
 }
@@ -175,32 +180,70 @@ extension Settings {
 /// runs twice and distorts.
 private struct AppDisplayAdjustments: ViewModifier {
 
+    /// Whether the color-vision shader is included. Screens containing
+    /// UIKit-backed views (`ScrollView`, `NavigationStack`, system controls)
+    /// must pass `false` — the shader can't rasterize them and SwiftUI renders
+    /// a yellow "no entry" placeholder instead of the screen.
+    let includesColorFilter: Bool
+
     /// The shared settings logic, injected via `environmentObject`.
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
 
     func body(content: Content) -> some View {
-        content.displayAdjustments(for: settingsViewModel.activeDisplaySettings)
+        let settings = settingsViewModel.activeDisplaySettings
+
+        if includesColorFilter {
+            content.displayAdjustments(for: settings)
+        } else {
+            // Brightness and text size are overlay/environment based, so they
+            // are always safe — only the shader needs rasterizable content.
+            content
+                .backgroundBrightness(settings.backgroundBrightness)
+                .textSizeAdjustment(for: settings)
+        }
     }
 }
 
 extension View {
 
-    /// Applies the app's current display settings (brightness + color filter)
-    /// to this view, using the `SettingsViewModel` from the environment.
+    /// Applies the app's current display settings (brightness, color filter,
+    /// text size) to this view, using the `SettingsViewModel` from the
+    /// environment.
+    ///
+    /// Apply this at EACH SCREEN'S root, inside any `NavigationStack` — never
+    /// around one. Navigation containers are UIKit-backed, and wrapping them in
+    /// the color shader makes SwiftUI render a yellow "no entry" placeholder
+    /// instead of the app.
+    ///
+    /// Pass `includeColorFilter: false` for screens that contain UIKit-backed
+    /// views (e.g. `StatisticsView` with its `ScrollView`): they still get
+    /// brightness and text size, and skip only the shader.
     ///
     /// Requires `.environmentObject(_: SettingsViewModel)` to have been
     /// injected by an ancestor (the app root does this; previews must inject
-    /// their own). See `AppDisplayAdjustments` for usage rules.
+    /// their own).
     ///
+    /// - Parameter includeColorFilter: Whether to include the color-vision
+    ///   shader; default `true`.
     /// - Returns: The view with the app-wide adjustments applied.
-    func appDisplayAdjustments() -> some View {
-        modifier(AppDisplayAdjustments())
+    func appDisplayAdjustments(includeColorFilter: Bool = true) -> some View {
+        modifier(AppDisplayAdjustments(includesColorFilter: includeColorFilter))
     }
 }
 
 // MARK: - Simulation Matrices
 
 extension ColorVisionSimulation {
+
+    /// The identity matrix — leaves every pixel unchanged. Used by
+    /// `colorVisionFilter(_:)` when no simulation is active, so the shader can
+    /// stay permanently attached (keeping the view tree's identity stable)
+    /// without altering colors.
+    static let identityMatrix: [Float] = [
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    ]
 
     /// The row-major 3x3 RGB matrix that simulates this color-vision deficiency
     /// at full severity (Machado, Oliveira & Fernandes, 2009 — the matrices
