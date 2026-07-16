@@ -25,7 +25,7 @@ struct MainMenuView: View {
                 let baseUnit = min(geometry.size.width, geometry.size.height)
 
                 ZStack {
-                    MainMenuBackground()
+                    Image("bgPattern").resizable()
 
                     HStack(spacing: 50) {
                         OwlMascotView()
@@ -170,35 +170,6 @@ private struct OwlMascotView: View {
     }
 }
 
-private struct MainMenuBackground: View {
-
-    private let columns = Array(repeating: GridItem(.fixed(86), spacing: 24), count: 14)
-    private let symbols = [
-        "book.closed",
-        "lightbulb",
-        "paintpalette",
-        "questionmark.circle",
-        "pencil",
-        "sparkles"
-    ]
-
-    var body: some View {
-        ZStack {
-            Color(red: 0.95, green: 0.99, blue: 0.98)
-
-            LazyVGrid(columns: columns, spacing: 24) {
-                ForEach(0..<84, id: \.self) { index in
-                    Image(systemName: symbols[index % symbols.count])
-                        .font(.system(size: 34, weight: .regular))
-                        .foregroundStyle(Color(red: 0.66, green: 0.79, blue: 0.78).opacity(0.16))
-                        .rotationEffect(.degrees(Double((index % 5) - 2) * 12))
-                        .frame(width: 86, height: 64)
-                }
-            }
-            .padding(32)
-        }
-    }
-}
 
 #Preview(traits: .landscapeRight) {
     let storageService = StorageService()
