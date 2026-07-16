@@ -12,38 +12,71 @@ struct MainMenuView: View {
     @StateObject private var viewModel = MainMenuViewModel()
 
     var body: some View {
-        GeometryReader { geometry in
-            let baseUnit = min(geometry.size.width, geometry.size.height)
+        NavigationStack {
+            GeometryReader { geometry in
+                let baseUnit = min(geometry.size.width, geometry.size.height)
 
-            ZStack {
-                MainMenuBackground()
+                ZStack {
+                    MainMenuBackground()
 
-                HStack(spacing: 50) {
-                    OwlMascotView()
-                        .frame(
-                            width: geometry.size.width * 0.4,
-                            height: geometry.size.width * 0.4
-                        )
-                        .zIndex(1)
-
-                    VStack(spacing: baseUnit * 0.025) {
-                        ForEach(viewModel.menuItems, id: \.self) { destination in
-                            MainMenuButton(
-                                title: title(for: destination),
-                                baseUnit: baseUnit,
-                                action: {
-                                    viewModel.select(destination)
-                                }
+                    HStack(spacing: 50) {
+                        OwlMascotView()
+                            .frame(
+                                width: geometry.size.width * 0.4,
+                                height: geometry.size.width * 0.4
                             )
+                            .zIndex(1)
+
+                        VStack(spacing: baseUnit * 0.025) {
+                            ForEach(viewModel.menuItems, id: \.self) { destination in
+                                MainMenuButton(
+                                    title: title(for: destination),
+                                    baseUnit: baseUnit,
+                                    action: {
+                                        viewModel.select(destination)
+                                    }
+                                )
+                            }
                         }
+                        .frame(width: geometry.size.width * 0.38)
                     }
-                    .frame(width: geometry.size.width * 0.38)
+                    .frame(width: geometry.size.width * 0.615)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
                 }
-                .frame(width: geometry.size.width * 0.615)
-                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
             }
+            .ignoresSafeArea()
+            .navigationDestination(item: $viewModel.destination) { destination in
+                destinationView(for: destination)
+            }
+            .navigationBarBackButtonHidden(true)
         }
-        .ignoresSafeArea()
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: MainMenuViewModel.Destination) -> some View {
+        switch destination {
+        case .mainStory:
+            Text("Story Selection View")
+//            StorySelectionView()
+        case .trainingMode:
+            Text("Training Mode View")
+//            TrainingModeView()
+        case .statistics:
+            StatisticsView(
+                viewModel: StatisticsViewModel(
+                    stories: [],
+                    storageService: StorageService(
+                        userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewPreview") ?? .standard
+                    )
+                ),
+                onBack: {}
+            )
+        case .settings:
+            SettingsView(
+                viewModel: SettingsViewModel(storageService: StorageService()),
+                onDismiss: {}
+            )
+        }
     }
 
     private func title(for destination: MainMenuViewModel.Destination) -> String {

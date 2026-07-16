@@ -82,6 +82,7 @@ struct StatisticsView: View {
             }
         }
         .background(Color.white)
+        .navigationBarBackButtonHidden(true)
     }
 
     private var shouldStackMainContent: Bool {
