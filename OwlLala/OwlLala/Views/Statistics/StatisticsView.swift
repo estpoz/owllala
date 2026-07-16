@@ -15,17 +15,22 @@ struct StatisticsView: View {
     @ObservedObject var viewModel: StatisticsViewModel
     let onBack: () -> Void
 
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedItem: CompetencyProgressItem?
+
+    // MARK: Styling
 
     private let accentColor = Color(red: 0.12, green: 0.40, blue: 0.88)
     private let darkBlue = Color(red: 0.02, green: 0.16, blue: 0.45)
     private let borderColor = Color(red: 0.82, green: 0.87, blue: 1.0)
     private let panelColor = Color(red: 0.97, green: 0.98, blue: 1.0)
+    private let backIconSize: CGFloat = 44
+    private let backButtonSize: CGFloat = 112
+
+    // MARK: Dynamic Type Metrics
 
     @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 68
-    @ScaledMetric(relativeTo: .body) private var backIconSize: CGFloat = 44
-    @ScaledMetric(relativeTo: .body) private var backButtonSize: CGFloat = 112
     @ScaledMetric(relativeTo: .title2) private var rowTitleFontSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var rowIconFontSize: CGFloat = 32
     @ScaledMetric(relativeTo: .body) private var rowIconSize: CGFloat = 64
@@ -37,6 +42,8 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .title) private var summaryValueFontSize: CGFloat = 38
     @ScaledMetric(relativeTo: .body) private var summaryIconFontSize: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var summaryValueSize: CGFloat = 64
+
+    // MARK: Body
 
     var body: some View {
         GeometryReader { proxy in
@@ -81,10 +88,13 @@ struct StatisticsView: View {
                 }
             }
         }
-        .background(Color.white)
+        .background(StatisticsBackground())
     }
 
+    // MARK: Responsive Layout
+
     private var shouldStackMainContent: Bool {
+        // Large Dynamic Type needs vertical flow so the graph and cards do not overlap.
         switch dynamicTypeSize {
         case .xxLarge,
              .xxxLarge,
@@ -137,7 +147,7 @@ struct StatisticsView: View {
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(StatisticsBackground())
     }
 
     private func stackedContent(
@@ -167,14 +177,16 @@ struct StatisticsView: View {
             .padding(.vertical, verticalPadding)
             .frame(maxWidth: .infinity)
         }
-        .background(Color.white)
+        .background(StatisticsBackground())
     }
+
+    // MARK: Header
 
     private func header(width: CGFloat) -> some View {
         HStack(spacing: 28) {
-            Button(action: onBack) {
+            Button(action: goBack) {
                 Image(systemName: "arrow.left")
-                    .font(.system(size: backIconSize, weight: .bold))
+                    .font(.system(size: backIconSize, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .frame(width: backButtonSize, height: backButtonSize)
                     .background(Circle().fill(Color(red: 0.02, green: 0.28, blue: 0.70)))
@@ -183,7 +195,7 @@ struct StatisticsView: View {
             .accessibilityLabel("Kembali")
 
             Text("Hasil Perkembangan")
-                .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold))
+                .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
@@ -195,6 +207,13 @@ struct StatisticsView: View {
                 .accessibilityHidden(true)
         }
     }
+
+    private func goBack() {
+        onBack()
+        dismiss()
+    }
+
+    // MARK: Competency Rows
 
     private var competencyList: some View {
         VStack(spacing: 12) {
@@ -222,7 +241,7 @@ struct StatisticsView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.competency.displayName)
-                    .font(.system(size: rowTitleFontSize, weight: .bold))
+                    .font(.system(size: rowTitleFontSize, weight: .bold, design: .rounded))
                     .foregroundStyle(.black)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
@@ -230,7 +249,7 @@ struct StatisticsView: View {
                 HStack(spacing: 4) {
                     ForEach(1...item.maximumScore, id: \.self) { index in
                         Image(systemName: "star.fill")
-                            .font(.system(size: rowStarFontSize, weight: .bold))
+                            .font(.system(size: rowStarFontSize, weight: .bold, design: .rounded))
                             .foregroundStyle(index <= item.score ? Color.yellow : Color.gray.opacity(0.35))
                             .accessibilityHidden(true)
                     }
@@ -240,13 +259,13 @@ struct StatisticsView: View {
             Spacer(minLength: 12)
 
             Text("(\(item.score)/\(item.maximumScore))")
-                .font(.system(size: rowScoreFontSize, weight: .bold))
+                .font(.system(size: rowScoreFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: rowChevronFontSize, weight: .bold))
+                .font(.system(size: rowChevronFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(accentColor)
                 .accessibilityHidden(true)
         }
@@ -262,6 +281,8 @@ struct StatisticsView: View {
                 )
         )
     }
+
+    // MARK: Summary
 
     private var summaryPanel: some View {
         HStack(spacing: 22) {
@@ -314,7 +335,7 @@ struct StatisticsView: View {
                 .accessibilityHidden(true)
 
             Text(title)
-                .font(.system(size: summaryTitleFontSize, weight: .bold))
+                .font(.system(size: summaryTitleFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
@@ -322,7 +343,7 @@ struct StatisticsView: View {
             Spacer(minLength: 8)
 
             Text("\(value)")
-                .font(.system(size: summaryValueFontSize, weight: .bold))
+                .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(darkBlue)
                 .frame(width: summaryValueSize, height: summaryValueSize)
                 .background(Circle().fill(Color(red: 0.86, green: 0.90, blue: 1.0)))
@@ -332,6 +353,8 @@ struct StatisticsView: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }
+
+    // MARK: Detail Presentation
 
     private func detailOverlay(
         item: CompetencyProgressItem,
@@ -362,6 +385,20 @@ struct StatisticsView: View {
         .transition(.opacity)
     }
 
+}
+
+// MARK: - Statistics Background
+
+/// Reuses the app's subtle pattern asset behind Statistics screens.
+struct StatisticsBackground: View {
+
+    var body: some View {
+        Image("bgPattern")
+            .resizable()
+            .scaledToFill()
+            .ignoresSafeArea()
+            .background(Color.white)
+    }
 }
 
 // MARK: - Competency Statistics Styling
