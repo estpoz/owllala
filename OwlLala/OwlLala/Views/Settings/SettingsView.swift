@@ -65,6 +65,7 @@ struct SettingsView: View {
         .onAppear {
             viewModel.beginEditing()
         }
+        .navigationBarBackButtonHidden(true)
     }
 }
 
