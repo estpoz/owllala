@@ -53,6 +53,11 @@ struct MainMenuView: View {
                 }
             }
             .ignoresSafeArea()
+            // Applied INSIDE the NavigationStack (per screen), never around it:
+            // the stack is UIKit-backed and the color shader can't rasterize
+            // it (yellow "no entry" placeholder). The menu itself is pure
+            // SwiftUI, so the full adjustments are safe here.
+            .appDisplayAdjustments()
             .navigationDestination(item: $viewModel.destination) { destination in
                 destinationView(for: destination)
             }
@@ -65,12 +70,17 @@ struct MainMenuView: View {
         switch destination {
         case .mainStory:
             Text("Story Selection View")
+                .appDisplayAdjustments()
 //            StorySelectionView()
         case .trainingMode:
             Text("Training Mode View")
+                .appDisplayAdjustments()
 //            TrainingModeView()
         case .statistics:
             // Uses the app's shared storage so real progress is shown.
+            // Color filter skipped: StatisticsView contains a ScrollView
+            // (UIKit-backed), which the shader can't rasterize — it still
+            // gets brightness and text size.
             StatisticsView(
                 viewModel: StatisticsViewModel(
                     stories: [],
@@ -80,13 +90,15 @@ struct MainMenuView: View {
                     viewModel.clearDestination()
                 }
             )
+            .appDisplayAdjustments(includeColorFilter: false)
         case .settings:
             // Uses the SHARED settings view model (not a new store), so edits
             // preview and persist app-wide; back/Simpan pops by clearing the
-            // destination.
+            // destination. Pure SwiftUI, so the full adjustments are safe.
             SettingsView(viewModel: settingsViewModel) {
                 viewModel.clearDestination()
             }
+            .appDisplayAdjustments()
         }
     }
 
