@@ -9,17 +9,7 @@ import SwiftUI
 
 struct MainMenuView: View {
 
-    /// The app's shared storage; handed to the screens opened from the menu.
-    let storageService: StorageService
-
-    /// The app-wide settings logic (owned by `ContentView`); handed to
-    /// `SettingsView` so the root can render its `activeDisplaySettings`.
-    let settingsViewModel: SettingsViewModel
-
     @StateObject private var viewModel = MainMenuViewModel()
-    @Namespace private var owlNamespace
-    @State private var isExpanded = false
-    @State private var isPulsing = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -28,88 +18,32 @@ struct MainMenuView: View {
             ZStack {
                 MainMenuBackground()
 
-                if isExpanded {
-                    HStack(spacing: -geometry.size.width * 0.085) {
-                        OwlMascotView()
-                            .matchedGeometryEffect(id: "owl", in: owlNamespace)
-                            .frame(
-                                width: geometry.size.width * 0.45,
-                                height: geometry.size.width * 0.45
-                            )
-                            .zIndex(1)
-
-                        VStack(spacing: baseUnit * 0.03) {
-                            ForEach(viewModel.menuItems, id: \.self) { destination in
-                                MainMenuButton(
-                                    title: title(for: destination),
-                                    baseUnit: baseUnit,
-                                    action: {
-                                        viewModel.select(destination)
-                                    }
-                                )
-                            }
-                        }
-                        .frame(width: geometry.size.width * 0.48)
-                        .transition(
-                            .asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .opacity
-                            )
+                HStack(spacing: 50) {
+                    OwlMascotView()
+                        .frame(
+                            width: geometry.size.width * 0.4,
+                            height: geometry.size.width * 0.4
                         )
-                    }
-                    .frame(width: geometry.size.width * 0.615)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                } else {
-                    VStack(spacing: baseUnit * 0.045) {
-                        OwlMascotView()
-                            .matchedGeometryEffect(id: "owl", in: owlNamespace)
-                            .frame(
-                                width: geometry.size.width * 0.5,
-                                height: geometry.size.width * 0.5
-                            )
-                            .scaleEffect(isPulsing ? 1.06 : 1.0)
-                            .contentShape(Circle())
-                            .onTapGesture {
-                                isPulsing = false
-                                withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
-                                    isExpanded = true
-                                }
-                            }
-                            .onAppear {
-                                withAnimation(
-                                    .easeInOut(duration: 1.1)
-                                        .repeatForever(autoreverses: true)
-                                ) {
-                                    isPulsing = true
-                                }
-                            }
-                            .accessibilityAddTraits(.isButton)
-                            .accessibilityLabel("Tekan Aku untuk Memulai")
+                        .zIndex(1)
 
-                        Text("Tekan Aku untuk Memulai")
-                            .font(.system(size: baseUnit * 0.038, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color(red: 0.02, green: 0.31, blue: 0.70))
-                            .minimumScaleFactor(0.6)
-                            .lineLimit(1)
-                            .transition(.opacity)
+                    VStack(spacing: baseUnit * 0.025) {
+                        ForEach(viewModel.menuItems, id: \.self) { destination in
+                            MainMenuButton(
+                                title: title(for: destination),
+                                baseUnit: baseUnit,
+                                action: {
+                                    viewModel.select(destination)
+                                }
+                            )
+                        }
                     }
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    .frame(width: geometry.size.width * 0.38)
                 }
+                .frame(width: geometry.size.width * 0.615)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
             }
         }
         .ignoresSafeArea()
-        // Navigation for the `.settings` destination: selecting "Pengaturan"
-        // lays the full-screen `SettingsView` over the menu IN the same view
-        // tree (not a fullScreenCover), so the root `displayAdjustments` in
-        // `ContentView` keeps applying to it. Save/back clears the destination.
-        // The other destinations are wired here as their screens land.
-        .overlay {
-            if viewModel.destination == .settings {
-                SettingsView(viewModel: settingsViewModel) {
-                    viewModel.clearDestination()
-                }
-            }
-        }
     }
 
     private func title(for destination: MainMenuViewModel.Destination) -> String {
@@ -132,26 +66,18 @@ private struct MainMenuButton: View {
     let baseUnit: CGFloat
     let action: () -> Void
 
-    @ScaledMetric(relativeTo: .title2)
-    private var fontSize: CGFloat = 28
+    @ScaledMetric(relativeTo: .title2) private var minHeight: CGFloat = 72
+    @ScaledMetric(relativeTo: .title2) private var horizontalPadding: CGFloat = 34
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(
-                    .system(
-                        size: min(fontSize, baseUnit * 0.06),
-                        weight: .bold,
-                        design: .rounded
-                    )
-                )
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: baseUnit * 0.112)
-                .padding(.horizontal, baseUnit * 0.05)
-//                .padding(.leading, 50)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, minHeight: minHeight)
+                .padding(.horizontal, horizontalPadding)
                 .background(
                     Capsule()
                         .fill(Color(red: 0.02, green: 0.31, blue: 0.70))
@@ -160,8 +86,10 @@ private struct MainMenuButton: View {
                     Capsule()
                         .stroke(.black, lineWidth: max(2.5, baseUnit * 0.0055))
                 )
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 }
 
@@ -217,10 +145,5 @@ private struct MainMenuBackground: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    let storageService = StorageService()
-
-    return MainMenuView(
-        storageService: storageService,
-        settingsViewModel: SettingsViewModel(storageService: storageService)
-    )
+    MainMenuView()
 }
