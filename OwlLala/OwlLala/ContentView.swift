@@ -45,8 +45,8 @@ struct ContentView: View {
 
     var body: some View {
         MainMenuView(
-            storageService: storageService,
-            settingsViewModel: settingsViewModel
+//            storageService: storageService,
+//            settingsViewModel: settingsViewModel
         )
         .appDisplayAdjustments()
         // Make the shared objects available to every view in the tree, so any
