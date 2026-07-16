@@ -16,8 +16,14 @@ struct CompetencyDetailView: View {
     let guidance: CompetencyGuidance
     let onClose: () -> Void
 
+    // MARK: Styling
+
+    private let textAccentColor = Color(red: 0.12, green: 0.40, blue: 0.88)
+    private let closeButtonBackgroundColor = Color(red: 0.86, green: 0.93, blue: 1.0)
     private let panelColor = Color(red: 0.96, green: 0.98, blue: 1.0)
     private let borderColor = Color(red: 0.82, green: 0.87, blue: 1.0)
+
+    // MARK: Dynamic Type Metrics
 
     @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 26
     @ScaledMetric(relativeTo: .title3) private var sectionTitleFontSize: CGFloat = 20
@@ -32,6 +38,8 @@ struct CompetencyDetailView: View {
     @ScaledMetric(relativeTo: .body) private var bulletPanelPadding: CGFloat = 14
     @ScaledMetric(relativeTo: .body) private var bulletPanelMinHeight: CGFloat = 122
 
+    // MARK: Body
+
     var body: some View {
         GeometryReader { proxy in
             let horizontalPadding = max(proxy.size.width * 0.06, 32)
@@ -45,7 +53,7 @@ struct CompetencyDetailView: View {
                         title: "Ringkasan Pembelajaran",
                         content: {
                             Text(guidance.learningSummary)
-                                .font(.system(size: bodyFontSize, weight: .semibold))
+                                .font(.system(size: bodyFontSize, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.black)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(panelPadding)
@@ -74,7 +82,7 @@ struct CompetencyDetailView: View {
                         title: "Parent Tip",
                         content: {
                             Text(guidance.parentTip)
-                                .font(.system(size: bodyFontSize, weight: .semibold))
+                                .font(.system(size: bodyFontSize, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.black)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(panelPadding)
@@ -86,10 +94,12 @@ struct CompetencyDetailView: View {
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, verticalPadding)
             }
-            .background(Color.white)
+            .background(StatisticsBackground())
         }
         .accessibilityElement(children: .contain)
     }
+
+    // MARK: Header
 
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -97,8 +107,8 @@ struct CompetencyDetailView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.competency.statisticsDetailName)
-                    .font(.system(size: titleFontSize, weight: .bold))
-                    .foregroundStyle(accentColor)
+                    .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(textAccentColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
@@ -106,7 +116,7 @@ struct CompetencyDetailView: View {
                     scoreStars
 
                     Text("(\(item.score)/\(item.maximumScore))")
-                        .font(.system(size: scoreFontSize, weight: .bold))
+                        .font(.system(size: scoreFontSize, weight: .bold, design: .rounded))
                         .foregroundStyle(.black)
                 }
                 .accessibilityElement(children: .ignore)
@@ -117,10 +127,10 @@ struct CompetencyDetailView: View {
 
             Button(action: onClose) {
                 Image(systemName: "xmark")
-                    .font(.system(size: closeIconSize, weight: .bold))
-                    .foregroundStyle(accentColor)
+                    .font(.system(size: closeIconSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(textAccentColor)
                     .frame(width: iconSize, height: iconSize)
-                    .background(Circle().fill(item.competency.statisticsIconBackground))
+                    .background(Circle().fill(closeButtonBackgroundColor))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Tutup")
@@ -136,16 +146,20 @@ struct CompetencyDetailView: View {
             .accessibilityHidden(true)
     }
 
+    // MARK: Score
+
     private var scoreStars: some View {
         HStack(spacing: 4) {
             ForEach(1...item.maximumScore, id: \.self) { index in
                 Image(systemName: "star.fill")
-                    .font(.system(size: starFontSize, weight: .bold))
+                    .font(.system(size: starFontSize, weight: .bold, design: .rounded))
                     .foregroundStyle(index <= item.score ? Color.yellow : Color.gray.opacity(0.35))
                     .accessibilityHidden(true)
             }
         }
     }
+
+    // MARK: Panels
 
     private var panelBackground: some View {
         RoundedRectangle(cornerRadius: 18)
@@ -162,8 +176,8 @@ struct CompetencyDetailView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: sectionTitleFontSize, weight: .bold))
-                .foregroundStyle(accentColor)
+                .font(.system(size: sectionTitleFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(textAccentColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.68)
 
@@ -176,7 +190,7 @@ struct CompetencyDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(items, id: \.self) { text in
                 Text("- \(text)")
-                    .font(.system(size: bulletFontSize, weight: .semibold))
+                    .font(.system(size: bulletFontSize, weight: .semibold, design: .rounded))
                     .foregroundStyle(.black)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -184,9 +198,5 @@ struct CompetencyDetailView: View {
         .padding(bulletPanelPadding)
         .frame(maxWidth: .infinity, minHeight: bulletPanelMinHeight, alignment: .topLeading)
         .background(panelBackground)
-    }
-
-    private var accentColor: Color {
-        item.competency.statisticsIconForeground
     }
 }
