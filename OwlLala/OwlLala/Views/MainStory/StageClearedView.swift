@@ -126,10 +126,10 @@ struct StoryChapterCompleteView: View {
         VStack(spacing: -baseUnit * 0.012) {
             HStack(spacing: baseUnit * 0.006) {
                 Image(systemName: "star.fill")
-                Text("STORY \(storyNumber)")
+                Text(" STORY \(storyNumber) ")
                 Image(systemName: "star.fill")
             }
-            .font(.subheadline)
+            .font(.title2)
             .fontWeight(.heavy)
             .foregroundStyle(.white)
             .lineLimit(1)
