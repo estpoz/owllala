@@ -109,6 +109,51 @@ extension View {
     func displayAdjustments(for settings: Settings) -> some View {
         colorVisionFilter(settings.colorVisionSimulation)
             .backgroundBrightness(settings.backgroundBrightness)
+            .textSizeAdjustment(for: settings)
+    }
+
+    /// Scales the app's text according to the "Ukuran Teks" setting by raising
+    /// the subtree's Dynamic Type size.
+    ///
+    /// `textScale == 1.0` leaves the system size untouched; larger values map
+    /// to progressively larger Dynamic Type sizes, which all text using
+    /// `@ScaledMetric`/text styles follows automatically.
+    ///
+    /// - Parameter settings: The settings whose text scale to apply.
+    /// - Returns: The view with the adjusted type size.
+    @ViewBuilder
+    func textSizeAdjustment(for settings: Settings) -> some View {
+        if let dynamicTypeSize = settings.preferredDynamicTypeSize {
+            self.dynamicTypeSize(dynamicTypeSize)
+        } else {
+            self
+        }
+    }
+}
+
+// MARK: - Text Scale Mapping
+
+extension Settings {
+
+    /// The Dynamic Type size the app should render at for the current
+    /// `textScale`, or `nil` when the system size should be left untouched
+    /// (`textScale` ≈ 1.0).
+    ///
+    /// Lives here rather than in the model because `DynamicTypeSize` is a
+    /// SwiftUI type and the Models layer stays UI-framework-free.
+    var preferredDynamicTypeSize: DynamicTypeSize? {
+        switch textScale {
+        case ..<1.05:
+            return nil
+        case ..<1.15:
+            return .xLarge
+        case ..<1.25:
+            return .xxLarge
+        case ..<1.35:
+            return .xxxLarge
+        default:
+            return .accessibility1
+        }
     }
 }
 
