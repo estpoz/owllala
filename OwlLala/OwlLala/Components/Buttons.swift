@@ -30,9 +30,8 @@ import SwiftUI
 
 // MARK: - Shared Palette
 
-/// The OwlLala brand blue, shared by the buttons in this file. Kept in sync
-/// with the same value in `ExitConfirmation.swift` and `SettingsView.swift`.
-private let primaryBlue = Color(red: 0.02, green: 0.28, blue: 0.70)
+/// The OwlLala brand blue (#0042AA), from the shared theme (`AppTheme.swift`).
+private let primaryBlue = AppColor.primary
 
 // MARK: - Circle Icon Button
 
@@ -85,13 +84,14 @@ struct PrimaryActionButton: View {
 
     var body: some View {
         Button(action: action) {
+            // Button — SF Pro Rounded 44pt Bold, per the shared type scale.
             Text(title)
-                .font(.system(size: 24 * buttonScale, weight: .semibold))
+                .font(.owlRounded(AppFontSize.button * buttonScale, .bold))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 56 * buttonScale)
-                .frame(minHeight: 60 * buttonScale)
+                .padding(.horizontal, 48 * buttonScale)
+                .frame(minHeight: 72 * buttonScale)
                 .background(primaryBlue)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
 }
