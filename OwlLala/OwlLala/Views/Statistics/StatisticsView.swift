@@ -81,7 +81,9 @@ struct StatisticsView: View {
                 }
             }
         }
-        .background(Color.white)
+        // Designated background layer: only this dims with the "Kecerahan
+        // Latar Belakang" setting — cards, text, and icons stay full-bright.
+        .background(Color.white.appBackgroundBrightness())
         .navigationBarBackButtonHidden(true)
     }
 
@@ -455,14 +457,18 @@ extension Competency {
     "Statistics - iPad Landscape",
     traits: .fixedLayout(width: 1366, height: 1024)
 ) {
-    StatisticsView(
+    let storageService = StorageService(
+        userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewPreview") ?? .standard
+    )
+
+    return StatisticsView(
         viewModel: StatisticsViewModel(
             stories: [],
-            storageService: StorageService(
-                userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewPreview") ?? .standard
-            )
+            storageService: storageService
         ),
         onBack: {}
     )
+    // Required by the background-brightness modifier on the screen backdrop.
+    .environmentObject(SettingsViewModel(storageService: storageService))
 }
 #endif
