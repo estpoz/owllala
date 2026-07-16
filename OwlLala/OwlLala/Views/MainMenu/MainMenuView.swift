@@ -25,7 +25,12 @@ struct MainMenuView: View {
                 let baseUnit = min(geometry.size.width, geometry.size.height)
 
                 ZStack {
-                    Image("bgPattern").resizable()
+                    // Designated background layer: only this dims with the
+                    // "Kecerahan Latar Belakang" setting — the owl, buttons,
+                    // and text stay at full brightness (Settings model rule).
+                    Image("bgPattern")
+                        .resizable()
+                        .appBackgroundBrightness()
 
                     HStack(spacing: 50) {
                         OwlMascotView()
