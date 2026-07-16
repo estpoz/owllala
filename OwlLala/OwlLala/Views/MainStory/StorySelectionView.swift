@@ -223,5 +223,4 @@ struct StoryBookView: View {
     NavigationStack {
         StorySelectionView(viewModel: viewModel)
     }
-    .previewInterfaceOrientation(.landscapeLeft)
 }
