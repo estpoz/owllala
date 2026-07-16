@@ -13,9 +13,6 @@ import Foundation
 ///
 /// The same settings are used by the main Settings screen and the Settings
 /// overlay presented during gameplay.
-///
-/// Text size is not stored here because the app follows the system Dynamic Type
-/// preference provided by iPadOS.
 struct Settings: Codable, Hashable, Sendable {
 
     /// The minimum supported background-brightness value.
@@ -24,10 +21,17 @@ struct Settings: Codable, Hashable, Sendable {
     /// The maximum supported background-brightness value.
     static let maximumBackgroundBrightness = 1.0
 
+    /// The minimum text-scale value (1.0 = follow the system size).
+    static let minimumTextScale = 1.0
+
+    /// The maximum text-scale value.
+    static let maximumTextScale = 1.4
+
     /// The default preferences used when no saved settings are available.
     static let defaultValue = Settings(
         backgroundBrightness: 1.0,
-        colorVisionSimulation: nil
+        colorVisionSimulation: nil,
+        textScale: 1.0
     )
 
     /// Controls the brightness of supported application background layers.
@@ -46,6 +50,12 @@ struct Settings: Codable, Hashable, Sendable {
     /// retained.
     var colorVisionSimulation: ColorVisionSimulation?
 
+    /// The preferred text-size scale ("Ukuran Teks").
+    ///
+    /// `1.0` follows the system Dynamic Type size unchanged; larger values
+    /// scale the app's text up, within `minimumTextScale...maximumTextScale`.
+    var textScale: Double
+
     /// Indicates whether a color-vision simulation is currently active.
     var isColorVisionSimulationEnabled: Bool {
         colorVisionSimulation != nil
@@ -53,14 +63,17 @@ struct Settings: Codable, Hashable, Sendable {
 
     /// Creates application settings with normalized values.
     ///
-    /// Background brightness is clamped to the supported range.
+    /// Background brightness and text scale are clamped to their supported
+    /// ranges.
     ///
     /// - Parameters:
     ///   - backgroundBrightness: The preferred background-brightness level.
     ///   - colorVisionSimulation: The optional active simulation type.
+    ///   - textScale: The preferred text-size scale.
     init(
         backgroundBrightness: Double = 1.0,
-        colorVisionSimulation: ColorVisionSimulation? = nil
+        colorVisionSimulation: ColorVisionSimulation? = nil,
+        textScale: Double = 1.0
     ) {
         self.backgroundBrightness = min(
             max(
@@ -71,6 +84,31 @@ struct Settings: Codable, Hashable, Sendable {
         )
 
         self.colorVisionSimulation = colorVisionSimulation
+
+        self.textScale = min(
+            max(textScale, Self.minimumTextScale),
+            Self.maximumTextScale
+        )
+    }
+
+    /// Restores settings from persisted data.
+    ///
+    /// `textScale` is decoded leniently (defaulting to `1.0`) so settings saved
+    /// by versions of the app from before the text-size feature still load.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        self.init(
+            backgroundBrightness: try container.decode(Double.self, forKey: .backgroundBrightness),
+            colorVisionSimulation: try container.decodeIfPresent(ColorVisionSimulation.self, forKey: .colorVisionSimulation),
+            textScale: try container.decodeIfPresent(Double.self, forKey: .textScale) ?? Self.minimumTextScale
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case backgroundBrightness
+        case colorVisionSimulation
+        case textScale
     }
 
     /// Updates the preferred background brightness.
@@ -102,6 +140,18 @@ struct Settings: Codable, Hashable, Sendable {
     /// The previously selected simulation type is not retained.
     mutating func disableColorVisionSimulation() {
         colorVisionSimulation = nil
+    }
+
+    /// Updates the preferred text-size scale.
+    ///
+    /// Values outside the supported range are clamped automatically.
+    ///
+    /// - Parameter value: The requested text scale.
+    mutating func setTextScale(_ value: Double) {
+        textScale = min(
+            max(value, Self.minimumTextScale),
+            Self.maximumTextScale
+        )
     }
 }
 
