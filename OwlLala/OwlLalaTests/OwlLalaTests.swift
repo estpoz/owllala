@@ -4,296 +4,311 @@
 //
 //  Created by Farrell Sudjatmiko on 13/07/26.
 //
-//  TDD suites written with Swift Testing.
-//  https://developer.apple.com/documentation/testing
+//  OVERVIEW
+//  --------
+//  Focused TDD tests for the app's view-model functions, written with the
+//  Swift Testing framework (`@Suite` / `@Test` / `#expect`).
+//  See https://developer.apple.com/documentation/testing
 //
-//  These tests exercise the production types that live in the OwlLala app
-//  target (via `@testable import`), not copies defined inside the test target.
-//  Each suite maps to a TDD scenario in TDD.md.
+//  WHAT THESE TESTS COVER
+//  ----------------------
+//  One `@Suite` per view model in the `ViewModels/` folder. Each test
+//  instantiates the *real* view model (via `@testable import OwlLala`) and calls
+//  its own functions, then asserts on the resulting published state. This file
+//  only tests view-model behavior — Models and Services are exercised only as
+//  the collaborators a view model needs.
+//
+//  HOW EACH TEST IS SET UP
+//  -----------------------
+//  There are no helper functions here by design: each test builds the `Chapter`
+//  / `Story` inputs inline by calling the real model initializers, because the
+//  app ships no shared sample-data source to read from. Every test also gets its
+//  own isolated store — `StorageService(userDefaults: UserDefaults(suiteName:
+//  UUID().uuidString)!)` — so a brand-new, empty `UserDefaults` suite is used
+//  per test and tests never read or write each other's (or the app's) state.
+//
+//  All suites are `@MainActor` because the view models and `StorageService` are
+//  main-actor isolated.
+//
+//  RUNNING
+//  -------
+//  Run in Xcode with Product ▸ Test (⌘U). If Xcode reopens this file as an old
+//  version, use File ▸ Revert to Saved first so it loads what's on disk.
 //
 
 import Foundation
 import Testing
 @testable import OwlLala
 
-// MARK: - Test Helpers
+// MARK: - ChapterGameplayViewModel
 
-/// Builds a session of shape questions whose correct answer is `answer-<n>`.
-private func makeSession(questionCount count: Int) -> LearningSession {
-    let questions = (1...count).map { index in
-        VisualCueQuestion(
-            id: "q\(index)",
-            cueType: .shape,
-            correctAnswerID: "answer-\(index)"
-        )
+/// Behavior of `ChapterGameplayViewModel` — the state machine for one chapter
+/// mini-game: story-page navigation, answer selection & star scoring, and
+/// completion (persisting progress + choosing the next destination).
+@MainActor
+@Suite("ChapterGameplayViewModel")
+struct ChapterGameplayViewModelTests {
+
+    /// Given a Main Story chapter with story pages, when the child pages past
+    /// the last one, then `isQuestionPresented` flips from `false` to `true`
+    /// (the mini-game question is revealed).
+    @Test func storyNavigationRevealsQuestionAfterLastPage() {
+        let chapter = Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [StoryPage(id: "p1", order: 1, illustrationAssetName: "i", narration: "n", voiceOverAssetName: nil)], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "correct", text: "B", imageAssetName: nil)], correctAnswerID: "correct", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))
+        let viewModel = ChapterGameplayViewModel(chapter: chapter, source: .mainStory, nextChapterID: "chapter-2", storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
+
+        #expect(viewModel.isQuestionPresented == false)
+        viewModel.goToNextStoryPage()
+        #expect(viewModel.isQuestionPresented == true)
     }
 
-    return LearningSession(questions: questions)
+    /// Given a fresh question, when the child selects the correct answer on the
+    /// first attempt, then positive feedback is shown and 3 stars are earned
+    /// (the maximum, since there were no wrong attempts).
+    @Test func selectingCorrectAnswerOnFirstTryEarnsThreeStars() {
+        let chapter = Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "correct", text: "B", imageAssetName: nil), AnswerOption(id: "wrong", text: "S", imageAssetName: nil)], correctAnswerID: "correct", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))
+        let viewModel = ChapterGameplayViewModel(chapter: chapter, source: .mainStory, nextChapterID: "chapter-2", storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
+
+        viewModel.selectAnswer(AnswerOption(id: "correct", text: "B", imageAssetName: nil))
+
+        #expect(viewModel.isCorrectFeedbackPresented == true)
+        #expect(viewModel.earnedStars == 3)
+    }
+
+    /// Given one wrong answer was chosen first, when the child then chooses the
+    /// correct answer, then the earned stars drop to 2 (the scoring penalty for
+    /// a single mistake).
+    @Test func retryingAfterAWrongAnswerEarnsTwoStars() {
+        let chapter = Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "correct", text: "B", imageAssetName: nil), AnswerOption(id: "wrong", text: "S", imageAssetName: nil)], correctAnswerID: "correct", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))
+        let viewModel = ChapterGameplayViewModel(chapter: chapter, source: .mainStory, nextChapterID: "chapter-2", storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
+
+        viewModel.selectAnswer(AnswerOption(id: "wrong", text: "S", imageAssetName: nil))
+        #expect(viewModel.wrongAnswerCount == 1)
+
+        viewModel.selectAnswer(AnswerOption(id: "correct", text: "B", imageAssetName: nil))
+        #expect(viewModel.earnedStars == 2)
+    }
+
+    /// Given a correct Main Story answer, when `finishCorrectFeedback()` runs,
+    /// then the destination becomes `.stageCleared`, the earned stars are saved
+    /// to the store, and the next chapter is unlocked for progression.
+    @Test func finishingMainStoryRecordsProgressAndUnlocksNextChapter() {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let chapter = Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "correct", text: "B", imageAssetName: nil)], correctAnswerID: "correct", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))
+        let viewModel = ChapterGameplayViewModel(chapter: chapter, source: .mainStory, nextChapterID: "chapter-2", storageService: storage)
+
+        viewModel.selectAnswer(AnswerOption(id: "correct", text: "B", imageAssetName: nil))
+        viewModel.finishCorrectFeedback()
+
+        #expect(viewModel.destination == .stageCleared)
+        #expect(storage.userStats.bestStars(for: "chapter-1") == 3)
+        #expect(storage.userStats.isChapterUnlocked("chapter-2") == true)
+    }
 }
 
-// MARK: - TDD-01: Incorrect Answer Can Be Retried
+// MARK: - ChapterSelectionViewModel
 
-@Suite("TDD-01 Retryable answers")
-struct RetryableAnswerTests {
+/// Behavior of `ChapterSelectionViewModel` — turning a story plus persisted
+/// progress into the chapter list, gating selection to unlocked chapters, and
+/// resolving the "next chapter" for progression.
+@MainActor
+@Suite("ChapterSelectionViewModel")
+struct ChapterSelectionViewModelTests {
 
-    @Test func incorrectAnswerKeepsQuestionRetryable() {
-        var session = LearningSession(questions: [
-            VisualCueQuestion(id: "q1", cueType: .shape, correctAnswerID: "circle")
-        ])
+    /// Given a story whose chapter-1 was completed with 2 stars, then `items`
+    /// reflect that state: chapter-1 is completed with `bestStars == 2`, while
+    /// chapter-2 remains locked (only the first chapter starts unlocked).
+    @Test func itemsReflectUnlockCompletionAndBestStars() {
+        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = ChapterSelectionViewModel(story: story, storageService: storage)
 
-        let feedback = session.submitAnswer("square", forQuestionID: "q1")
+        storage.updateUserStats { $0.recordCompletedGame(chapterID: "chapter-1", earnedStars: 2) }
 
-        #expect(feedback.isCorrect == false)
-        #expect(feedback.kind == .tryAgain)
-        #expect(session.isQuestionCompleted("q1") == false)
-        #expect(session.isQuestionRetryable("q1") == true)
+        #expect(viewModel.items[0].isCompleted == true)
+        #expect(viewModel.items[0].bestStars == 2)
+        #expect(viewModel.items[1].isUnlocked == false)
     }
 
-    @Test func correctRetryCompletesQuestion() {
-        var session = LearningSession(questions: [
-            VisualCueQuestion(id: "q1", cueType: .shape, correctAnswerID: "circle")
-        ])
+    /// Given only chapter-1 is unlocked, when `selectChapter` is called for a
+    /// locked chapter then no selection is made, but calling it for an unlocked
+    /// chapter selects it.
+    @Test func selectChapterOnlySelectsUnlockedChapters() {
+        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let viewModel = ChapterSelectionViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
 
-        _ = session.submitAnswer("square", forQuestionID: "q1")
-        let feedback = session.submitAnswer("circle", forQuestionID: "q1")
+        viewModel.selectChapter(story.chapters[2]) // locked
+        #expect(viewModel.selectedChapter == nil)
 
-        #expect(feedback.isCorrect == true)
-        #expect(feedback.kind == .positive)
-        #expect(session.isQuestionCompleted("q1") == true)
+        viewModel.selectChapter(story.chapters[0]) // unlocked
+        #expect(viewModel.selectedChapter?.id == "chapter-1")
     }
 
-    @Test func retryCorrectAnswerAppliesRetryScoringRule() {
-        var firstAttemptSession = LearningSession(questions: [
-            VisualCueQuestion(id: "q1", cueType: .shape, correctAnswerID: "circle")
-        ])
-        var retrySession = LearningSession(questions: [
-            VisualCueQuestion(id: "q1", cueType: .shape, correctAnswerID: "circle")
-        ])
+    /// Given a five-chapter story, then `nextChapterID(after:)` returns the
+    /// following chapter's id for a middle chapter, and `nil` for the last one.
+    @Test func nextChapterIDReturnsFollowingChapterOrNil() {
+        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let viewModel = ChapterSelectionViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
 
-        _ = firstAttemptSession.submitAnswer("circle", forQuestionID: "q1")
-        _ = retrySession.submitAnswer("square", forQuestionID: "q1")
-        _ = retrySession.submitAnswer("circle", forQuestionID: "q1")
-
-        #expect(retrySession.score < firstAttemptSession.score)
-        #expect(retrySession.score == 7)
-        #expect(firstAttemptSession.score == 10)
+        #expect(viewModel.nextChapterID(after: story.chapters[0]) == "chapter-2")
+        #expect(viewModel.nextChapterID(after: story.chapters[4]) == nil)
     }
 }
 
-// MARK: - TDD-02: Perfect Session Scores 100 Points And 3 Stars
+// MARK: - TrainingModeViewModel
 
-@Suite("TDD-02 Perfect session scoring")
-struct PerfectSessionScoringTests {
+/// Behavior of `TrainingModeViewModel` — gating Training Mode until the whole
+/// story is finished, and vending gameplay view models configured for training
+/// (replay) rather than story progression.
+@MainActor
+@Suite("TrainingModeViewModel")
+struct TrainingModeViewModelTests {
 
-    @Test func perfectTenQuestionSessionScoresOneHundredPoints() {
-        var session = makeSession(questionCount: 10)
+    /// Given a story that isn't finished, `isTrainingUnlocked` is `false`; after
+    /// every chapter has been completed in the store, it becomes `true`.
+    @Test func trainingUnlocksOnlyAfterEveryChapterIsCompleted() {
+        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = TrainingModeViewModel(story: story, storageService: storage)
 
-        for question in session.questions {
-            _ = session.submitAnswer(question.correctAnswerID, forQuestionID: question.id)
+        #expect(viewModel.isTrainingUnlocked == false)
+
+        storage.updateUserStats { stats in
+            for chapter in story.chapters { stats.recordCompletedGame(chapterID: chapter.id, earnedStars: 3) }
+        }
+        #expect(viewModel.isTrainingUnlocked == true)
+    }
+
+    /// Given a chapter, when `makeGameplayViewModel(for:)` builds a gameplay
+    /// view model, then it is configured with the `.training` source and no next
+    /// chapter — so replaying it records stats without advancing the story.
+    @Test func makeGameplayViewModelUsesTrainingSource() {
+        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let viewModel = TrainingModeViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
+
+        let gameplay = viewModel.makeGameplayViewModel(for: story.chapters[0])
+
+        #expect(gameplay.source == .training)
+        #expect(gameplay.nextChapterID == nil)
+    }
+}
+
+// MARK: - StorySelectionViewModel
+
+/// Behavior of `StorySelectionViewModel` — allowing navigation into available
+/// stories only and ignoring taps on "coming soon" ones.
+@MainActor
+@Suite("StorySelectionViewModel")
+struct StorySelectionViewModelTests {
+
+    /// Given an available and a coming-soon story, when `selectStory` is called
+    /// on the coming-soon one nothing is selected, but calling it on the
+    /// available one selects it.
+    @Test func selectStoryOnlySelectsAvailableStories() {
+        let available = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: [], completionSummary: nil)
+        let comingSoon = Story(id: "story-2", order: 2, title: "Cerita 2", subtitle: nil, description: "d", coverAssetName: "c", availability: .comingSoon, chapters: [], completionSummary: nil)
+        let viewModel = StorySelectionViewModel(stories: [available, comingSoon])
+
+        viewModel.selectStory(comingSoon)
+        #expect(viewModel.selectedStory == nil)
+
+        viewModel.selectStory(available)
+        #expect(viewModel.selectedStory?.id == "story-1")
+    }
+}
+
+// MARK: - MainMenuViewModel
+
+/// Behavior of `MainMenuViewModel` — tracking which menu destination the child
+/// has chosen so the main menu can drive navigation.
+@MainActor
+@Suite("MainMenuViewModel")
+struct MainMenuViewModelTests {
+
+    /// When a destination is selected it is stored in `destination`, and when
+    /// cleared `destination` returns to `nil`.
+    @Test func selectAndClearDestination() {
+        let viewModel = MainMenuViewModel()
+
+        viewModel.select(.statistics)
+        #expect(viewModel.destination == .statistics)
+
+        viewModel.clearDestination()
+        #expect(viewModel.destination == nil)
+    }
+}
+
+// MARK: - SettingsViewModel
+
+/// Behavior of `SettingsViewModel` — the draft-editing flow for settings:
+/// begin editing, mutate a draft, then either commit it to the store (`save`)
+/// or throw it away (`cancel`).
+@MainActor
+@Suite("SettingsViewModel")
+struct SettingsViewModelTests {
+
+    /// Given an editing session with brightness and simulation changed on the
+    /// draft, when `save()` is called, then editing ends and the changes are
+    /// written through to the persisted `StorageService.settings`.
+    @Test func saveCommitsDraftToStorageAndEndsEditing() {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = SettingsViewModel(storageService: storage)
+
+        viewModel.beginEditing()
+        viewModel.setDraftBrightness(0.8)
+        viewModel.enableSimulation(.tritanopia)
+        viewModel.save()
+
+        #expect(viewModel.isEditing == false)
+        #expect(storage.settings.backgroundBrightness == 0.8)
+        #expect(storage.settings.colorVisionSimulation == .tritanopia)
+    }
+
+    /// Given an editing session with an unsaved brightness change, when
+    /// `cancel()` is called, then editing ends and the draft is reverted to the
+    /// stored settings (the change is discarded).
+    @Test func cancelDiscardsDraftChanges() {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = SettingsViewModel(storageService: storage)
+
+        viewModel.beginEditing()
+        viewModel.setDraftBrightness(0.7)
+        viewModel.cancel()
+
+        #expect(viewModel.isEditing == false)
+        #expect(viewModel.draftSettings == storage.settings)
+    }
+}
+
+// MARK: - StatisticsViewModel
+
+/// Behavior of `StatisticsViewModel` — deriving the parent-facing summary
+/// (total stars, completed count, per-competency items) from persisted progress
+/// across the stories.
+@MainActor
+@Suite("StatisticsViewModel")
+struct StatisticsViewModelTests {
+
+    /// Given two chapters completed with 3 and 2 stars, then the summary reports
+    /// 5 total stars, 2 completed chapters, and one competency item per chapter
+    /// in the story.
+    @Test func summaryValuesReflectRecordedProgress() {
+        let chapters = Competency.allCases.enumerated().map { i, c in Chapter(id: "chapter-\(i + 1)", order: i + 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: c, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = StatisticsViewModel(stories: [story], storageService: storage)
+
+        storage.updateUserStats { stats in
+            stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
+            stats.recordCompletedGame(chapterID: "chapter-2", earnedStars: 2)
         }
 
-        #expect(session.score == 100)
-    }
-
-    @Test func perfectTenQuestionSessionAwardsFiveStars() {
-        var session = makeSession(questionCount: 10)
-
-        for question in session.questions {
-            _ = session.submitAnswer(question.correctAnswerID, forQuestionID: question.id)
-        }
-
-        #expect(session.stars == 3)
-    }
-}
-
-// MARK: - TDD-03: Correct Non-Color Cue Selection Shows Positive Feedback
-
-@Suite("TDD-03 Non-color cue validation")
-struct NonColorCueValidationTests {
-
-    @Test func shapeQuestionValidatesByShape() {
-        let question = VisualCueQuestion(
-            id: "shape-1",
-            cueType: .shape,
-            correctAnswerID: "triangle",
-            colorName: "red"
-        )
-
-        #expect(question.validates(answerID: "triangle") == true)
-        #expect(question.validates(answerID: "red") == false)
-    }
-
-    @Test func patternQuestionValidatesByPattern() {
-        let question = VisualCueQuestion(
-            id: "pattern-1",
-            cueType: .pattern,
-            correctAnswerID: "striped",
-            colorName: "green"
-        )
-
-        #expect(question.validates(answerID: "striped") == true)
-        #expect(question.validates(answerID: "green") == false)
-    }
-
-    @Test func symbolQuestionValidatesByMeaning() {
-        let question = VisualCueQuestion(
-            id: "symbol-1",
-            cueType: .symbol,
-            correctAnswerID: "school-crossing",
-            colorName: "yellow"
-        )
-
-        #expect(question.validates(answerID: "school-crossing") == true)
-        #expect(question.validates(answerID: "yellow") == false)
-    }
-
-    @Test func correctAnswerShowsPositiveFeedback() {
-        var session = LearningSession(questions: [
-            VisualCueQuestion(id: "q1", cueType: .symbol, correctAnswerID: "star")
-        ])
-
-        let feedback = session.submitAnswer("star", forQuestionID: "q1")
-
-        #expect(feedback.kind == .positive)
-        #expect(feedback.message == "Benar! Kamu hebat mengenali petunjuknya.")
-    }
-}
-
-// MARK: - TDD-04: Chapter 5 Unlocks After Four Chapters With Enough Stars
-
-@Suite("TDD-04 Chapter 5 unlock")
-struct ChapterFiveUnlockTests {
-
-    @Test func chapterFiveIsLockedBeforeRequiredChaptersAreComplete() {
-        let progress = ChildProgress()
-
-        #expect(progress.isChapterFiveUnlocked == false)
-    }
-
-    @Test func chapterFiveIsLockedWhenAnyRequiredChapterHasLessThanTwoStars() {
-        var progress = ChildProgress()
-        progress.recordChapterResult(chapterID: "chapter-1", score: 100, stars: 3)
-        progress.recordChapterResult(chapterID: "chapter-2", score: 80, stars: 2)
-        progress.recordChapterResult(chapterID: "chapter-3", score: 50, stars: 1)
-        progress.recordChapterResult(chapterID: "chapter-4", score: 100, stars: 3)
-
-        #expect(progress.isChapterFiveUnlocked == false)
-    }
-
-    @Test func chapterFiveUnlocksWhenFirstFourChaptersHaveAtLeastTwoStars() {
-        var progress = ChildProgress()
-        progress.recordChapterResult(chapterID: "chapter-1", score: 80, stars: 2)
-        progress.recordChapterResult(chapterID: "chapter-2", score: 100, stars: 3)
-        progress.recordChapterResult(chapterID: "chapter-3", score: 80, stars: 2)
-        progress.recordChapterResult(chapterID: "chapter-4", score: 100, stars: 3)
-
-        #expect(progress.isChapterFiveUnlocked == true)
-    }
-}
-
-// MARK: - TDD-05: Learning Session Progress Is Saved For Parent View
-
-@Suite("TDD-05 Progress persistence")
-struct ProgressPersistenceTests {
-
-    @Test func completedSessionSavesProgressRecord() {
-        var progress = ChildProgress()
-        let result = SessionResult(
-            chapterID: "chapter-1",
-            score: 90,
-            stars: 4,
-            isCompleted: true,
-            completedAt: Date(timeIntervalSince1970: 1_800)
-        )
-
-        progress.recordSession(result)
-
-        #expect(progress.records.count == 1)
-        #expect(progress.records.first?.chapterID == "chapter-1")
-    }
-
-    @Test func savedProgressIncludesScoreStarsAndCompletionStatus() throws {
-        var progress = ChildProgress()
-        let completedAt = Date(timeIntervalSince1970: 1_800)
-
-        progress.recordSession(SessionResult(
-            chapterID: "chapter-1",
-            score: 90,
-            stars: 4,
-            isCompleted: true,
-            completedAt: completedAt
-        ))
-
-        let record = try #require(progress.records.first)
-        #expect(record.chapterID == "chapter-1")
-        #expect(record.score == 90)
-        #expect(record.stars == 4)
-        #expect(record.isCompleted == true)
-        #expect(record.completedAt == completedAt)
-    }
-
-    @Test func loadingProgressReturnsLatestSavedResult() throws {
-        var store = InMemoryProgressStore()
-        let older = SessionResult(
-            chapterID: "chapter-1",
-            score: 60,
-            stars: 3,
-            isCompleted: true,
-            completedAt: Date(timeIntervalSince1970: 1_000)
-        )
-        let latest = SessionResult(
-            chapterID: "chapter-1",
-            score: 90,
-            stars: 4,
-            isCompleted: true,
-            completedAt: Date(timeIntervalSince1970: 2_000)
-        )
-
-        store.save(older)
-        store.save(latest)
-
-        #expect(try #require(store.loadLatestResult(forChapterID: "chapter-1")) == latest)
-    }
-}
-
-// MARK: - TDD-06: Completing All Challenges Shows Result And Unlocks Next Activity
-
-@Suite("TDD-06 Completion and unlock")
-struct CompletionAndUnlockTests {
-
-    @Test func sessionIsIncompleteWhileChallengesRemain() {
-        var session = makeSession(questionCount: 3)
-
-        _ = session.submitAnswer("answer-1", forQuestionID: "q1")
-        _ = session.submitAnswer("answer-2", forQuestionID: "q2")
-
-        #expect(session.isCompleted == false)
-    }
-
-    @Test func lastCompletedChallengeCompletesSession() {
-        var session = makeSession(questionCount: 2)
-
-        _ = session.submitAnswer("answer-1", forQuestionID: "q1")
-        _ = session.submitAnswer("answer-2", forQuestionID: "q2")
-
-        #expect(session.isCompleted == true)
-    }
-
-    @Test func completedSessionShowsResultSummary() throws {
-        var session = makeSession(questionCount: 2)
-
-        _ = session.submitAnswer("answer-1", forQuestionID: "q1")
-        _ = session.submitAnswer("answer-2", forQuestionID: "q2")
-
-        let summary = try #require(session.resultSummary)
-        #expect(summary.score == 20)
-        #expect(summary.stars == 5)
-    }
-
-    @Test func completedSessionUnlocksNextActivityWhenThresholdIsMet() {
-        var progress = ChildProgress()
-        progress.recordChapterResult(chapterID: "chapter-1", score: 80, stars: 4)
-
-        #expect(progress.isActivityUnlocked(afterChapterID: "chapter-1") == true)
+        #expect(viewModel.totalStars == 5)
+        #expect(viewModel.completedChapterCount == 2)
+        #expect(viewModel.competencyItems.count == 5)
     }
 }
