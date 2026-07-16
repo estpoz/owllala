@@ -96,13 +96,13 @@ struct SettingsModalView: View {
 // MARK: - Preview
 
 #Preview("Settings Overlay") {
-    ZStack {
+    let settingsViewModel = SettingsViewModel(storageService: StorageService())
+
+    return ZStack {
         Color(white: 0.85)
             .ignoresSafeArea()
 
-        SettingsModalView(
-            viewModel: SettingsViewModel(storageService: StorageService()),
-            onDismiss: {}
-        )
+        SettingsModalView(viewModel: settingsViewModel, onDismiss: {})
     }
+    .environmentObject(settingsViewModel)
 }

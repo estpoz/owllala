@@ -76,8 +76,11 @@ struct SettingsSurface: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
+            // Designated background layer: dims with "Kecerahan Latar
+            // Belakang" while the controls and text above stay full-bright.
             Color.white
                 .ignoresSafeArea()
+                .appBackgroundBrightness()
 
             SettingsPanelContent(
                 viewModel: viewModel,
@@ -360,6 +363,8 @@ struct SettingsPanelContent: View {
         .frame(maxWidth: 420)
         .aspectRatio(3 / 2, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        // NOT dimmed: images and other foreground content keep their colors
+        // at every brightness level — only designated background layers dim.
         .accessibilityLabel("Pratinjau kecerahan latar belakang")
     }
 
@@ -498,8 +503,8 @@ struct SettingsToggle: View {
 // MARK: - Preview
 
 #Preview("Settings View") {
-    SettingsView(
-        viewModel: SettingsViewModel(storageService: StorageService()),
-        onDismiss: {}
-    )
+    let settingsViewModel = SettingsViewModel(storageService: StorageService())
+
+    return SettingsView(viewModel: settingsViewModel, onDismiss: {})
+        .environmentObject(settingsViewModel)
 }

@@ -93,23 +93,22 @@ extension View {
             )
     }
 
-    /// Applies both display adjustments from a `Settings` value in one call:
-    /// the color-vision filter first, then the brightness dim on top.
+    /// Applies the screen-wide display adjustments from a `Settings` value:
+    /// the color-vision filter and the text-size scale.
     ///
-    /// This is the one modifier a screen's root should reach for:
-    ///
-    ///     SomeScreen()
-    ///         .displayAdjustments(for: storageService.settings)
+    /// Background brightness is intentionally NOT included — per the
+    /// `Settings` model rule it only dims designated background layers, which
+    /// apply `backgroundBrightness(_:)` / `appBackgroundBrightness()`
+    /// themselves.
     ///
     /// ⚠️ The screen must be built from SwiftUI-drawn views only (no
     /// `ScrollView`, no system `Slider`/`Toggle`, no representables), otherwise
     /// those views vanish under the shader — see `colorVisionFilter(_:)`.
     ///
-    /// - Parameter settings: The settings whose brightness and filter to apply.
+    /// - Parameter settings: The settings to apply.
     /// - Returns: The adjusted view.
     func displayAdjustments(for settings: Settings) -> some View {
         colorVisionFilter(settings.colorVisionSimulation)
-            .backgroundBrightness(settings.backgroundBrightness)
             .textSizeAdjustment(for: settings)
     }
 
@@ -193,14 +192,53 @@ private struct AppDisplayAdjustments: ViewModifier {
         let settings = settingsViewModel.activeDisplaySettings
 
         if includesColorFilter {
-            content.displayAdjustments(for: settings)
-        } else {
-            // Brightness and text size are overlay/environment based, so they
-            // are always safe — only the shader needs rasterizable content.
             content
-                .backgroundBrightness(settings.backgroundBrightness)
+                .colorVisionFilter(settings.colorVisionSimulation)
+                .textSizeAdjustment(for: settings)
+        } else {
+            // Text size is environment based, so it is always safe — only the
+            // shader needs rasterizable content.
+            content
                 .textSizeAdjustment(for: settings)
         }
+    }
+}
+
+// MARK: - Background Brightness (Environment-Based)
+
+/// Dims the view it is attached to according to the current settings — meant
+/// for DESIGNATED BACKGROUND layers only, per the `Settings` model rule:
+/// brightness must not darken foreground objects, controls, or text.
+///
+/// Attach it to each screen's background view (and the settings preview
+/// image, which exists to demonstrate the effect):
+///
+///     MainMenuBackground()
+///         .appBackgroundBrightness()
+private struct AppBackgroundBrightness: ViewModifier {
+
+    /// The shared settings logic, injected via `environmentObject`.
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
+    func body(content: Content) -> some View {
+        content.backgroundBrightness(
+            settingsViewModel.activeDisplaySettings.backgroundBrightness
+        )
+    }
+}
+
+extension View {
+
+    /// Dims this view per the "Kecerahan Latar Belakang" setting, reading the
+    /// shared `SettingsViewModel` from the environment.
+    ///
+    /// Apply to designated BACKGROUND views only — foreground content
+    /// (controls, text, illustrations) must stay at full brightness, per the
+    /// `Settings` model rule.
+    ///
+    /// - Returns: The dimmed background view.
+    func appBackgroundBrightness() -> some View {
+        modifier(AppBackgroundBrightness())
     }
 }
 
