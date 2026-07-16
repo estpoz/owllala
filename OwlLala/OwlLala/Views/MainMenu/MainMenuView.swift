@@ -9,6 +9,14 @@ import SwiftUI
 
 struct MainMenuView: View {
 
+    /// The app's shared storage, injected by `ContentView` via the environment.
+    @EnvironmentObject private var storageService: StorageService
+
+    /// The app-wide settings logic, injected by `ContentView` via the
+    /// environment — the SAME instance the root reads for display adjustments,
+    /// so edits made on the settings page apply and persist app-wide.
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
     @StateObject private var viewModel = MainMenuViewModel()
 
     var body: some View {
@@ -62,20 +70,23 @@ struct MainMenuView: View {
             Text("Training Mode View")
 //            TrainingModeView()
         case .statistics:
+            // Uses the app's shared storage so real progress is shown.
             StatisticsView(
                 viewModel: StatisticsViewModel(
                     stories: [],
-                    storageService: StorageService(
-                        userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewPreview") ?? .standard
-                    )
+                    storageService: storageService
                 ),
-                onBack: {}
+                onBack: {
+                    viewModel.clearDestination()
+                }
             )
         case .settings:
-            SettingsView(
-                viewModel: SettingsViewModel(storageService: StorageService()),
-                onDismiss: {}
-            )
+            // Uses the SHARED settings view model (not a new store), so edits
+            // preview and persist app-wide; back/Simpan pops by clearing the
+            // destination.
+            SettingsView(viewModel: settingsViewModel) {
+                viewModel.clearDestination()
+            }
         }
     }
 
@@ -178,5 +189,9 @@ private struct MainMenuBackground: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    MainMenuView()
+    let storageService = StorageService()
+
+    return MainMenuView()
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }
