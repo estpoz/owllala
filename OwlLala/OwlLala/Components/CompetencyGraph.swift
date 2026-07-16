@@ -14,18 +14,24 @@ struct CompetencyGraph: View {
 
     let items: [CompetencyProgressItem]
 
+    // MARK: Styling
+
     private let gridLevels = 5
     private let graphColor = Color(red: 0.12, green: 0.40, blue: 0.92)
     private let gridColor = Color(red: 0.74, green: 0.78, blue: 0.88)
+
+    // MARK: Dynamic Type Metrics
 
     @ScaledMetric(relativeTo: .title2) private var titleFontSize: CGFloat = 30
     @ScaledMetric(relativeTo: .body) private var labelFontSize: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var cardPadding: CGFloat = 24
 
+    // MARK: Body
+
     var body: some View {
         VStack(spacing: 12) {
             Text("Kemampuan Visual")
-                .font(.system(size: titleFontSize, weight: .bold))
+                .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
                 .foregroundStyle(Color(red: 0.02, green: 0.16, blue: 0.45))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
@@ -59,7 +65,7 @@ struct CompetencyGraph: View {
                         )
 
                         Text(shortLabel(for: item.competency))
-                            .font(.system(size: labelFontSize, weight: .bold))
+                            .font(.system(size: labelFontSize, weight: .bold, design: .rounded))
                             .foregroundStyle(Color(red: 0.02, green: 0.09, blue: 0.28))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
@@ -74,7 +80,7 @@ struct CompetencyGraph: View {
         .padding(cardPadding)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white)
+                .fill(Color.white.opacity(0.94))
                 .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
         )
         .overlay(
@@ -85,7 +91,10 @@ struct CompetencyGraph: View {
         .accessibilityLabel(accessibilitySummary)
     }
 
+    // MARK: Graph Data
+
     private var graphItems: [CompetencyProgressItem] {
+        // Missing progress still renders as the real empty state: 0 out of 5.
         StatisticsViewModel.competencyOrder.map { competency in
             items.first { $0.competency == competency } ?? CompetencyProgressItem(
                 competency: competency,
@@ -101,6 +110,8 @@ struct CompetencyGraph: View {
             .map { "\($0.competency.displayName) \($0.score) dari \($0.maximumScore)" }
             .joined(separator: ", ")
     }
+
+    // MARK: Drawing
 
     private func drawGrid(
         in context: inout GraphicsContext,
@@ -190,6 +201,8 @@ struct CompetencyGraph: View {
         }
     }
 
+    // MARK: Geometry
+
     private func polygonPath(
         count: Int,
         radius: CGFloat,
@@ -227,6 +240,8 @@ struct CompetencyGraph: View {
         )
     }
 
+    // MARK: Labels
+
     private func shortLabel(for competency: Competency) -> String {
         switch competency {
         case .labelSymbol:
@@ -257,6 +272,6 @@ struct CompetencyGraph: View {
     CompetencyGraph(items: [])
         .frame(width: 620, height: 620)
         .padding(48)
-        .background(Color.white)
+        .background(StatisticsBackground())
 }
 #endif
