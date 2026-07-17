@@ -4,4 +4,535 @@
 //
 //  Created by Farrell Sudjatmiko on 13/07/26.
 //
+//  OVERVIEW
+//  --------
+//  The reusable immediate-feedback pieces for the chapter mini-games:
+//
+//  1. `CorrectAnswerCelebration` — 3 seconds of confetti (reusing
+//     `ConfettiOverlay` from StageCleared.swift) + the clap sound, started by
+//     ONE call that fans out into its two feature functions.
+//  2. `wrongAnswerFeedback(...)` — view modifier for a wrong option: red
+//     outline, shake, vibration, and the wrong-answer sound.
+//  3. `HintOverlay` + `ChapterHints` — after the SECOND wrong answer, the owl
+//     appears with a Dynamic Type speech bubble showing the chapter's hint.
+//
+//  Sounds are played through `AudioService` and are safe no-ops until the
+//  audio files are imported (see AudioService.swift for the expected names).
+//
+//  TYPICAL GAMEPLAY WIRING (driven by ChapterGameplayViewModel)
+//  ------------------------------------------------------------
+//  Every feature is a modifier callable on ANY view:
+//
+//      // Option card:
+//      AnswerCard(option)
+//          .wrongAnswerFeedback(
+//              isWrong: viewModel.incorrectAnswerID == option.id,
+//              shakeTrigger: viewModel.shakeTrigger
+//          )
+//
+//      // Screen root:
+//      GameplayContent(...)
+//          .correctAnswerCelebration(
+//              isActive: viewModel.isCorrectFeedbackPresented
+//          ) { viewModel.finishCorrectFeedback() }
+//          .hintOverlay(
+//              isPresented: viewModel.isHintPresented,
+//              chapter: viewModel.chapter
+//          ) { viewModel.dismissHint() }
+//
 
+import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
+#endif
+
+// MARK: - 1. Correct Answer Celebration (Confetti + Clap)
+
+/// Fullscreen celebration for a correct answer: confetti rains for 3 seconds
+/// while the clap sound plays, then `onFinished` fires so the host can move on
+/// (e.g. call `ChapterGameplayViewModel.finishCorrectFeedback()`).
+///
+/// One call starts everything: `startCelebration()` runs on appear and fans
+/// out into the two feature functions — `startConfetti()` and
+/// `playClapSound()`.
+struct CorrectAnswerCelebration: View {
+
+    /// How long the celebration runs before `onFinished` is called.
+    static let duration: TimeInterval = 3.0
+
+    /// Invoked once, after the confetti and clap finish.
+    let onFinished: () -> Void
+
+    /// Fades the confetti out at the end of the celebration.
+    @State private var isFadingOut = false
+
+    var body: some View {
+        // Confetti reused from StageCleared.swift; it never blocks taps.
+        ConfettiOverlay()
+            .opacity(isFadingOut ? 0 : 1)
+            .allowsHitTesting(false)
+            .onAppear {
+                startCelebration()
+            }
+    }
+
+    /// THE one entry point: starts both celebration features together and
+    /// schedules the finish after `Self.duration` (3 seconds).
+    private func startCelebration() {
+        startConfetti()
+        playClapSound()
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.duration - 0.3))
+            withAnimation(.easeOut(duration: 0.3)) {
+                isFadingOut = true
+            }
+
+            try? await Task.sleep(for: .seconds(0.3))
+            onFinished()
+        }
+    }
+
+    /// Feature 1: the falling confetti with its sound. `ConfettiOverlay`
+    /// spawns its pieces on appear, so showing it is what starts the rain.
+    private func startConfetti() {
+        isFadingOut = false
+        AudioService.shared.playConfettiSound()
+    }
+
+    /// Feature 2: the clap sound.
+    private func playClapSound() {
+        AudioService.shared.playClapSound()
+    }
+}
+
+// MARK: - 2. Wrong Answer Feedback (Red Outline + Shake + Vibration + Sound)
+
+extension View {
+
+    /// Marks an answer option as wrong: red outline while `isWrong` is true,
+    /// and — every time `shakeTrigger` increases — a shake animation, an error
+    /// vibration, and the wrong-answer sound.
+    ///
+    /// Drive it from `ChapterGameplayViewModel`:
+    ///
+    ///     AnswerCard(option)
+    ///         .wrongAnswerFeedback(
+    ///             isWrong: viewModel.incorrectAnswerID == option.id,
+    ///             shakeTrigger: viewModel.shakeTrigger
+    ///         )
+    ///
+    /// The red is never the only cue — the shake, vibration, and sound carry
+    /// the same message for children who can't distinguish the color.
+    ///
+    /// - Parameters:
+    ///   - isWrong: Whether this option is the currently-marked wrong answer.
+    ///   - shakeTrigger: Monotonic counter; each increment plays the effects.
+    ///   - cornerRadius: Corner radius of the outline (match the option card).
+    /// - Returns: The decorated view.
+    func wrongAnswerFeedback(
+        isWrong: Bool,
+        shakeTrigger: Int,
+        cornerRadius: CGFloat = 18
+    ) -> some View {
+        modifier(
+            WrongAnswerFeedback(
+                isWrong: isWrong,
+                shakeTrigger: shakeTrigger,
+                cornerRadius: cornerRadius
+            )
+        )
+    }
+}
+
+/// Implementation of `wrongAnswerFeedback(...)`. See that function for usage.
+private struct WrongAnswerFeedback: ViewModifier {
+
+    let isWrong: Bool
+    let shakeTrigger: Int
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            // Red outline while this option is marked wrong. Opacity (not an
+            // if/else branch) keeps the view's identity stable.
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.red, lineWidth: 4)
+                    .opacity(isWrong ? 1 : 0)
+            )
+            // Shake: animates whenever the trigger increments.
+            .modifier(ShakeEffect(animatableData: CGFloat(shakeTrigger)))
+            .animation(.linear(duration: 0.4), value: shakeTrigger)
+            .onChange(of: shakeTrigger) { _, newValue in
+                guard newValue > 0, isWrong else {
+                    return
+                }
+
+                playWrongAnswerEffects()
+            }
+    }
+
+    /// Plays the non-visual half of the feedback: the error vibration and the
+    /// wrong-answer sound (sound is a no-op until the asset is imported).
+    private func playWrongAnswerEffects() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.error)
+        #endif
+
+        AudioService.shared.playWrongAnswerSound()
+    }
+}
+
+/// Horizontal shake used for wrong answers: three quick left-right swings per
+/// trigger increment, driven through `animatableData` so SwiftUI tweens it.
+private struct ShakeEffect: GeometryEffect {
+
+    /// Swings per unit of `animatableData`.
+    var shakesPerUnit: CGFloat = 3
+
+    /// Maximum horizontal displacement in points.
+    var travelDistance: CGFloat = 10
+
+    var animatableData: CGFloat
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(
+            CGAffineTransform(
+                translationX: travelDistance * sin(animatableData * .pi * shakesPerUnit * 2),
+                y: 0
+            )
+        )
+    }
+}
+
+// MARK: - 3. Second-Wrong Hint (Owl + Speech Bubble)
+
+/// The per-chapter hint texts shown after the second wrong answer, in simple,
+/// child-friendly Indonesian. One entry per chapter competency.
+enum ChapterHints {
+
+    /// Returns the hint for a chapter's position in the story (1–5).
+    ///
+    /// - Parameter order: The chapter's `order` (1-based).
+    /// - Returns: The kid-friendly Indonesian hint for that chapter.
+    static func hint(forChapterOrder order: Int) -> String {
+        switch order {
+        case 1:
+            // Shape: "Look carefully at the shape. Which one has the same outline?"
+            return "Lihat bentuknya baik-baik, ya. Mana yang punya bentuk sama?"
+
+        case 2:
+            // Label/symbol: "Look carefully at the label or symbol."
+            return "Lihat tulisan atau gambarnya baik-baik. Mana yang punya tanda atau kata yang sama?"
+
+        case 3:
+            // Contrast: "Which object is the easiest to see in the dark?"
+            return "Lihat terang dan gelapnya, ya. Benda mana yang paling mudah terlihat di tempat gelap?"
+
+        case 4:
+            // Pattern: "Which one has the same pattern?"
+            return "Lihat polanya baik-baik, ya. Mana yang punya pola sama?"
+
+        default:
+            // Combine all cues: shape, label, brightness, and pattern.
+            return "Coba lihat lebih dari satu petunjuk, ya. Perhatikan bentuk, tulisan, terang-gelapnya, dan polanya. Kotak bekal mana yang cocok dengan semuanya?"
+        }
+    }
+
+    /// Returns the hint for a chapter, preferring the hand-written
+    /// `hintText` from the chapter's question data and falling back to the
+    /// per-order defaults above.
+    ///
+    /// - Parameter chapter: The chapter being played.
+    /// - Returns: The speech-bubble hint text.
+    static func hint(for chapter: Chapter) -> String {
+        let dataHint = chapter.gameConfiguration.question.hintText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return dataHint.isEmpty ? hint(forChapterOrder: chapter.order) : dataHint
+    }
+}
+
+/// The hint overlay shown after the child's SECOND wrong answer: the owl
+/// mascot with a speech bubble containing the chapter's hint, plus a button to
+/// go back and try again.
+///
+/// Presentation-only: show it from the game's `ZStack` when
+/// `ChapterGameplayViewModel.isHintPresented` is true, and dismiss via
+/// `dismissHint()`. Pure SwiftUI (no ScrollView), so it renders correctly
+/// under the whole-screen color filter.
+struct HintOverlay: View {
+
+    /// The hint sentence displayed inside the speech bubble.
+    let hintText: String
+
+    /// Invoked when the child taps the button to try again; the host hides
+    /// the overlay (e.g. `viewModel.dismissHint()`).
+    let onDismiss: () -> Void
+
+    /// Dynamic Type multipliers for the bubble text and owl size.
+    @ScaledMetric(relativeTo: .body) private var bubbleTextScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .body) private var owlScale: CGFloat = 1
+
+    /// Creates the overlay with an explicit hint sentence.
+    init(hintText: String, onDismiss: @escaping () -> Void) {
+        self.hintText = hintText
+        self.onDismiss = onDismiss
+    }
+
+    /// Creates the overlay for a chapter, resolving its hint automatically
+    /// via `ChapterHints` — the usual initializer for gameplay.
+    init(chapter: Chapter, onDismiss: @escaping () -> Void) {
+        self.init(hintText: ChapterHints.hint(for: chapter), onDismiss: onDismiss)
+    }
+
+    var body: some View {
+        ZStack {
+            // Dimmed backdrop pausing the game visually behind the hint.
+            Color.black
+                .opacity(0.36)
+                .ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                // Owl + speech bubble, side by side like a conversation.
+                HStack(alignment: .center, spacing: 0) {
+                    owlIllustration
+                    speechBubble
+                }
+
+                dismissButton
+            }
+            .padding(40)
+        }
+        // Larger Text without a ScrollView: grows up to accessibility1, then
+        // holds, mirroring the settings screens.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    }
+
+    /// The owl mascot delivering the hint.
+    private var owlIllustration: some View {
+        Image("homeScreen")
+            .resizable()
+            .scaledToFill()
+            .frame(width: 180 * owlScale, height: 180 * owlScale)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(.black, lineWidth: 3)
+            )
+            .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
+            .accessibilityHidden(true)
+    }
+
+    /// The speech bubble with the chapter's hint. Text follows Dynamic Type
+    /// and wraps freely inside the bubble.
+    private var speechBubble: some View {
+        HStack(alignment: .center, spacing: -1) {
+            // Tail pointing at the owl.
+            BubbleTail()
+                .fill(.white)
+                .frame(width: 26, height: 30)
+
+            Text(hintText)
+                .font(.owlRounded(AppFontSize.body * bubbleTextScale, .medium))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.leading)
+                .padding(28)
+                .background(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .frame(maxWidth: 520, alignment: .leading)
+        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
+        .accessibilityLabel("Petunjuk: \(hintText)")
+    }
+
+    /// The action button that closes the hint so the child can try again.
+    private var dismissButton: some View {
+        PrimaryActionButton(title: "Coba Lagi", action: onDismiss)
+    }
+}
+
+/// The small triangle pointing from the speech bubble toward the owl.
+private struct BubbleTail: Shape {
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - Apply-Anywhere Modifiers
+
+// These let ANY view opt into the feedback with one call, driven by
+// `ChapterGameplayViewModel` (or any other state). A full gameplay screen
+// wires all three like this:
+//
+//     GameplayContent(...)                      // option cards inside use
+//                                               // .wrongAnswerFeedback(...)
+//         .correctAnswerCelebration(
+//             isActive: viewModel.isCorrectFeedbackPresented
+//         ) { viewModel.finishCorrectFeedback() }
+//         .hintOverlay(
+//             isPresented: viewModel.isHintPresented,
+//             chapter: viewModel.chapter
+//         ) { viewModel.dismissHint() }
+//
+// Apply the two overlay modifiers to the SCREEN'S ROOT view so the confetti
+// and the hint scrim cover the whole screen.
+
+extension View {
+
+    /// Overlays the 3-second confetti + clap celebration on this view while
+    /// `isActive` is true; `onFinished` fires when it completes (set your flag
+    /// back to false there).
+    ///
+    /// - Parameters:
+    ///   - isActive: Whether the celebration is currently playing.
+    ///   - onFinished: Called once, after the 3 seconds.
+    /// - Returns: The view with the celebration overlay attached.
+    func correctAnswerCelebration(
+        isActive: Bool,
+        onFinished: @escaping () -> Void
+    ) -> some View {
+        overlay {
+            if isActive {
+                CorrectAnswerCelebration(onFinished: onFinished)
+            }
+        }
+    }
+
+    /// Overlays the owl hint (speech bubble + "Coba Lagi") on this view while
+    /// `isPresented` is true, with an explicit hint sentence.
+    ///
+    /// - Parameters:
+    ///   - isPresented: Whether the hint is showing.
+    ///   - hintText: The sentence inside the speech bubble.
+    ///   - onDismiss: Called when the child taps "Coba Lagi".
+    /// - Returns: The view with the hint overlay attached.
+    func hintOverlay(
+        isPresented: Bool,
+        hintText: String,
+        onDismiss: @escaping () -> Void
+    ) -> some View {
+        overlay {
+            if isPresented {
+                HintOverlay(hintText: hintText, onDismiss: onDismiss)
+            }
+        }
+    }
+
+    /// Overlays the owl hint for a chapter, resolving its text automatically
+    /// via `ChapterHints` — the usual form for gameplay screens.
+    ///
+    /// - Parameters:
+    ///   - isPresented: Whether the hint is showing.
+    ///   - chapter: The chapter being played (provides the hint text).
+    ///   - onDismiss: Called when the child taps "Coba Lagi".
+    /// - Returns: The view with the hint overlay attached.
+    func hintOverlay(
+        isPresented: Bool,
+        chapter: Chapter,
+        onDismiss: @escaping () -> Void
+    ) -> some View {
+        hintOverlay(
+            isPresented: isPresented,
+            hintText: ChapterHints.hint(for: chapter),
+            onDismiss: onDismiss
+        )
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Celebration") {
+    ZStack {
+        Color(white: 0.9)
+            .ignoresSafeArea()
+
+        CorrectAnswerCelebration {}
+    }
+}
+
+#Preview("Wrong Answer") {
+    // INTERACTIVE — the canvas must be in LIVE mode (▶ button, bottom-left of
+    // the canvas), not the Variants view: variant snapshots ignore taps.
+    // Tap any card to simulate picking a wrong answer — the outline, shake,
+    // vibration (device only), and sound all fire on the trigger increment,
+    // exactly like ChapterGameplayViewModel does in gameplay. The outline
+    // adapts to whatever size the option view is.
+    @Previewable @State var isWrong = false
+    @Previewable @State var shakeTrigger = 0
+
+    VStack(spacing: 32) {
+        Text("Tap a card (Live mode) to trigger the wrong-answer feedback")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+
+        // Different sizes to show the outline fitting any box.
+        HStack(spacing: 32) {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.white)
+                .frame(width: 260, height: 120)
+                .wrongAnswerFeedback(isWrong: isWrong, shakeTrigger: shakeTrigger)
+
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.white)
+                .frame(width: 160, height: 200)
+                .wrongAnswerFeedback(isWrong: isWrong, shakeTrigger: shakeTrigger)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isWrong = true
+            shakeTrigger += 1
+        }
+    }
+    .padding(60)
+    .background(Color(white: 0.9))
+}
+
+#Preview("Hint") {
+    HintOverlay(hintText: ChapterHints.hint(forChapterOrder: 5)) {}
+}
+
+#Preview("All Feedback (modifiers)") {
+    // Demonstrates that any plain view can opt in with the three modifiers.
+    // Use LIVE mode (▶) and tap the buttons.
+    @Previewable @State var isCelebrating = false
+    @Previewable @State var isHintShowing = false
+    @Previewable @State var isWrong = false
+    @Previewable @State var shakeTrigger = 0
+
+    ZStack {
+        Color(white: 0.93)
+            .ignoresSafeArea()
+
+        VStack(spacing: 28) {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.white)
+                .frame(width: 280, height: 130)
+                .overlay(Text("Kartu Jawaban").font(.owlBody))
+                .wrongAnswerFeedback(isWrong: isWrong, shakeTrigger: shakeTrigger)
+
+            HStack(spacing: 16) {
+                Button("Benar ✓") { isCelebrating = true }
+                Button("Salah ✗") {
+                    isWrong = true
+                    shakeTrigger += 1
+                    if shakeTrigger == 2 { isHintShowing = true }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+    .correctAnswerCelebration(isActive: isCelebrating) { isCelebrating = false }
+    .hintOverlay(isPresented: isHintShowing, hintText: ChapterHints.hint(forChapterOrder: 1)) {
+        isHintShowing = false
+        isWrong = false
+    }
+}
