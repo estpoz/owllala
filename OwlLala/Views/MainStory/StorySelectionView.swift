@@ -106,113 +106,49 @@ struct StoryBookView: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 0) {
-                ZStack(alignment: .top) {
-                    RoundedRectangle(cornerRadius: width * 0.08)
-                        .fill(item.isAvailable ? Color(red: 0.278, green: 0.412, blue: 0.533) : Color(red: 0.733, green: 0.314, blue: 0.306))
-                        .frame(width: width, height: height)
-                    
-                    VStack {
-                        Spacer()
-                        UnevenRoundedRectangle(bottomLeadingRadius: width * 0.08, bottomTrailingRadius: width * 0.08)
-                            .fill(Color(red: 0.863, green: 0.886, blue: 0.898))
-                            .frame(height: height * 0.065)
-                    }
+            ZStack(alignment: .bottom) {
+                // Changing to .scaledToFit prevents image cropping on the bottom/top edges
+                Image("storyCover\(item.story.order)")
+                    .resizable()
+                    .scaledToFit()
                     .frame(width: width, height: height)
-                    
-                    HStack {
-                        VStack(spacing: 0) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(red: 0.941, green: 0.659, blue: 0.239))
-                                .frame(width: width * 0.07, height: height * 0.022)
-                                .padding(.top, height * 0.1)
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(red: 0.941, green: 0.659, blue: 0.239))
-                                .frame(width: width * 0.07, height: height * 0.022)
-                                .padding(.top, height * 0.015)
-                            
-                            Spacer()
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(red: 0.941, green: 0.659, blue: 0.239))
-                                .frame(width: width * 0.07, height: height * 0.022)
-                                .padding(.bottom, height * 0.015)
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(red: 0.941, green: 0.659, blue: 0.239))
-                                .frame(width: width * 0.07, height: height * 0.022)
-                                .padding(.bottom, height * 0.1)
-                        }
-                        .padding(.leading, width * 0.03)
+                    .clipShape(RoundedRectangle(cornerRadius: width * 0.08))
+                    .opacity(item.isAvailable ? 1.0 : 0.6)
+                
+                // Overlay Text Layer
+                if item.isAvailable {
+                    VStack(spacing: 0) {
                         Spacer()
-                    }
-                    .frame(width: width, height: height)
-                    
-                    if item.isAvailable {
-                        VStack(spacing: 0) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 0)
-                                    .fill(Color.white)
-                                    .frame(width: width * 0.68, height: height * 0.36)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 2)
-                                
-                                Image(systemName: "person.crop.square.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .foregroundColor(.gray.opacity(0.6))
-                                    .frame(width: width * 0.3, height: width * 0.3)
-                            }
-                            .padding(.top, height * 0.13)
-                            
-                            Spacer()
-                            
-                            Text(item.story.title)
-                                .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .underline()
-                                .lineLimit(1)
-                                .padding(.horizontal, width * 0.08)
-                                .padding(.bottom, height * 0.18)
-                        }
-                        .frame(width: width, height: height)
-                        
-                    } else {
-                        VStack(spacing: 0) {
-                            Rectangle()
-                                .fill(Color.black.opacity(0.15))
-                                .frame(width: width * 0.68, height: height * 0.1)
-                                .padding(.top, height * 0.15)
-                            
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: width * 0.2, weight: .medium, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(width: width * 0.26, height: width * 0.27)
-                                .background(Color(red: 0.059, green: 0.514, blue: 0.988))
-                                .clipShape(RoundedRectangle(cornerRadius: width * 0.06))
-                                .padding(.top, height * 0.03)
-                            
-                            Spacer()
-                            
-                            VStack(spacing: 4) {
-                                Text(item.story.title)
-                                    .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                                Text("Coming Soon")
-                                    .font(.system(size: subtitleSize, weight: .medium, design: .rounded))
-                            }
+                        Text(item.story.title)
+                            .font(.system(size: titleSize, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+                            .underline()
                             .lineLimit(1)
-                            .padding(.horizontal, width * 0.06)
-                            .padding(.bottom, height * 0.16)
-                        }
-                        .frame(width: width, height: height)
+                            .padding(.horizontal, width * 0.08)
+                            .padding(.bottom, height * 0.27)
                     }
+                    .frame(width: width, height: height)
+                    
+                } else {
+                    VStack(spacing: 4) {
+                        Spacer()
+                        Text(item.story.title)
+                            .font(.system(size: titleSize, weight: .bold, design: .rounded))
+                        Text("Coming Soon")
+                            .font(.system(size: subtitleSize, weight: .medium, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, width * 0.06)
+                    .padding(.bottom, height * 0.21)
+                    .frame(width: width, height: height)
                 }
             }
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
+
 #Preview {
     let mockStory1 = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Hilangnya Kotak Bekal", description: "", coverAssetName: "", availability: .available, chapters: [], completionSummary: nil)
     let mockStory2 = Story(id: "story-2", order: 2, title: "Cerita 2", subtitle: "Segera Hadir", description: "", coverAssetName: "", availability: .comingSoon, chapters: [], completionSummary: nil)
