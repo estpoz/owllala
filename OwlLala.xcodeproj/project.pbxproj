@@ -432,12 +432,9 @@
 				DEVELOPMENT_TEAM = YJ855C323A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-<<<<<<< Updated upstream
 				INFOPLIST_FILE = OwlLala/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
-=======
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
->>>>>>> Stashed changes
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -476,12 +473,9 @@
 				DEVELOPMENT_TEAM = YJ855C323A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-<<<<<<< Updated upstream
 				INFOPLIST_FILE = OwlLala/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
-=======
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
->>>>>>> Stashed changes
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
