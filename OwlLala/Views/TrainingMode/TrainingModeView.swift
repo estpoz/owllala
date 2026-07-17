@@ -18,13 +18,11 @@ struct TrainingModeView: View {
             let nodeDiameter = screenWidth * 0.24
             let innerCoreDiameter = nodeDiameter * 0.93
             
-            // Adjusted baseline coordinates lower to provide comfortable structural breathing room
             let startPointY = screenHeight * 0.79
             let peakPointY = screenHeight * 0.55
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             ZStack {
-                // MARK: Background Canvas
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
@@ -34,7 +32,6 @@ struct TrainingModeView: View {
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
                 
-                // MARK: Navigation Header Layer
                 VStack(spacing: 0) {
                     ZStack {
                         HStack {
@@ -59,7 +56,6 @@ struct TrainingModeView: View {
                     Spacer()
                 }
                 
-                // MARK: Endless Circular Roadmap Track
                 if !viewModel.items.isEmpty {
                     ZStack {
                         Path { path in
@@ -85,15 +81,12 @@ struct TrainingModeView: View {
                             
                             let rawOrder = selectionItem.chapter.order
                             let isComingSoon = rawOrder > 5
-                            
-                            // Formatted unified descriptive text strings for dynamic label rendering
                             let labelTitleText = isComingSoon
                                 ? "Cerita 2 : Bab \(rawOrder - 5)"
                                 : "Cerita 1 : Bab \(rawOrder)"
                             
                             VStack(spacing: screenHeight * 0.02) {
                                 ZStack(alignment: .center) {
-                                    // Symmetrical Outer Border Ring Frame
                                     Circle()
                                         .stroke(
                                             offset == 0 ? Color(red: 0.0, green: 0.227, blue: 0.655) : Color(red: 0.0, green: 0.227, blue: 0.655).opacity(0.6),
@@ -102,12 +95,13 @@ struct TrainingModeView: View {
                                         .background(Circle().fill(Color.white))
                                         .frame(width: nodeDiameter, height: nodeDiameter)
                                     
-                                    // White core container with centered, scaled PNG cover image tracking asset matrix bounds
                                     ZStack {
                                         Circle()
                                             .fill(Color.white)
                                         
-                                        Image("chapterCover\(selectionItem.chapter.order)")
+                                        let trainingAssetName = isComingSoon ? "chapterCover6" : "chapterCover\(rawOrder)"
+                                        
+                                        Image(trainingAssetName)
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: innerCoreDiameter * 0.8, height: innerCoreDiameter * 0.8)
@@ -115,7 +109,6 @@ struct TrainingModeView: View {
                                     .frame(width: innerCoreDiameter, height: innerCoreDiameter)
                                     .clipShape(Circle())
                                     
-                                    // Security Custom Padlock Filter Overlays
                                     if !selectionItem.isUnlocked || isComingSoon {
                                         Circle()
                                             .fill(Color.black.opacity(0.2))
@@ -127,7 +120,6 @@ struct TrainingModeView: View {
                                             .frame(width: nodeDiameter * 0.35, height: nodeDiameter * 0.36)
                                     }
                                     
-                                    // Floating Stars Row Component matching title font size bounds
                                     HStack(spacing: 6) {
                                         ForEach(0..<3) { starIndex in
                                             Image(systemName: starIndex < selectionItem.bestStars ? "star.fill" : "star")
@@ -139,10 +131,9 @@ struct TrainingModeView: View {
                                     .opacity(selectionItem.isUnlocked && !isComingSoon ? 1 : 0)
                                 }
                                 .onTapGesture {
-                                    // Jump Navigation & Execution Strategy integration
                                     if offset == 0 {
                                         if selectionItem.isUnlocked && !isComingSoon {
-                                            viewModel.selectChapter(selectionItem.chapter)
+                                            viewModel.selectedChapter = selectionItem.chapter
                                         }
                                     } else {
                                         withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
@@ -151,7 +142,6 @@ struct TrainingModeView: View {
                                     }
                                 }
                                 
-                                // Free-Floating Clean Custom dynamic label structure
                                 Text(labelTitleText)
                                     .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
                                     .foregroundColor(isComingSoon ? .gray : .black)
@@ -185,58 +175,11 @@ struct TrainingModeView: View {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
     }
-    
-    private func widthClamp(_ value: CGFloat) -> CGFloat {
-        return max(value, 4.0)
-    }
-}
-
-// MARK: - Safe SwiftUI Canvas Preview Container Setup
-
-struct TrainingModePreviewContainer: View {
-    let viewModel: TrainingModeViewModel
-    
-    init() {
-        let titles = [
-            "Bentuk Membantu Mika di Kelas",
-            "Ikuti Tanda di Lorong Sekolah",
-            "Cahaya Kecil di Loker Gelap",
-            "Pola Rahasia di Taman Bermain",
-            "Misi Besar di Kantin Sekolah",
-            "Coming Soon"
-        ]
-        
-        let mockChapters = (1...6).map { index -> Chapter in
-            Chapter(
-                id: "chapter-\(index)",
-                order: index,
-                title: titles[index - 1],
-                subtitle: nil,
-                description: "",
-                thumbnailAssetName: "",
-                competency: .shape,
-                storyPages: [],
-                gameConfiguration: GameConfiguration(question: GameQuestion(id: "q\(index)", prompt: "", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
-                learningSummary: LearningSummary(successMessage: "", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
-            )
-        }
-        let mockStory = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Mode Berlatih", description: "", coverAssetName: "", availability: .available, chapters: mockChapters, completionSummary: nil)
-        
-        let previewSuiteName = "owlLala.preview.training.suite.\(UUID().uuidString)"
-        let volatileDefaults = UserDefaults(suiteName: previewSuiteName) ?? .standard
-        let storage = StorageService(firstChapterID: "chapter-1", userDefaults: volatileDefaults)
-        
-        self.viewModel = TrainingModeViewModel(story: mockStory, storageService: storage)
-    }
-    
-    var body: some View {
-        NavigationStack {
-            TrainingModeView(viewModel: viewModel)
-        }
-    }
 }
 
 #Preview {
-    TrainingModePreviewContainer()
-        .previewInterfaceOrientation(.landscapeLeft)
+    let selectionVM = StorySelectionViewModel()
+    if let realStory = selectionVM.items.first?.story {
+        TrainingModeView(viewModel: TrainingModeViewModel(story: realStory))
+    }
 }

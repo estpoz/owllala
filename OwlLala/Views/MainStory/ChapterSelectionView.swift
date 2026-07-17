@@ -18,13 +18,11 @@ struct ChapterSelectionView: View {
             let nodeDiameter = screenWidth * 0.24
             let innerCoreDiameter = nodeDiameter * 0.93
             
-            // Adjusted baseline coordinate nodes lower to provide comfortable structural breathing room
             let startPointY = screenHeight * 0.79
             let peakPointY = screenHeight * 0.55
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             ZStack {
-                // MARK: Background Canvas
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
@@ -34,7 +32,6 @@ struct ChapterSelectionView: View {
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
                 
-                // MARK: Navigation Header Layer
                 VStack(spacing: 0) {
                     ZStack {
                         HStack {
@@ -59,7 +56,6 @@ struct ChapterSelectionView: View {
                     Spacer()
                 }
                 
-                // MARK: Endless Circular Roadmap Track
                 if !viewModel.items.isEmpty {
                     ZStack {
                         Path { path in
@@ -85,7 +81,6 @@ struct ChapterSelectionView: View {
                             
                             VStack(spacing: screenHeight * 0.02) {
                                 ZStack(alignment: .center) {
-                                    // Symmetrical Outer Border Ring Frame
                                     Circle()
                                         .stroke(
                                             offset == 0 ? Color(red: 0.0, green: 0.227, blue: 0.655) : Color(red: 0.0, green: 0.227, blue: 0.655).opacity(0.6),
@@ -94,7 +89,6 @@ struct ChapterSelectionView: View {
                                         .background(Circle().fill(Color.white))
                                         .frame(width: nodeDiameter, height: nodeDiameter)
                                     
-                                    // White core container with centered, scaled PNG cover image
                                     ZStack {
                                         Circle()
                                             .fill(Color.white)
@@ -107,7 +101,6 @@ struct ChapterSelectionView: View {
                                     .frame(width: innerCoreDiameter, height: innerCoreDiameter)
                                     .clipShape(Circle())
                                     
-                                    // Security Custom Padlock Filter Overlays
                                     if !selectionItem.isUnlocked {
                                         Circle()
                                             .fill(Color.black.opacity(0.2))
@@ -119,7 +112,6 @@ struct ChapterSelectionView: View {
                                             .frame(width: nodeDiameter * 0.35, height: nodeDiameter * 0.36)
                                     }
                                     
-                                    // Floating Stars Row Component matching title font size bounds
                                     HStack(spacing: 6) {
                                         ForEach(0..<3) { starIndex in
                                             Image(systemName: starIndex < selectionItem.bestStars ? "star.fill" : "star")
@@ -142,13 +134,13 @@ struct ChapterSelectionView: View {
                                     }
                                 }
                                 
-                                // Free-Floating Dynamic Accessible Scale Label
                                 Text("Bab \(selectionItem.chapter.order)")
                                     .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
                                     .foregroundColor(.black)
                                     .padding(.top, 4)
                             }
                             .scaleEffect(offset == 0 ? 1.15 : 0.86)
+                            .opacity(calculatedOpacity)
                             .position(x: currentXPosition, y: currentYPosition)
                             .animation(.spring(response: 0.45, dampingFraction: 0.75), value: virtualIndex)
                         }
@@ -175,57 +167,12 @@ struct ChapterSelectionView: View {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
     }
-    
-    private func widthClamp(_ value: CGFloat) -> CGFloat {
-        return max(value, 4.0)
-    }
-}
-
-// MARK: - Safe SwiftUI Canvas Preview Container Setup
-
-struct ChapterSelectionPreviewContainer: View {
-    let viewModel: ChapterSelectionViewModel
-    
-    init() {
-        let titles = [
-            "Bentuk Membantu Mika di Kelas",
-            "Ikuti Tanda di Lorong Sekolah",
-            "Cahaya Kecil di Loker Gelap",
-            "Pola Rahasia di Taman Bermain",
-            "Misi Besar di Kantin Sekolah"
-        ]
-        
-        let mockChapters = (1...5).map { index -> Chapter in
-            Chapter(
-                id: "chapter-\(index)",
-                order: index,
-                title: titles[index - 1],
-                subtitle: nil,
-                description: "",
-                thumbnailAssetName: "",
-                competency: .shape,
-                storyPages: [],
-                gameConfiguration: GameConfiguration(question: GameQuestion(id: "q\(index)", prompt: "", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
-                learningSummary: LearningSummary(successMessage: "", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
-            )
-        }
-        let mockStory = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Hilangnya Kotak Bekal", description: "", coverAssetName: "", availability: .available, chapters: mockChapters, completionSummary: nil)
-        
-        let previewSuiteName = "owlLala.preview.suite.\(UUID().uuidString)"
-        let volatileDefaults = UserDefaults(suiteName: previewSuiteName) ?? .standard
-        let storage = StorageService(firstChapterID: "chapter-1", userDefaults: volatileDefaults)
-        
-        self.viewModel = ChapterSelectionViewModel(story: mockStory, storageService: storage)
-    }
-    
-    var body: some View {
-        NavigationStack {
-            ChapterSelectionView(viewModel: viewModel)
-        }
-    }
 }
 
 #Preview {
-    ChapterSelectionPreviewContainer()
-        .previewInterfaceOrientation(.landscapeLeft)
+    // Fetches live initial story collection natively inside the view models self-contained setup block
+    let selectionVM = StorySelectionViewModel()
+    if let realStory = selectionVM.items.first?.story {
+        ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
+    }
 }
