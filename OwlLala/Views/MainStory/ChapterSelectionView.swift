@@ -16,6 +16,7 @@ struct ChapterSelectionView: View {
             let screenHeight = fullScreenGeo.size.height
             
             let nodeDiameter = screenWidth * 0.24
+            let innerCoreDiameter = nodeDiameter * 0.93
             
             // Adjusted baseline coordinate nodes lower to provide comfortable structural breathing room
             let startPointY = screenHeight * 0.79
@@ -93,12 +94,18 @@ struct ChapterSelectionView: View {
                                         .background(Circle().fill(Color.white))
                                         .frame(width: nodeDiameter, height: nodeDiameter)
                                     
-                                    // Thumbnail Artwork View Display Container
-                                    Image(selectionItem.chapter.thumbnailAssetName.isEmpty ? "cluey_avatar" : selectionItem.chapter.thumbnailAssetName)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: nodeDiameter * 0.75, height: nodeDiameter * 0.75)
-                                        .clipShape(Circle())
+                                    // White core container with centered, scaled PNG cover image
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.white)
+                                        
+                                        Image("chapterCover\(selectionItem.chapter.order)")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: innerCoreDiameter * 0.8, height: innerCoreDiameter * 0.8)
+                                    }
+                                    .frame(width: innerCoreDiameter, height: innerCoreDiameter)
+                                    .clipShape(Circle())
                                     
                                     // Security Custom Padlock Filter Overlays
                                     if !selectionItem.isUnlocked {
