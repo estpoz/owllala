@@ -32,30 +32,7 @@ struct TrainingModeView: View {
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
-                    ZStack {
-                        HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
-                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
-                                    .clipShape(Circle())
-                            }
-                            .padding(.leading, screenWidth * 0.04)
-                            Spacer()
-                        }
-                        
-                        Text("Mode Berlatih")
-                            .font(.system(size: largeTitleSize, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
-                    }
-                    .padding(.top, screenHeight * 0.04)
-                    
-                    Spacer()
-                }
-                
+                // MARK: Endless Circular Roadmap Track Framework
                 if !viewModel.items.isEmpty {
                     ZStack {
                         Path { path in
@@ -165,7 +142,38 @@ struct TrainingModeView: View {
                                 }
                             }
                     )
+                    .zIndex(1) // Layer 1: Stays underneath headers
                 }
+                
+                // MARK: Navigation Header Layer (Brought to top layer)
+                VStack(spacing: 0) {
+                    ZStack {
+                        HStack {
+                            Button(action: {
+                                viewModel.clearSelection()
+                                viewModel.selectedChapter = nil
+                                dismiss()
+                            }) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
+                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
+                                    .clipShape(Circle())
+                            }
+                            .padding(.leading, screenWidth * 0.04)
+                            Spacer()
+                        }
+                        
+                        Text("Mode Berlatih")
+                            .font(.system(size: largeTitleSize, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
+                    }
+                    .padding(.top, screenHeight * 0.04)
+                    
+                    Spacer()
+                }
+                .zIndex(2) // Layer 2: Elevated to resolve complete hit-testing interaction bugs
             }
         }
         .navigationBarHidden(true)
@@ -181,5 +189,6 @@ struct TrainingModeView: View {
     let selectionVM = StorySelectionViewModel()
     if let realStory = selectionVM.items.first?.story {
         TrainingModeView(viewModel: TrainingModeViewModel(story: realStory))
+            .previewInterfaceOrientation(.landscapeLeft)
     }
 }

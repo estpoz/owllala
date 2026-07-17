@@ -18,6 +18,10 @@ struct MainMenuView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
 
     @StateObject private var viewModel = MainMenuViewModel()
+    
+    /// A temporary internal view model reference used to resolve Story 1 parameters
+    /// for Training Mode navigation routing safely without static mock leaks.
+    @StateObject private var helperCatalog = StorySelectionViewModel()
 
     var body: some View {
         NavigationStack {
@@ -30,6 +34,8 @@ struct MainMenuView: View {
                     // and text stay at full brightness (Settings model rule).
                     Image("bgPattern")
                         .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                         .appBackgroundBrightness()
 
                     HStack(spacing: 50) {
@@ -74,13 +80,19 @@ struct MainMenuView: View {
     private func destinationView(for destination: MainMenuViewModel.Destination) -> some View {
         switch destination {
         case .mainStory:
-            Text("Story Selection View")
+            // Custom structural wrapper that handles clean navigation state routing for the main book catalog selection
+            StorySelectionRouterView(mainMenuViewModel: viewModel)
+                .environmentObject(storageService)
                 .appDisplayAdjustments()
-//            StorySelectionView()
         case .trainingMode:
-            Text("Training Mode View")
-                .appDisplayAdjustments()
-//            TrainingModeView()
+            // Directly paths to Training Mode using the catalog data instance payload, skipping book selection layout bounds
+            if let storyOne = helperCatalog.items.first?.story {
+                TrainingModeView(viewModel: TrainingModeViewModel(story: storyOne, storageService: storageService))
+                    .appDisplayAdjustments()
+            } else {
+                Text("Error Loading Content")
+                    .appDisplayAdjustments()
+            }
         case .statistics:
             // Uses the app's shared storage so real progress is shown.
             // Color filter skipped: StatisticsView contains a ScrollView
@@ -118,6 +130,21 @@ struct MainMenuView: View {
         case .settings:
             return "Pengaturan"
         }
+    }
+}
+
+// MARK: - Story Selection Navigation Router Intermediary View
+
+private struct StorySelectionRouterView: View {
+    @ObservedObject var mainMenuViewModel: MainMenuViewModel
+    @StateObject private var storySelectionVM = StorySelectionViewModel()
+    @EnvironmentObject private var storageService: StorageService
+
+    var body: some View {
+        StorySelectionView(viewModel: storySelectionVM)
+            .navigationDestination(item: $storySelectionVM.selectedStory) { story in
+                ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: story, storageService: storageService))
+            }
     }
 }
 
