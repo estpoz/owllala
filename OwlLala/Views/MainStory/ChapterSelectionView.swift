@@ -16,14 +16,13 @@ struct ChapterSelectionView: View {
             let screenHeight = fullScreenGeo.size.height
             
             let nodeDiameter = screenWidth * 0.24
+            let innerCoreDiameter = nodeDiameter * 0.93
             
-            // Adjusted baseline coordinate nodes lower to provide comfortable structural breathing room
             let startPointY = screenHeight * 0.79
             let peakPointY = screenHeight * 0.55
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             ZStack {
-                // MARK: Background Canvas
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
@@ -33,32 +32,7 @@ struct ChapterSelectionView: View {
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
                 
-                // MARK: Navigation Header Layer
-                VStack(spacing: 0) {
-                    ZStack {
-                        HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
-                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
-                                    .clipShape(Circle())
-                            }
-                            .padding(.leading, screenWidth * 0.04)
-                            Spacer()
-                        }
-                        
-                        Text("\(viewModel.story.title) : \(viewModel.story.subtitle ?? "")")
-                            .font(.system(size: largeTitleSize, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
-                    }
-                    .padding(.top, screenHeight * 0.04)
-                    
-                    Spacer()
-                }
-                
-                // MARK: Endless Circular Roadmap Track
+                // MARK: Endless Circular Roadmap Track Framework
                 if !viewModel.items.isEmpty {
                     ZStack {
                         Path { path in
@@ -84,7 +58,6 @@ struct ChapterSelectionView: View {
                             
                             VStack(spacing: screenHeight * 0.02) {
                                 ZStack(alignment: .center) {
-                                    // Symmetrical Outer Border Ring Frame
                                     Circle()
                                         .stroke(
                                             offset == 0 ? Color(red: 0.0, green: 0.227, blue: 0.655) : Color(red: 0.0, green: 0.227, blue: 0.655).opacity(0.6),
@@ -93,14 +66,18 @@ struct ChapterSelectionView: View {
                                         .background(Circle().fill(Color.white))
                                         .frame(width: nodeDiameter, height: nodeDiameter)
                                     
-                                    // Thumbnail Artwork View Display Container
-                                    Image(selectionItem.chapter.thumbnailAssetName.isEmpty ? "cluey_avatar" : selectionItem.chapter.thumbnailAssetName)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: nodeDiameter * 0.75, height: nodeDiameter * 0.75)
-                                        .clipShape(Circle())
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.white)
+                                        
+                                        Image("chapterCover\(selectionItem.chapter.order)")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: innerCoreDiameter * 0.8, height: innerCoreDiameter * 0.8)
+                                    }
+                                    .frame(width: innerCoreDiameter, height: innerCoreDiameter)
+                                    .clipShape(Circle())
                                     
-                                    // Security Custom Padlock Filter Overlays
                                     if !selectionItem.isUnlocked {
                                         Circle()
                                             .fill(Color.black.opacity(0.2))
@@ -112,7 +89,6 @@ struct ChapterSelectionView: View {
                                             .frame(width: nodeDiameter * 0.35, height: nodeDiameter * 0.36)
                                     }
                                     
-                                    // Floating Stars Row Component matching title font size bounds
                                     HStack(spacing: 6) {
                                         ForEach(0..<3) { starIndex in
                                             Image(systemName: starIndex < selectionItem.bestStars ? "star.fill" : "star")
@@ -135,13 +111,13 @@ struct ChapterSelectionView: View {
                                     }
                                 }
                                 
-                                // Free-Floating Dynamic Accessible Scale Label
                                 Text("Bab \(selectionItem.chapter.order)")
                                     .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
                                     .foregroundColor(.black)
                                     .padding(.top, 4)
                             }
                             .scaleEffect(offset == 0 ? 1.15 : 0.86)
+                            .opacity(calculatedOpacity)
                             .position(x: currentXPosition, y: currentYPosition)
                             .animation(.spring(response: 0.45, dampingFraction: 0.75), value: virtualIndex)
                         }
@@ -158,7 +134,38 @@ struct ChapterSelectionView: View {
                                 }
                             }
                     )
+                    .zIndex(1) // Layer 1: Sits below the header area
                 }
+                
+                // MARK: Navigation Header Layer (Brought to top layer)
+                VStack(spacing: 0) {
+                    ZStack {
+                        HStack {
+                            Button(action: {
+                                viewModel.clearSelection()
+                                viewModel.selectedChapter = nil
+                                dismiss()
+                            }) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
+                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
+                                    .clipShape(Circle())
+                            }
+                            .padding(.leading, screenWidth * 0.04)
+                            Spacer()
+                        }
+                        
+                        Text("\(viewModel.story.title) : \(viewModel.story.subtitle ?? "")")
+                            .font(.system(size: largeTitleSize, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
+                    }
+                    .padding(.top, screenHeight * 0.04)
+                    
+                    Spacer()
+                }
+                .zIndex(2) // Layer 2: Elevates above the gesture layer to restore complete tap functionality
             }
         }
         .navigationBarHidden(true)
@@ -168,57 +175,12 @@ struct ChapterSelectionView: View {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
     }
-    
-    private func widthClamp(_ value: CGFloat) -> CGFloat {
-        return max(value, 4.0)
-    }
-}
-
-// MARK: - Safe SwiftUI Canvas Preview Container Setup
-
-struct ChapterSelectionPreviewContainer: View {
-    let viewModel: ChapterSelectionViewModel
-    
-    init() {
-        let titles = [
-            "Bentuk Membantu Mika di Kelas",
-            "Ikuti Tanda di Lorong Sekolah",
-            "Cahaya Kecil di Loker Gelap",
-            "Pola Rahasia di Taman Bermain",
-            "Misi Besar di Kantin Sekolah"
-        ]
-        
-        let mockChapters = (1...5).map { index -> Chapter in
-            Chapter(
-                id: "chapter-\(index)",
-                order: index,
-                title: titles[index - 1],
-                subtitle: nil,
-                description: "",
-                thumbnailAssetName: "",
-                competency: .shape,
-                storyPages: [],
-                gameConfiguration: GameConfiguration(question: GameQuestion(id: "q\(index)", prompt: "", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
-                learningSummary: LearningSummary(successMessage: "", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
-            )
-        }
-        let mockStory = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Hilangnya Kotak Bekal", description: "", coverAssetName: "", availability: .available, chapters: mockChapters, completionSummary: nil)
-        
-        let previewSuiteName = "owlLala.preview.suite.\(UUID().uuidString)"
-        let volatileDefaults = UserDefaults(suiteName: previewSuiteName) ?? .standard
-        let storage = StorageService(firstChapterID: "chapter-1", userDefaults: volatileDefaults)
-        
-        self.viewModel = ChapterSelectionViewModel(story: mockStory, storageService: storage)
-    }
-    
-    var body: some View {
-        NavigationStack {
-            ChapterSelectionView(viewModel: viewModel)
-        }
-    }
 }
 
 #Preview {
-    ChapterSelectionPreviewContainer()
-        .previewInterfaceOrientation(.landscapeLeft)
+    let selectionVM = StorySelectionViewModel()
+    if let realStory = selectionVM.items.first?.story {
+        ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
+            .previewInterfaceOrientation(.landscapeLeft)
+    }
 }
