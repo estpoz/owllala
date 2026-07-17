@@ -25,8 +25,6 @@ struct StatisticsView: View {
     private let darkBlue = Color(red: 0.02, green: 0.16, blue: 0.45)
     private let borderColor = Color(red: 0.82, green: 0.87, blue: 1.0)
     private let panelColor = Color(red: 0.97, green: 0.98, blue: 1.0)
-    private let backIconSize: CGFloat = 44
-    private let backButtonSize: CGFloat = 112
 
     // MARK: Dynamic Type Metrics
 
@@ -51,7 +49,7 @@ struct StatisticsView: View {
             let horizontalPadding = max(size.width * 0.03, 24)
             let verticalPadding = max(size.height * 0.025, 18)
             let contentSpacing = max(size.height * 0.018, 14)
-            let headerHeight = min(size.height * 0.16, max(backButtonSize, 112))
+            let headerHeight = min(size.height * 0.16, 112)
             let summaryHeight = min(size.height * 0.16, max(summaryValueSize + 24, 96))
             let middleHeight = max(
                 size.height
@@ -189,15 +187,11 @@ struct StatisticsView: View {
 
     private func header(width: CGFloat) -> some View {
         HStack(spacing: 28) {
-            Button(action: goBack) {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: backIconSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(width: backButtonSize, height: backButtonSize)
-                    .background(Circle().fill(Color(red: 0.02, green: 0.28, blue: 0.70)))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Kembali")
+            CircleIconButton(
+                systemImageName: "arrow.left",
+                accessibilityLabel: "Kembali",
+                action: goBack
+            )
 
             Text("Hasil Perkembangan")
                 .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold, design: .rounded))
@@ -208,7 +202,7 @@ struct StatisticsView: View {
                 .accessibilityAddTraits(.isHeader)
 
             Color.clear
-                .frame(width: backButtonSize, height: backButtonSize)
+                .frame(width: 112, height: 112)
                 .accessibilityHidden(true)
         }
     }
@@ -255,7 +249,7 @@ struct StatisticsView: View {
                     ForEach(1...item.maximumScore, id: \.self) { index in
                         Image(systemName: "star.fill")
                             .font(.system(size: rowStarFontSize, weight: .bold, design: .rounded))
-                            .foregroundStyle(index <= item.score ? Color.yellow : Color.gray.opacity(0.35))
+                            .foregroundStyle(index <= item.score ? accentColor : Color.gray.opacity(0.35))
                             .accessibilityHidden(true)
                     }
                 }
