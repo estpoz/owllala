@@ -15,7 +15,6 @@ struct StorySelectionView: View {
             let screenWidth = fullScreenGeo.size.width
             let screenHeight = fullScreenGeo.size.height
             
-            // Layout dimensions scale beautifully with font size changes
             let baseBookWidth = screenWidth * 0.22
             let bookWidth = baseBookWidth * (title1Size / 40.0)
             let bookHeight = bookWidth * 1.314
@@ -31,7 +30,6 @@ struct StorySelectionView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header Area
                     ZStack {
                         HStack {
                             Button(action: { dismiss() }) {
@@ -54,7 +52,6 @@ struct StorySelectionView: View {
                     
                     Spacer(minLength: 0)
                     
-                    // Adaptive Layout: Switches from HStack to Scrollable VStack for accessibility text sizes
                     if dynamicTypeSize.isAccessibilitySize {
                         ScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
@@ -77,7 +74,6 @@ struct StorySelectionView: View {
         .navigationBarHidden(true)
     }
     
-    // MARK: - Grid Child Render Loop
     @ViewBuilder
     private func contentGridItems(width: CGFloat, height: CGFloat) -> some View {
         ForEach(viewModel.items) { item in
@@ -94,8 +90,6 @@ struct StorySelectionView: View {
     }
 }
 
-// MARK: - Reusable Book Card Item Component
-
 struct StoryBookView: View {
     let item: StorySelectionItem
     let width: CGFloat
@@ -107,7 +101,6 @@ struct StoryBookView: View {
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .bottom) {
-                // Changing to .scaledToFit prevents image cropping on the bottom/top edges
                 Image("storyCover\(item.story.order)")
                     .resizable()
                     .scaledToFit()
@@ -115,7 +108,6 @@ struct StoryBookView: View {
                     .clipShape(RoundedRectangle(cornerRadius: width * 0.08))
                     .opacity(item.isAvailable ? 1.0 : 0.6)
                 
-                // Overlay Text Layer
                 if item.isAvailable {
                     VStack(spacing: 0) {
                         Spacer()
@@ -150,13 +142,5 @@ struct StoryBookView: View {
 }
 
 #Preview {
-    let mockStory1 = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: "Hilangnya Kotak Bekal", description: "", coverAssetName: "", availability: .available, chapters: [], completionSummary: nil)
-    let mockStory2 = Story(id: "story-2", order: 2, title: "Cerita 2", subtitle: "Segera Hadir", description: "", coverAssetName: "", availability: .comingSoon, chapters: [], completionSummary: nil)
-    let mockStory3 = Story(id: "story-3", order: 3, title: "Cerita 3", subtitle: "Segera Hadir", description: "", coverAssetName: "", availability: .comingSoon, chapters: [], completionSummary: nil)
-    
-    let viewModel = StorySelectionViewModel(stories: [mockStory1, mockStory2, mockStory3])
-    
-    NavigationStack {
-        StorySelectionView(viewModel: viewModel)
-    }
+    StorySelectionView(viewModel: StorySelectionViewModel())
 }

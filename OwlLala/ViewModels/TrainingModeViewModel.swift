@@ -1,14 +1,5 @@
-//
-//  TrainingModeViewModel.swift
-//  OwlLala
-//
-//  Created by Farrell Sudjatmiko on 13/07/26.
-//
-
 import Combine
 import Foundation
-
-// MARK: - Training Chapter Item
 
 struct TrainingChapterItem: Identifiable, Hashable {
     let chapter: Chapter
@@ -16,26 +7,19 @@ struct TrainingChapterItem: Identifiable, Hashable {
     let bestStars: Int
     let playCount: Int
 
-    var id: String {
-        chapter.id
-    }
+    var id: String { chapter.id }
 }
 
-// MARK: - Training Mode View Model
-
-/// Presents chapter mini-games for Training Mode without changing story progression.
 @MainActor
 final class TrainingModeViewModel: ObservableObject {
-
-    @Published private(set) var selectedChapter: Chapter?
+    @Published var selectedChapter: Chapter?
 
     let story: Story
-
-    private let storageService: StorageService
+    private let storageService: StorageService?
     private var cancellables: Set<AnyCancellable> = []
 
     var isTrainingUnlocked: Bool {
-        storageService.userStats.isTrainingUnlocked(for: story)
+        storageService?.userStats.isTrainingUnlocked(for: story) ?? true
     }
 
     var items: [TrainingChapterItem] {
@@ -43,20 +27,17 @@ final class TrainingModeViewModel: ObservableObject {
             TrainingChapterItem(
                 chapter: chapter,
                 isUnlocked: isTrainingUnlocked,
-                bestStars: storageService.userStats.bestStars(for: chapter.id),
-                playCount: storageService.userStats.playCount(for: chapter.id)
+                bestStars: storageService?.userStats.bestStars(for: chapter.id) ?? 0,
+                playCount: storageService?.userStats.playCount(for: chapter.id) ?? 0
             )
         }
     }
 
-    init(
-        story: Story,
-        storageService: StorageService
-    ) {
+    init(story: Story, storageService: StorageService? = nil) {
         self.story = story
         self.storageService = storageService
 
-        storageService.objectWillChange
+        storageService?.objectWillChange
             .sink { [weak self] _ in
                 Task { @MainActor in
                     self?.objectWillChange.send()
@@ -70,16 +51,7 @@ final class TrainingModeViewModel: ObservableObject {
             selectedChapter = nil
             return
         }
-
         selectedChapter = chapter
-    }
-
-    func makeGameplayViewModel(for chapter: Chapter) -> ChapterGameplayViewModel {
-        ChapterGameplayViewModel(
-            chapter: chapter,
-            source: .training,
-            storageService: storageService
-        )
     }
 
     func clearSelection() {
