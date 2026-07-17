@@ -19,6 +19,10 @@ struct StageClearedView: View {
     var onReplay: () -> Void = {}
     var onContinue: () -> Void = {}
 
+    /// Pops this screen off the NavigationStack, returning to whatever
+    /// pushed it — expected to be ChapterSelectionView.
+    @Environment(\.dismiss) private var dismiss
+
     private let navy = Color(red: 0.02, green: 0.31, blue: 0.70)
     private let gold = Color(red: 0.95, green: 0.72, blue: 0.20)
 
@@ -116,7 +120,13 @@ struct StageClearedView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Ulangi bab")
 
-            Button(action: onContinue) {
+            Button(action: {
+                // Navigates straight back to ChapterSelectionView (the
+                // screen that pushed ChapterGamePlayView onto the stack),
+                // plus lets the caller run any extra cleanup via onContinue.
+                onContinue()
+                dismiss()
+            }) {
                 Image(systemName: "play.circle")
                     .font(.system(size: baseUnit * 0.08, weight: .semibold))
                     .foregroundStyle(navy)
@@ -128,5 +138,7 @@ struct StageClearedView: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    StageClearedView()
+    NavigationStack {
+        StageClearedView()
+    }
 }
