@@ -19,18 +19,18 @@ struct StageClearedView: View {
     var onReplay: () -> Void = {}
     var onContinue: () -> Void = {}
 
-    /// Pops this screen off the NavigationStack, returning to whatever
-    /// pushed it — expected to be ChapterSelectionView.
-    @Environment(\.dismiss) private var dismiss
-
     private let navy = Color(red: 0.02, green: 0.31, blue: 0.70)
     private let gold = Color(red: 0.95, green: 0.72, blue: 0.20)
 
     // Custom scaled sizes — bigger than the built-in text styles,
     // but still respects the user's Dynamic Type / accessibility settings.
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 75
-    @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 35
-    @ScaledMetric(relativeTo: .title2) private var summarySize: CGFloat = 28
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 80
+    @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 33
+    @ScaledMetric(relativeTo: .title2) private var summarySize: CGFloat = 30
+    
+    // Baru: Scaled metrics untuk ikon bintang dan tombol agar ikut membesar
+    @ScaledMetric(relativeTo: .largeTitle) private var starSize: CGFloat = 55
+    @ScaledMetric(relativeTo: .largeTitle) private var buttonIconSize: CGFloat = 70
 
     var body: some View {
         GeometryReader { geometry in
@@ -42,22 +42,25 @@ struct StageClearedView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
 
-                cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
-                    .frame(width: cardWidth, height: cardHeight)
-                    .background(
-                        Image("1-4")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipped()
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: baseUnit * 0.024)
-                            .stroke(.white.opacity(0.6), lineWidth: 3)
-                    )
-                    .shadow(color: .black.opacity(0.3), radius: 24, x: 0, y: 12)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                // Baru: Konten dibungkus ScrollView agar tidak terpotong saat font kebesaran
+                ScrollView(.vertical, showsIndicators: true) {
+                    cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
+                }
+                .frame(width: cardWidth, height: cardHeight)
+                .background(
+                    Image("1-4")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: cardWidth, height: cardHeight)
+                        .clipped()
+                )
+                .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
+                .overlay(
+                    RoundedRectangle(cornerRadius: baseUnit * 0.024)
+                        .stroke(.white.opacity(0.6), lineWidth: 3)
+                )
+                .shadow(color: .black.opacity(0.3), radius: 24, x: 0, y: 12)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
             }
         }
         .ignoresSafeArea()
@@ -66,32 +69,49 @@ struct StageClearedView: View {
     // MARK: - Card content
 
     private func cardContent(baseUnit: CGFloat, cardWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: baseUnit * 0.02) {
-            VStack(alignment: .leading, spacing: baseUnit * 0.01) {
-                Text(title)
-                    .font(.system(size: titleSize, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.black)
+        VStack(alignment: .leading, spacing: 0) {
+            
+            VStack(alignment: .leading, spacing: baseUnit * 0.02) {
+                VStack(alignment: .leading, spacing: baseUnit * 0.01) {
+                    Text(title)
+                        .font(.system(size: titleSize, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.black)
+                        .fixedSize(horizontal: false, vertical: true)
+                        // ↓ shadow berlapis → glow tipis mengikuti liku huruf
+                        .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 0)
+                        .shadow(color: .white.opacity(0.90), radius: 6,  x: 2, y: 0)
+                        .shadow(color: .white.opacity(0.90), radius: 12, x: 2, y: 2)
 
-                Text(subtitle)
-                    .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
+                    Text(subtitle)
+                        .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.black)
+                        .frame(width: baseUnit * 0.45, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 0)
+                        .shadow(color: .white.opacity(0.90), radius: 6,  x: 2, y: 0)
+                        .shadow(color: .white.opacity(0.90), radius: 12, x: 2, y: 2)
+                }
+
+                starRow(baseUnit: baseUnit)
+                    .padding(.top, baseUnit * 0.01)
+
+                Text(summaryText)
+                    .font(.system(size: summarySize, weight: .regular, design: .rounded))
                     .foregroundStyle(.black)
+                    .frame(maxWidth: baseUnit * 0.45, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 2)
+                    .shadow(color: .white.opacity(0.95), radius: 6,  x: 2, y: 2)
+                    .shadow(color: .white.opacity(0.95), radius: 12, x: 2, y: 2)
+
+                actionButtons(baseUnit: baseUnit)
+                    .padding(.top, baseUnit * 0.014)
             }
-
-            starRow(baseUnit: baseUnit)
-                .padding(.top, baseUnit * 0.01)
-
-            Text(summaryText)
-                .font(.system(size: summarySize, weight: .regular, design: .rounded))
-                .foregroundStyle(.black)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: cardWidth * 0.4, alignment: .leading)
-
-            actionButtons(baseUnit: baseUnit)
-                .padding(.top, baseUnit * 0.014)
+            .frame(maxWidth: cardWidth * 0.8, alignment: .leading)
+            
         }
-        .padding(.leading, baseUnit * 0.07)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.top, baseUnit * 0.07)
+        .padding(baseUnit * 0.07)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     // MARK: - Stars
@@ -100,10 +120,11 @@ struct StageClearedView: View {
         HStack(spacing: baseUnit * 0.012) {
             ForEach(0..<maxStars, id: \.self) { index in
                 Image(systemName: index < starCount ? "star.fill" : "star")
-                    .font(.system(size: baseUnit * 0.075))
+                    // Baru: Menggunakan parameter @ScaledMetric starSize
+                    .font(.system(size: starSize))
                     .foregroundStyle(gold)
+                }
             }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(starCount) dari \(maxStars) bintang")
     }
@@ -111,24 +132,20 @@ struct StageClearedView: View {
     // MARK: - Buttons
 
     private func actionButtons(baseUnit: CGFloat) -> some View {
-        HStack(spacing: baseUnit * 0.02) {
-            Button(action: onReplay) {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: baseUnit * 0.07, weight: .semibold))
-                    .foregroundStyle(navy)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Ulangi bab")
+            HStack(spacing: baseUnit * 0.02) {
+                Button(action: onReplay) {
+                    Image(systemName: "arrow.counterclockwise")
+                        // Baru: Menggunakan parameter @ScaledMetric buttonIconSize
+                        .font(.system(size: buttonIconSize, weight: .semibold))
+                        .foregroundStyle(navy)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Ulangi bab")
 
-            Button(action: {
-                // Navigates straight back to ChapterSelectionView (the
-                // screen that pushed ChapterGamePlayView onto the stack),
-                // plus lets the caller run any extra cleanup via onContinue.
-                onContinue()
-                dismiss()
-            }) {
+            Button(action: onContinue) {
                 Image(systemName: "play.circle")
-                    .font(.system(size: baseUnit * 0.08, weight: .semibold))
+                    // Baru: Menggunakan parameter @ScaledMetric buttonIconSize (+ 5 agar play circle sedikit lebih besar)
+                    .font(.system(size: buttonIconSize + 5, weight: .semibold))
                     .foregroundStyle(navy)
             }
             .buttonStyle(.plain)
@@ -142,3 +159,4 @@ struct StageClearedView: View {
         StageClearedView()
     }
 }
+

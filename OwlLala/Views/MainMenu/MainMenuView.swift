@@ -87,7 +87,7 @@ struct MainMenuView: View {
         case .trainingMode:
             // Directly paths to Training Mode using the catalog data instance payload, skipping book selection layout bounds
             if let storyOne = helperCatalog.items.first?.story {
-                TrainingModeView(viewModel: TrainingModeViewModel(story: storyOne, storageService: storageService))
+                TrainingModeRouterView(story: storyOne, storageService: storageService)
                     .appDisplayAdjustments()
             } else {
                 Text("Error Loading Content")
@@ -143,7 +143,79 @@ private struct StorySelectionRouterView: View {
     var body: some View {
         StorySelectionView(viewModel: storySelectionVM)
             .navigationDestination(item: $storySelectionVM.selectedStory) { story in
-                ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: story, storageService: storageService))
+                ChapterSelectionRouterView(story: story, storageService: storageService)
+            }
+    }
+}
+
+private struct ChapterSelectionRouterView: View {
+    @StateObject private var chapterSelectionVM: ChapterSelectionViewModel
+    private let story: Story
+    private let storageService: StorageService
+
+    init(story: Story, storageService: StorageService) {
+        self.story = story
+        self.storageService = storageService
+        _chapterSelectionVM = StateObject(
+            wrappedValue: ChapterSelectionViewModel(
+                story: story,
+                storageService: storageService
+            )
+        )
+    }
+
+    var body: some View {
+        ChapterSelectionView(viewModel: chapterSelectionVM)
+            .navigationDestination(item: $chapterSelectionVM.selectedChapter) { chapter in
+                ChapterGamePlayView(
+                    viewModel: ChapterGameplayViewModel(
+                        chapter: chapter,
+                        source: .mainStory,
+                        nextChapterID: nextChapterID(after: chapter),
+                        storageService: storageService
+                    )
+                )
+            }
+    }
+
+    private func nextChapterID(after chapter: Chapter) -> String? {
+        guard let currentIndex = story.chapters.firstIndex(of: chapter) else {
+            return nil
+        }
+
+        let nextIndex = story.chapters.index(after: currentIndex)
+        guard story.chapters.indices.contains(nextIndex) else {
+            return nil
+        }
+
+        return story.chapters[nextIndex].id
+    }
+}
+
+private struct TrainingModeRouterView: View {
+    @StateObject private var trainingModeVM: TrainingModeViewModel
+    private let storageService: StorageService
+
+    init(story: Story, storageService: StorageService) {
+        self.storageService = storageService
+        _trainingModeVM = StateObject(
+            wrappedValue: TrainingModeViewModel(
+                story: story,
+                storageService: storageService
+            )
+        )
+    }
+
+    var body: some View {
+        TrainingModeView(viewModel: trainingModeVM)
+            .navigationDestination(item: $trainingModeVM.selectedChapter) { chapter in
+                ChapterGamePlayView(
+                    viewModel: ChapterGameplayViewModel(
+                        chapter: chapter,
+                        source: .training,
+                        storageService: storageService
+                    )
+                )
             }
     }
 }
@@ -187,7 +259,7 @@ private struct OwlMascotView: View {
         GeometryReader { proxy in
             let size = min(proxy.size.width, proxy.size.height)
 
-            Image("homeScreen")
+            Image("owlCircle")
                 .resizable()
                 .scaledToFill()
                 .frame(width: size, height: size)
