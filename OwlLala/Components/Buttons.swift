@@ -13,9 +13,10 @@
 //
 //  WHAT'S IN THIS FILE
 //  -------------------
-//  • `CircleIconButton`    — round blue icon button (back / close / gear).
+//  • `CircleIconButton`    — round icon button (back / close / gear).
 //  • `PrimaryActionButton` — filled blue "Simpan"-style confirmation button.
 //  • `SettingsButton`      — the gear entry point into Settings.
+//  • `GameplayTopBar`      — story-page exit, page count, sound, settings controls.
 //
 //  HOW SETTINGS ARE PRESENTED
 //  --------------------------
@@ -39,11 +40,16 @@ public let cream = Color(red: 0.99, green: 0.96, blue: 0.88)
 
 // MARK: - Circle Icon Button
 
-/// A round, blue, filled icon button used for navigation controls — the back
-/// arrow and close (✕) in the settings views, and the gear in `SettingsButton`.
+enum CircleIconButtonStyle {
+    case filled
+    case outlined
+}
+
+/// A round icon button used for navigation controls — the back arrow and close
+/// (✕) in the settings views, and the gear in `SettingsButton`.
 ///
 /// Icon-only by design, so it takes an explicit `accessibilityLabel` rather
-/// than relying on the SF Symbol name. Scales with Dynamic Type.
+/// than relying on the SF Symbol name.
 struct CircleIconButton: View {
 
     /// SF Symbol name to render (e.g. `"arrow.left"`, `"xmark"`, `"gearshape.fill"`).
@@ -52,21 +58,82 @@ struct CircleIconButton: View {
     /// Spoken label for VoiceOver, since the button shows no text.
     let accessibilityLabel: String
 
+    /// Visual treatment for the circular button.
+    var style: CircleIconButtonStyle = .filled
+
     /// Invoked on tap.
     let action: () -> Void
-
-    /// Grows the icon and its circular background with the user's text size.
-    @ScaledMetric(relativeTo: .title) private var buttonScale: CGFloat = 1
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImageName)
-                .font(.system(size: 40 * buttonScale, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 85 * buttonScale, height: 85 * buttonScale)
-                .background(primaryBlue, in: Circle())
+                .font(.system(size: 46, weight: .bold))
+                .foregroundStyle(foregroundColor)
+                .frame(width: 98, height: 98)
+                .background(backgroundColor, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(borderColor, lineWidth: borderWidth)
+                )
         }
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var foregroundColor: Color {
+        switch style {
+        case .filled:
+            return .white
+
+        case .outlined:
+            return primaryBlue
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .filled:
+            return primaryBlue
+
+        case .outlined:
+            return .white
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .filled:
+            return .clear
+
+        case .outlined:
+            return primaryBlue
+        }
+    }
+
+    private var borderWidth: CGFloat {
+        switch style {
+        case .filled:
+            return 0
+
+        case .outlined:
+            return 6
+        }
+    }
+}
+
+// MARK: - Back Button
+
+struct BackButton: View {
+
+    var style: CircleIconButtonStyle = .filled
+    let action: () -> Void
+
+    var body: some View {
+        CircleIconButton(
+            systemImageName: "arrow.left",
+            accessibilityLabel: "Kembali",
+            style: style,
+            action: action
+        )
     }
 }
 
@@ -130,6 +197,8 @@ struct PrimaryActionButton: View {
 /// `MainMenuViewModel.Destination.settings` instead of local state.)
 struct SettingsButton: View {
 
+    var style: CircleIconButtonStyle = .filled
+
     /// Invoked on tap; the host presents the settings screen.
     let action: () -> Void
 
@@ -137,23 +206,108 @@ struct SettingsButton: View {
         CircleIconButton(
             systemImageName: "gearshape.fill",
             accessibilityLabel: "Pengaturan",
+            style: style,
             action: action
         )
     }
 }
 
-// MARK: - Volume/Sounds Button
-struct VolumeButton: View {
+// MARK: - Gameplay Top Bar
 
-    /// Invoked on tap; the host presents the settings screen.
+/// The bundled control bar used at the top of gameplay story pages.
+///
+/// The host owns the behavior for exit, sound, and settings. Page progress is
+/// passed in as display state so this component does not depend on a gameplay
+/// view model or chapter model.
+struct GameplayTopBar: View {
+
+    let currentPage: Int
+    let totalPages: Int
+    let isVoiceOverEnabled: Bool
+    let onShowExitConfirmation: () -> Void
+    let onToggleVoiceOver: () -> Void
+    let onShowSettings: () -> Void
+
+    private let indicatorIconSize: CGFloat = 44
+    private let indicatorTextSize: CGFloat = 46
+
+    private var displayedCurrentPage: Int {
+        min(max(currentPage, 1), displayedTotalPages)
+    }
+
+    private var displayedTotalPages: Int {
+        max(totalPages, 1)
+    }
+
+    var body: some View {
+        ZStack {
+            HStack {
+                GameplayTopBarButton(
+                    systemImageName: "rectangle.portrait.and.arrow.right",
+                    accessibilityLabel: "Keluar",
+                    action: onShowExitConfirmation
+                )
+
+                Spacer()
+
+                HStack(spacing: 28) {
+                    GameplayTopBarButton(
+                        systemImageName: isVoiceOverEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                        accessibilityLabel: isVoiceOverEnabled ? "Matikan narasi" : "Nyalakan narasi",
+                        action: onToggleVoiceOver
+                    )
+
+                    GameplayTopBarButton(
+                        systemImageName: "gearshape.fill",
+                        accessibilityLabel: "Pengaturan",
+                        action: onShowSettings
+                    )
+                }
+            }
+
+            pageIndicator
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var pageIndicator: some View {
+        HStack(spacing: 18) {
+            Image(systemName: "book.closed.fill")
+                .font(.system(size: indicatorIconSize, weight: .bold))
+                .foregroundStyle(primaryBlue)
+                .accessibilityHidden(true)
+
+            Text("\(displayedCurrentPage) / \(displayedTotalPages)")
+                .font(.system(size: indicatorTextSize, weight: .medium, design: .rounded))
+                .foregroundStyle(primaryBlue)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Halaman \(displayedCurrentPage) dari \(displayedTotalPages)")
+    }
+}
+
+private struct GameplayTopBarButton: View {
+
+    let systemImageName: String
+    let accessibilityLabel: String
     let action: () -> Void
 
     var body: some View {
-        CircleIconButton(
-            systemImageName: "speaker.wave.2.fill",
-            accessibilityLabel: "Volume Suara",
-            action: action
-        )
+        Button(action: action) {
+            Image(systemName: systemImageName)
+                .font(.system(size: 48, weight: .bold))
+                .foregroundStyle(primaryBlue)
+                .frame(width: 101, height: 101)
+                .background(Color.white, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(primaryBlue, lineWidth: 6)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -161,15 +315,24 @@ struct VolumeButton: View {
 
 #Preview("Buttons") {
     VStack(spacing: 32) {
-        SettingsButton {}
-        VolumeButton {}
-        
-
-        CircleIconButton(
-            systemImageName: "arrow.left",
-            accessibilityLabel: "Kembali"
-        ) {}
+        HStack(spacing: 24) {
+            BackButton(style: .filled) {}
+            BackButton(style: .outlined) {}
+            SettingsButton(style: .filled) {}
+            SettingsButton(style: .outlined) {}
+        }
 
         PrimaryActionButton(title: "Simpan") {}
+
+        GameplayTopBar(
+            currentPage: 3,
+            totalPages: 5,
+            isVoiceOverEnabled: true,
+            onShowExitConfirmation: {},
+            onToggleVoiceOver: {},
+            onShowSettings: {}
+        )
+        .frame(width: 900)
     }
+    .padding()
 }
