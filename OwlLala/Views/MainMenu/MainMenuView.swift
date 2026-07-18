@@ -187,7 +187,7 @@ private struct OwlMascotView: View {
         GeometryReader { proxy in
             let size = min(proxy.size.width, proxy.size.height)
 
-            Image("homeScreen")
+            Image("owlCircle")
                 .resizable()
                 .scaledToFill()
                 .frame(width: size, height: size)
