@@ -176,6 +176,20 @@ final class ChapterGameplayViewModel: ObservableObject {
         destination = nil
     }
 
+    func resetForReplay() {
+        currentStoryPageIndex = 0
+        isQuestionPresented = source == .training || chapter.storyPages.isEmpty
+        selectedAnswerID = nil
+        incorrectAnswerID = nil
+        wrongAnswerCount = 0
+        shakeTrigger = 0
+        isHintPresented = false
+        isCorrectFeedbackPresented = false
+        earnedStars = nil
+        destination = nil
+        didSaveCompletion = false
+    }
+
     private func recordIncorrectAnswer(_ answerID: String) {
         wrongAnswerCount += 1
         incorrectAnswerID = answerID
