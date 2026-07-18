@@ -15,7 +15,17 @@ struct StageNavigationVM: View {
 
     @State private var path = NavigationPath()
     @StateObject private var mainMenuViewModel = MainMenuViewModel()
-    @StateObject private var settingsViewModel = SettingsViewModel(storageService: StorageService()) // <-- tambahkan
+    @StateObject private var storageService: StorageService
+    @StateObject private var settingsViewModel: SettingsViewModel
+
+    init() {
+        let storageService = StorageService()
+
+        _storageService = StateObject(wrappedValue: storageService)
+        _settingsViewModel = StateObject(
+            wrappedValue: SettingsViewModel(storageService: storageService)
+        )
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -24,18 +34,36 @@ struct StageNavigationVM: View {
                     ChapterSelectionView(
                         viewModel: ChapterSelectionViewModel(
                             story: story,
-                            storageService: StorageService(
-                                firstChapterID: story.chapters.first?.id ?? "",
-                                userDefaults: .standard
-                            )
+                            storageService: storageService
                         )
                     )
                     .navigationDestination(for: Chapter.self) { chapter in
-                        ChapterGamePlayView(chapter: chapter)
+                        ChapterGamePlayView(
+                            viewModel: ChapterGameplayViewModel(
+                                chapter: chapter,
+                                source: .mainStory,
+                                nextChapterID: nextChapterID(after: chapter, in: story),
+                                storageService: storageService
+                            )
+                        )
                     }
                 }
         }
+        .environmentObject(storageService)
         .environmentObject(settingsViewModel) // <-- tambahkan, harus jadi ancestor semua view di atas
+    }
+
+    private func nextChapterID(after chapter: Chapter, in story: Story) -> String? {
+        guard let currentIndex = story.chapters.firstIndex(of: chapter) else {
+            return nil
+        }
+
+        let nextIndex = story.chapters.index(after: currentIndex)
+        guard story.chapters.indices.contains(nextIndex) else {
+            return nil
+        }
+
+        return story.chapters[nextIndex].id
     }
 }
 

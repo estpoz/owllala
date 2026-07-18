@@ -26,16 +26,100 @@ final class StorySelectionViewModel: ObservableObject {
                 Chapter(
                     id: "chapter-1", order: 1,
                     title: "Bentuk Membantu Mika di Kelas", subtitle: nil, description: "",
-                    thumbnailAssetName: "", competency: .shape, storyPages: [],
-                    gameConfiguration: GameConfiguration(question: GameQuestion(id: "q1", prompt: "Mana yang berbentuk kotak?", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
-                    learningSummary: LearningSummary(successMessage: "Lala menemukan kotak makannya!", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
+                    thumbnailAssetName: "", competency: .shape,
+                    storyPages: [
+                        StoryPage(
+                            id: "chapter-1-page-1",
+                            order: 1,
+                            illustrationAssetName: "page1-1",
+                            narration: "Lala membuka laci mejanya untuk mengambil bekal, tetapi bekalnya tidak ada di sana!",
+                            voiceOverAssetName: "chapter1-1"
+                        ),
+                        StoryPage(
+                            id: "chapter-1-page-2",
+                            order: 2,
+                            illustrationAssetName: "page1-2",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan bentuk, bukan warna.",
+                            voiceOverAssetName: "chapter1-2"
+                        ),
+                        StoryPage(
+                            id: "chapter-1-page-3",
+                            order: 3,
+                            illustrationAssetName: "page1-3",
+                            narration: "Lala mencoba mengingat bentuk bekalnya dan menyadari bahwa bekalnya berbentuk seperti kotak kecil dengan pegangan.",
+                            voiceOverAssetName: "chapter1-3"
+                        )
+                    ],
+                    gameConfiguration: GameConfiguration(
+                        question: GameQuestion(
+                            id: "chapter-1-question",
+                            prompt: "Objek mana yang cocok dengan bayangan ini?",
+                            promptImageAssetName: "lunchboxSilhouette",
+                            answerOptions: [
+                                AnswerOption(id: "book", text: nil, imageAssetName: "game1Icon2"),
+                                AnswerOption(id: "backpack", text: nil, imageAssetName: "game1Icon3"),
+                                AnswerOption(id: "lunchbox", text: nil, imageAssetName: "lunchbox"),
+                                AnswerOption(id: "bottle", text: nil, imageAssetName: "game1Icon1")
+                            ],
+                            correctAnswerID: "lunchbox",
+                            hintText: "Coba perhatikan bentuknya. Cari benda yang kotak dan punya pegangan seperti bayangannya."
+                        )
+                    ),
+                    learningSummary: LearningSummary(
+                        successMessage: "Lala menemukan kotak makannya!",
+                        explanation: "Kamu mengenali objek berdasarkan bentuknya, bukan warnanya.",
+                        mainIllustrationAssetName: "lunchbox",
+                        exampleAssetNames: ["game1Icon2", "game1Icon3", "lunchbox"]
+                    )
                 ),
                 Chapter(
                     id: "chapter-2", order: 2,
                     title: "Ikuti Tanda di Lorong Sekolah", subtitle: nil, description: "",
-                    thumbnailAssetName: "", competency: .labelSymbol, storyPages: [],
-                    gameConfiguration: GameConfiguration(question: GameQuestion(id: "q2", prompt: "Ikuti panah penunjuk jalan!", promptImageAssetName: nil, answerOptions: [], correctAnswerID: "", hintText: "")),
-                    learningSummary: LearningSummary(successMessage: "Kamu berhasil melewati lorong!", explanation: "", mainIllustrationAssetName: "", exampleAssetNames: [])
+                    thumbnailAssetName: "", competency: .labelSymbol,
+                    storyPages: [
+                        StoryPage(
+                            id: "chapter-2-page-1",
+                            order: 1,
+                            illustrationAssetName: "page2-1",
+                            narration: "Lala menemukan selembar catatan yang dapat membantu pencariannya.",
+                            voiceOverAssetName: "chapter2-1"
+                        ),
+                        StoryPage(
+                            id: "chapter-2-page-2",
+                            order: 2,
+                            illustrationAssetName: "page2-2",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari lokasi benda berdasarkan simbol, bukan warna.",
+                            voiceOverAssetName: "chapter2-2"
+                        ),
+                        StoryPage(
+                            id: "chapter-2-page-3",
+                            order: 3,
+                            illustrationAssetName: "page2-3",
+                            narration: "Lala memperhatikan dengan saksama simbol-simbol yang ada di lorong sekolah.",
+                            voiceOverAssetName: "chapter2-3"
+                        )
+                    ],
+                    gameConfiguration: GameConfiguration(
+                        question: GameQuestion(
+                            id: "chapter-2-question",
+                            prompt: "Tanda mana yang menunjukkan arah ke kantin?",
+                            promptImageAssetName: nil,
+                            answerOptions: [
+                                AnswerOption(id: "loker", text: "Loker", imageAssetName: "game2Icon1"),
+                                AnswerOption(id: "taman-bermain", text: "Taman Bermain", imageAssetName: "game2Icon2"),
+                                AnswerOption(id: "kantin", text: "Kantin", imageAssetName: "game2Icon3"),
+                                AnswerOption(id: "uks", text: "UKS", imageAssetName: "game2Icon4")
+                            ],
+                            correctAnswerID: "kantin",
+                            hintText: "Coba cari tanda yang gambarnya berhubungan dengan tempat makan."
+                        )
+                    ),
+                    learningSummary: LearningSummary(
+                        successMessage: "Lala berhasil mengikuti tanda kantin!",
+                        explanation: "Kamu menggunakan simbol sebagai petunjuk untuk menemukan tempat yang tepat.",
+                        mainIllustrationAssetName: "game2Icon3",
+                        exampleAssetNames: ["game2Icon1", "game2Icon2", "game2Icon3", "game2Icon4"]
+                    )
                 ),
                 Chapter(
                     id: "chapter-3", order: 3,
