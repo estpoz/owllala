@@ -48,6 +48,7 @@ struct ChapterGamePlayView: View {
                     maxStars: 3,
                     summaryText: viewModel.chapter.learningSummary.explanation,
                     onReplay: {
+                        stopStoryVoiceOver()
                         withAnimation(.easeInOut(duration: 0.3)) {
                             isShowingSuccessOverlay = false
                         }
@@ -55,6 +56,7 @@ struct ChapterGamePlayView: View {
                         hasStartedChapter = viewModel.source == .training
                     },
                     onContinue: {
+                        stopStoryVoiceOver()
                         viewModel.finishStageCleared()
                         dismiss()
                     }
@@ -67,8 +69,10 @@ struct ChapterGamePlayView: View {
                 ExitConfirmation(
                     onContinueLearning: {
                         isShowingExitConfirmation = false
+                        resumeStoryVoiceOverIfNeeded()
                     },
                     onDiscardProgress: {
+                        stopStoryVoiceOver()
                         dismiss()
                     }
                 )
@@ -78,6 +82,7 @@ struct ChapterGamePlayView: View {
             if isShowingSettings {
                 SettingsModalView(viewModel: settingsViewModel) {
                     isShowingSettings = false
+                    resumeStoryVoiceOverIfNeeded()
                 }
                 .zIndex(3)
             }
@@ -99,9 +104,23 @@ struct ChapterGamePlayView: View {
                 return
             }
 
+            stopStoryVoiceOver()
             withAnimation(.easeInOut(duration: 0.3)) {
                 isShowingSuccessOverlay = true
             }
+        }
+        .onChange(of: viewModel.currentStoryPageIndex) { _, _ in
+            playCurrentStoryVoiceOverIfNeeded()
+        }
+        .onChange(of: viewModel.isQuestionPresented) { _, isQuestionPresented in
+            if isQuestionPresented {
+                stopStoryVoiceOver()
+            } else {
+                playCurrentStoryVoiceOverIfNeeded()
+            }
+        }
+        .onDisappear {
+            stopStoryVoiceOver()
         }
     }
 
@@ -134,7 +153,7 @@ struct ChapterGamePlayView: View {
                         .foregroundStyle(primaryBlue)
 
                     PrimaryActionButton(title: "Mulai") {
-                        hasStartedChapter = true
+                        startChapter()
                     }
                     .accessibilityLabel("Mulai Bab \(viewModel.chapter.order)")
                 }
@@ -149,13 +168,14 @@ struct ChapterGamePlayView: View {
                 VStack {
                     HStack {
                         BackButton(style: .outlined) {
+                            stopStoryVoiceOver()
                             dismiss()
                         }
 
                         Spacer()
 
                         SettingsButton(style: .outlined) {
-                            isShowingSettings = true
+                            showSettings()
                         }
                     }
                     .padding(.horizontal, geometry.size.width * 0.045)
@@ -186,13 +206,13 @@ struct ChapterGamePlayView: View {
                         totalPages: displayedPageCount,
                         isVoiceOverEnabled: isVoiceOverEnabled,
                         onShowExitConfirmation: {
-                            isShowingExitConfirmation = true
+                            showExitConfirmation()
                         },
                         onToggleVoiceOver: {
-                            isVoiceOverEnabled.toggle()
+                            toggleVoiceOver()
                         },
                         onShowSettings: {
-                            isShowingSettings = true
+                            showSettings()
                         }
                     )
                     .padding(.horizontal, geometry.size.width * 0.045)
@@ -224,13 +244,13 @@ struct ChapterGamePlayView: View {
                     totalPages: displayedPageCount,
                     isVoiceOverEnabled: isVoiceOverEnabled,
                     onShowExitConfirmation: {
-                        isShowingExitConfirmation = true
+                        showExitConfirmation()
                     },
                     onToggleVoiceOver: {
-                        isVoiceOverEnabled.toggle()
+                        toggleVoiceOver()
                     },
                     onShowSettings: {
-                        isShowingSettings = true
+                        showSettings()
                     }
                 )
                 .padding(.horizontal, geometry.size.width * 0.045)
@@ -305,6 +325,62 @@ struct ChapterGamePlayView: View {
                 )
             }
         }
+    }
+
+    private func startChapter() {
+        hasStartedChapter = true
+
+        guard isVoiceOverEnabled,
+              viewModel.source == .mainStory,
+              let assetName = viewModel.currentStoryPage?.voiceOverAssetName
+        else {
+            return
+        }
+
+        AudioService.shared.playVoiceOver(named: assetName)
+    }
+
+    private func toggleVoiceOver() {
+        isVoiceOverEnabled.toggle()
+
+        if isVoiceOverEnabled {
+            playCurrentStoryVoiceOverIfNeeded()
+        } else {
+            stopStoryVoiceOver()
+        }
+    }
+
+    private func showExitConfirmation() {
+        stopStoryVoiceOver()
+        isShowingExitConfirmation = true
+    }
+
+    private func showSettings() {
+        stopStoryVoiceOver()
+        isShowingSettings = true
+    }
+
+    private func resumeStoryVoiceOverIfNeeded() {
+        playCurrentStoryVoiceOverIfNeeded()
+    }
+
+    private func playCurrentStoryVoiceOverIfNeeded() {
+        guard isVoiceOverEnabled,
+              viewModel.source == .mainStory,
+              hasStartedChapter,
+              !viewModel.isQuestionPresented,
+              !isShowingExitConfirmation,
+              !isShowingSettings,
+              let assetName = viewModel.currentStoryPage?.voiceOverAssetName
+        else {
+            return
+        }
+
+        AudioService.shared.playVoiceOver(named: assetName)
+    }
+
+    private func stopStoryVoiceOver() {
+        AudioService.shared.stopVoiceOver()
     }
 
 }
