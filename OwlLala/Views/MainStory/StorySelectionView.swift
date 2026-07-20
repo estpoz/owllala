@@ -161,7 +161,6 @@ struct StoryBookView: View {
                         Text(item.story.title)
                             .font(.system(size: titleSize, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                            .underline()
                             .lineLimit(1)
                             .padding(.horizontal, width * 0.08)
                             .padding(.bottom, height * 0.27)
