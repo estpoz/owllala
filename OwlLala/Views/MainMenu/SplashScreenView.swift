@@ -32,7 +32,10 @@ struct SplashScreenView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Designated background layer: dims with Kecerahan Latar
+                // Belakang while the mascot and sparkles stay full-bright.
                 SplashBackground()
+                    .appBackgroundBrightness()
 
                 let mascotSize = geometry.size.width * 0.7
 
@@ -74,6 +77,8 @@ struct SplashScreenView: View {
                 onFinished()
             }
         }
+        // Screen applies its own display adjustments (pure SwiftUI content).
+        .appDisplayAdjustments()
     }
 }
 
@@ -131,5 +136,9 @@ private struct SplashBackground: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    SplashScreenView()
+    let storageService = StorageService()
+
+    return SplashScreenView()
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }

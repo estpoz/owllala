@@ -109,6 +109,9 @@ struct StoryClearedView: View {
         .ignoresSafeArea()
         .onPreferenceChange(TitleWidthPreferenceKey.self) { titleWidth = $0 }
         .onPreferenceChange(MaxHeightPreferenceKey.self) { learningCardHeight = $0 }
+        // Declares the ScrollView; the automatic adjustments at the navigation
+        // layer skip the color shader while this overlay is on screen.
+        .screenContainsScrollingContent()
     }
 
     // MARK: - Card content
@@ -285,5 +288,9 @@ struct StoryClearedView: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    StoryClearedView()
+    let storageService = StorageService()
+
+    return StoryClearedView()
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }
