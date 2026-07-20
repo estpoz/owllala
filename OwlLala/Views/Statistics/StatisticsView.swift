@@ -92,6 +92,9 @@ struct StatisticsView: View {
         .background(Color.white.appBackgroundBrightness())
         .navigationBarBackButtonHidden(true)
         .background(StatisticsBackground())
+        // Declares the ScrollView so the automatic adjustments at the
+        // navigation layer skip the color shader for this screen.
+        .screenContainsScrollingContent()
     }
 
     // MARK: Responsive Layout

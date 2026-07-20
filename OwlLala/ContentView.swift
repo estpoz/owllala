@@ -50,8 +50,12 @@ struct ContentView: View {
         // placeholder instead of the app. Each screen applies the modifier at
         // its own root instead (see MainMenuView.destinationView).
         MainMenuView()
+            // Text size is environment-based, so applying it ONCE here covers
+            // every screen automatically — the environment flows through
+            // NavigationStack into all pushed screens.
+            .appTextSizeAdjustment()
             // Make the shared objects available to every view in the tree, so
-            // any screen can use `.appDisplayAdjustments()` or reach the
+            // any screen can use the display-adjustment modifiers or reach the
             // settings logic without init plumbing.
             .environmentObject(storageService)
             .environmentObject(settingsViewModel)

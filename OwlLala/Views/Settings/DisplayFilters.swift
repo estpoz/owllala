@@ -269,6 +269,135 @@ extension View {
     }
 }
 
+// MARK: - Automatic Adjustments (Choke-Point Based)
+
+/// Preference through which a screen tells the navigation layer that it
+/// contains scrolling (UIKit-backed) content, so the automatic wrapper skips
+/// the color shader for it (the shader can't rasterize UIKit views).
+private struct SkipColorFilterPreferenceKey: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+/// Applies the display adjustments automatically, adapting to the screen's
+/// declared content: full adjustments by default, shader skipped when the
+/// screen declares scrolling content via `screenContainsScrollingContent()`.
+private struct AutoDisplayAdjustments: ViewModifier {
+
+    /// Whether the wrapped screen declared UIKit-backed scrolling content.
+    @State private var skipsColorFilter = false
+
+    func body(content: Content) -> some View {
+        content
+            .onPreferenceChange(SkipColorFilterPreferenceKey.self) { skipsColorFilter = $0 }
+            .appDisplayAdjustments(includeColorFilter: !skipsColorFilter)
+    }
+}
+
+extension View {
+
+    /// AUTOMATION ENTRY POINT — apply this once at each navigation choke point
+    /// (the `navigationDestination` closures in `MainMenuView`), and every
+    /// screen presented through it gets the display adjustments with ZERO
+    /// lines in the screen itself:
+    ///
+    ///     .navigationDestination(item: $vm.destination) { destination in
+    ///         destinationView(for: destination)
+    ///             .autoDisplayAdjustments()
+    ///     }
+    ///
+    /// Screens containing a `ScrollView` (or other UIKit-backed views) declare
+    /// it once with `screenContainsScrollingContent()` and the shader is
+    /// skipped for them automatically — brightness and text size still apply.
+    ///
+    /// Do NOT also apply `appDisplayAdjustments()` inside a screen presented
+    /// through a wrapped choke point — the color matrix would run twice.
+    ///
+    /// - Returns: The destination with automatic adjustments.
+    func autoDisplayAdjustments() -> some View {
+        modifier(AutoDisplayAdjustments())
+    }
+
+    /// Declares that this screen contains scrolling (UIKit-backed) content, so
+    /// the automatic adjustments at the navigation layer skip the color shader
+    /// for it. One line, on the screen's root:
+    ///
+    ///     var body: some View {
+    ///         ScrollView { ... }
+    ///             .screenContainsScrollingContent()
+    ///     }
+    ///
+    /// - Returns: The view carrying the declaration.
+    func screenContainsScrollingContent() -> some View {
+        preference(key: SkipColorFilterPreferenceKey.self, value: true)
+    }
+
+    /// Applies ONLY the text-size setting, reading the shared
+    /// `SettingsViewModel` from the environment. Environment values propagate
+    /// through `NavigationStack` into every pushed screen, so applying this
+    /// once at the app root covers text sizing everywhere — even screens that
+    /// escape the navigation choke points.
+    ///
+    /// - Returns: The view with the app's text scale applied.
+    func appTextSizeAdjustment() -> some View {
+        modifier(AppTextSizeAdjustment())
+    }
+}
+
+/// Implementation of `appTextSizeAdjustment()`.
+private struct AppTextSizeAdjustment: ViewModifier {
+
+    /// The shared settings logic, injected via `environmentObject`.
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
+    func body(content: Content) -> some View {
+        content.textSizeAdjustment(for: settingsViewModel.activeDisplaySettings)
+    }
+}
+
+// MARK: - Standard Backgrounds (Self-Dimming)
+
+/// The app's standard screen backgrounds, with the Kecerahan Latar Belakang
+/// dim BUILT IN — a new screen that uses `AppBackground` never has to remember
+/// `appBackgroundBrightness()`:
+///
+///     ZStack {
+///         AppBackground(style: .pattern)   // dims automatically
+///         ...screen content...             // stays full-bright
+///     }
+struct AppBackground: View {
+
+    /// The available standard background looks.
+    enum Style {
+        /// The flat pale backdrop used by story selection and gameplay.
+        case flat
+        /// The "PatternBG" illustration used by chapter selection & training.
+        case pattern
+    }
+
+    /// The chosen look; defaults to the flat backdrop.
+    var style: Style = .flat
+
+    var body: some View {
+        Group {
+            switch style {
+            case .flat:
+                Color(red: 0.937, green: 0.953, blue: 0.957)
+
+            case .pattern:
+                Image("PatternBG")
+                    .resizable()
+                    .scaledToFill()
+            }
+        }
+        .ignoresSafeArea()
+        .appBackgroundBrightness()
+    }
+}
+
 // MARK: - Simulation Matrices
 
 extension ColorVisionSimulation {
