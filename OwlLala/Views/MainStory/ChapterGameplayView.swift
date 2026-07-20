@@ -22,8 +22,26 @@ struct ChapterGamePlayView: View {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
-    private var displayedPageCount: Int {
-        max(viewModel.chapter.storyPages.count + 1, 5)
+    private var totalGameplayPages: Int {
+        switch viewModel.source {
+        case .mainStory:
+            return max(viewModel.chapter.storyPages.count + 1, 1)
+
+        case .training:
+            return 1
+        }
+    }
+
+    private var currentGameplayPage: Int {
+        guard viewModel.source == .mainStory else {
+            return 1
+        }
+
+        if viewModel.isQuestionPresented {
+            return totalGameplayPages
+        }
+
+        return viewModel.currentStoryPageIndex + 1
     }
 
     var body: some View {
@@ -169,7 +187,7 @@ struct ChapterGamePlayView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
 
-                    Text("\(displayedPageCount) Halaman")
+                    Text("\(totalGameplayPages) Halaman")
                         .appScaledFont(size: AppFontSize.body)
                         .foregroundStyle(primaryBlue)
 
@@ -223,8 +241,8 @@ struct ChapterGamePlayView: View {
 
                 VStack(spacing: 0) {
                     GameplayTopBar(
-                        currentPage: viewModel.currentStoryPageIndex + 1,
-                        totalPages: displayedPageCount,
+                        currentPage: currentGameplayPage,
+                        totalPages: totalGameplayPages,
                         isVoiceOverEnabled: isVoiceOverEnabled,
                         onShowExitConfirmation: {
                             showExitConfirmation()
@@ -261,8 +279,8 @@ struct ChapterGamePlayView: View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 GameplayTopBar(
-                    currentPage: viewModel.chapter.storyPages.count + 1,
-                    totalPages: displayedPageCount,
+                    currentPage: currentGameplayPage,
+                    totalPages: totalGameplayPages,
                     isVoiceOverEnabled: isVoiceOverEnabled,
                     onShowExitConfirmation: {
                         showExitConfirmation()
