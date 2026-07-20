@@ -30,6 +30,7 @@ struct StorySelectionView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // MARK: Fixed Top Header Layer
                     ZStack {
                         HStack {
                             Button(action: { dismiss() }) {
@@ -49,25 +50,71 @@ struct StorySelectionView: View {
                             .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
                     }
                     .padding(.top, screenHeight * 0.04)
-                    
-                    Spacer(minLength: 0)
+                    .padding(.bottom, screenHeight * 0.02)
+                    .background(Color(red: 0.937, green: 0.953, blue: 0.957).opacity(0.001))
                     
                     if dynamicTypeSize.isAccessibilitySize {
                         ScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
-                                contentGridItems(width: bookWidth, height: bookHeight)
+                                ForEach(viewModel.items) { item in
+                                    GeometryReader { itemGeo in
+                                        let minY = itemGeo.frame(in: .global).minY
+                                        let triggerThreshold = screenHeight * 0.18
+                                        let excessDistance = max(0, triggerThreshold - minY)
+                                        
+                                        // Dynamic blur target calculation based on distance scrolled up
+                                        let calculatedBlur = min(12, excessDistance / 10.0)
+                                        
+                                        StoryBookView(
+                                            item: item,
+                                            width: bookWidth,
+                                            height: bookHeight,
+                                            titleSize: title1Size,
+                                            subtitleSize: headlineSize
+                                        ) {
+                                            viewModel.selectStory(item.story)
+                                        }
+                                        .overlay(
+                                            // Duplicate the view layout inside a masked overlay container
+                                            StoryBookView(
+                                                item: item,
+                                                width: bookWidth,
+                                                height: bookHeight,
+                                                titleSize: title1Size,
+                                                subtitleSize: headlineSize
+                                            ) {}
+                                            .blur(radius: calculatedBlur)
+                                            // Mask applies the blur strictly to the top 25% edge of the book container
+                                            .mask(
+                                                LinearGradient(
+                                                    gradient: Gradient(stops: [
+                                                        .init(color: .black, location: 0.0),
+                                                        .init(color: .black.opacity(0.0), location: 0.25)
+                                                    ]),
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                )
+                                            )
+                                            .opacity(calculatedBlur > 0 ? 1.0 : 0.0)
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                    }
+                                    .frame(height: bookHeight)
+                                }
                             }
-                            .padding(.vertical, screenHeight * 0.04)
-                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, screenHeight * 0.02)
                         }
+                        .frame(maxHeight: .infinity)
                     } else {
+                        Spacer(minLength: 0)
+                        
                         HStack(spacing: screenWidth * 0.045) {
                             contentGridItems(width: bookWidth, height: bookHeight)
                         }
                         .padding(.horizontal, screenWidth * 0.06)
+                        
+                        Spacer(minLength: screenHeight * 0.1)
                     }
-                    
-                    Spacer(minLength: screenHeight * 0.1)
                 }
             }
         }
