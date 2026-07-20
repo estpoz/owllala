@@ -89,9 +89,9 @@ struct ExitConfirmation: View {
                     .opacity(0.36)
                     .ignoresSafeArea()
 
-                // The white card. `ScrollView` guarantees the content stays
-                // reachable even at the largest accessibility text sizes.
-                ScrollView {
+                // The centralized scroll container keeps the content reachable
+                // while applying the saved color filter inside the scroll view.
+                AppFilteredScrollView {
                     VStack(spacing: 0) {
                         // Question / title.
                         Text("Apa kamu yakin mau\nkehilangan progress\nbelajarmu?")
@@ -141,7 +141,7 @@ struct ExitConfirmation: View {
                     }
                 }
                 .frame(width: layout.panelWidth, height: layout.panelHeight)
-                .background(.white)
+                .background(Color.white.appBackgroundAdjustments())
                 .clipShape(RoundedRectangle(cornerRadius: layout.panelCornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
             }

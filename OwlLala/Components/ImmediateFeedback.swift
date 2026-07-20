@@ -361,9 +361,6 @@ struct HintOverlay: View {
         }
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("Ketuk di mana saja untuk mencoba lagi")
-        // Larger Text without a ScrollView: grows up to accessibility1, then
-        // holds, mirroring the settings screens.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 
     /// The chapter cover inside the circle frame beside the speech bubble.
@@ -599,7 +596,10 @@ extension View {
             RoundedRectangle(cornerRadius: 18)
                 .fill(.white)
                 .frame(width: 280, height: 130)
-                .overlay(Text("Kartu Jawaban").font(.owlBody))
+                .overlay(
+                    Text("Kartu Jawaban")
+                        .appScaledFont(size: AppFontSize.body)
+                )
                 .wrongAnswerFeedback(isWrong: isWrong, shakeTrigger: shakeTrigger)
 
             HStack(spacing: 16) {

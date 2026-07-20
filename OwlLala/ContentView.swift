@@ -10,16 +10,12 @@
 //
 //  HOW SETTINGS APPLY TO VIEWS
 //  ---------------------------
-//  Any view can apply the current display settings (brightness + color filter)
-//  itself with `.appDisplayAdjustments()` — it reads the shared
-//  `SettingsViewModel` from the environment, so nothing has to be wired
-//  through this file (see `DisplayFilters.swift`). Apply it once per screen
-//  root; while the child edits settings the draft previews live, and "Simpan"
-//  commits it everywhere at once.
-//
-//  This root currently applies it around the whole tree, so screens hosted
-//  under the main menu are covered by default; a screen rendered outside this
-//  tree just calls `.appDisplayAdjustments()` on itself.
+//  This root injects one shared `SettingsViewModel` and applies text sizing to
+//  the whole navigation tree. `MainMenuView` centralizes automatic filtering
+//  at its navigation destinations. New standalone screens use `AppScreen`;
+//  new scrolling screens use `AppScrollScreen` / `AppFilteredScrollView`.
+//  Those containers apply saved brightness and color settings without feature
+//  views wiring settings themselves (see `DisplayFilters.swift`).
 //
 
 import SwiftUI
@@ -44,11 +40,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        // NOTE: `appDisplayAdjustments()` is deliberately NOT applied here.
-        // MainMenuView contains a NavigationStack (UIKit-backed), and wrapping
-        // it in the color shader makes SwiftUI render a yellow "no entry"
-        // placeholder instead of the app. Each screen applies the modifier at
-        // its own root instead (see MainMenuView.destinationView).
+        // The NavigationStack is UIKit-backed, so the Metal shader cannot wrap
+        // this root. Screen and scroll containers inside the stack own the
+        // centralized filtering boundaries instead.
         MainMenuView()
             // Text size is environment-based, so applying it ONCE here covers
             // every screen automatically — the environment flows through

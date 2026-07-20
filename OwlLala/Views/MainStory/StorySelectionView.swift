@@ -24,13 +24,14 @@ struct StorySelectionView: View {
                 // Belakang; the books and text stay full-bright.
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
-                    .appBackgroundBrightness()
+                    .appBackgroundAdjustments()
                 
                 Image("PatternBG")
                     .resizable()
                     .scaledToFill()
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
                 
                 VStack(spacing: 0) {
                     ZStack {
@@ -52,11 +53,12 @@ struct StorySelectionView: View {
                             .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
                     }
                     .padding(.top, screenHeight * 0.04)
+                    .appAdaptiveColorFilter()
                     
                     Spacer(minLength: 0)
                     
                     if dynamicTypeSize.isAccessibilitySize {
-                        ScrollView(.vertical, showsIndicators: true) {
+                        AppFilteredScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
                                 contentGridItems(width: bookWidth, height: bookHeight)
                             }
@@ -75,9 +77,6 @@ struct StorySelectionView: View {
             }
         }
         .navigationBarHidden(true)
-        // Declares the ScrollView so the automatic adjustments at the
-        // navigation layer skip the color shader for this screen.
-        .screenContainsScrollingContent()
     }
     
     @ViewBuilder
