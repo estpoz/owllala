@@ -64,6 +64,9 @@ struct StageClearedView: View {
             }
         }
         .ignoresSafeArea()
+        // Declares the ScrollView; the automatic adjustments at the navigation
+        // layer skip the color shader while this overlay is on screen.
+        .screenContainsScrollingContent()
     }
 
     // MARK: - Card content
@@ -155,8 +158,12 @@ struct StageClearedView: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    NavigationStack {
+    let storageService = StorageService()
+
+    return NavigationStack {
         StageClearedView()
     }
+    .environmentObject(storageService)
+    .environmentObject(SettingsViewModel(storageService: storageService))
 }
 
