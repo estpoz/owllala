@@ -28,8 +28,11 @@ struct ChapterGamePlayView: View {
 
     var body: some View {
         ZStack {
+            // Designated background layer: dims with Kecerahan Latar Belakang;
+            // the story pages, question, and options stay full-bright.
             Color(red: 0.937, green: 0.953, blue: 0.957)
                 .ignoresSafeArea()
+                .appBackgroundBrightness()
 
             if viewModel.source == .mainStory && !hasStartedChapter {
                 startChapterContent
