@@ -256,73 +256,143 @@ struct ChapterGamePlayView: View {
                 .padding(.horizontal, geometry.size.width * 0.045)
                 .padding(.top, geometry.size.height * 0.045)
 
-                Spacer(minLength: geometry.size.height * 0.035)
+                Spacer(minLength: geometry.size.height * (usesTwoColumnAnswerLayout ? 0.12 : 0.07))
 
-                HStack(alignment: .center, spacing: geometry.size.width * 0.05) {
-                    Text(viewModel.question.prompt)
-                        .font(.owlHeadline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.black)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.72)
-                        .frame(width: geometry.size.width * 0.24, alignment: .leading)
+                questionPromptArea(in: geometry)
+                    .padding(.horizontal, geometry.size.width * 0.12)
 
-                    if let promptImageAssetName = viewModel.question.promptImageAssetName {
-                        Image(promptImageAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(
-                                width: geometry.size.width * 0.16,
-                                height: geometry.size.height * 0.3
-                            )
-                            .accessibilityLabel("Bayangan benda")
-                    }
-
-                    Image("ingameOwl")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(
-                            width: geometry.size.width * 0.25,
-                            height: geometry.size.height * 0.33
-                        )
-                        .accessibilityHidden(true)
-                }
-
-                Spacer(minLength: geometry.size.height * 0.035)
+                Spacer(minLength: geometry.size.height * (usesTwoColumnAnswerLayout ? 0.075 : 0.035))
 
                 answerOptionsGrid(in: geometry)
 
-                Text("Tekan objek yang sesuai")
+                Text(questionInstructionText)
                     .font(.owlBody)
                     .fontWeight(.semibold)
                     .foregroundStyle(primaryBlue)
-                    .padding(.top, geometry.size.height * 0.018)
+                    .padding(.top, geometry.size.height * 0.028)
                     .padding(.bottom, geometry.size.height * 0.035)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 
-    private func answerOptionsGrid(in geometry: GeometryProxy) -> some View {
-        HStack(spacing: geometry.size.width * 0.018) {
-            ForEach(viewModel.question.answerOptions) { option in
-                AnswerOptionButton(
-                    option: option,
-                    size: CGSize(
-                        width: geometry.size.width * 0.2,
-                        height: geometry.size.height * 0.25
-                    ),
-                    maxImageSize: CGSize(
+    private var usesTwoColumnAnswerLayout: Bool {
+        viewModel.chapter.order == 2
+    }
+
+    private var questionInstructionText: String {
+        usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
+    }
+
+    @ViewBuilder
+    private func questionPromptArea(in geometry: GeometryProxy) -> some View {
+        if let promptImageAssetName = viewModel.question.promptImageAssetName {
+            VStack(spacing: geometry.size.height * 0.025) {
+                Text(viewModel.question.prompt)
+                    .font(.owlHeadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.72)
+                    .padding(.bottom, 20)
+
+                HStack(alignment: .center, spacing: geometry.size.width * 0.055) {
+                    Image(promptImageAssetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: geometry.size.width * 0.18,
+                            height: geometry.size.height * 0.24
+                        )
+                        .accessibilityLabel("Bayangan benda")
+
+                    Image("ingameOwl")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: geometry.size.width * 0.13,
+                            height: geometry.size.height * 0.18
+                        )
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        } else {
+            HStack(alignment: .center, spacing: geometry.size.width * 0.025) {
+                Text(viewModel.question.prompt)
+                    .font(.owlHeadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.72)
+                    .frame(width: geometry.size.width * 0.42, alignment: .trailing)
+
+                Image("ingameOwl")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(
                         width: geometry.size.width * 0.12,
-                        height: geometry.size.height * 0.18
-                    ),
-                    isWrong: viewModel.incorrectAnswerID == option.id,
-                    shakeTrigger: viewModel.shakeTrigger,
-                    action: {
-                        viewModel.selectAnswer(option)
-                    }
-                )
+                        height: geometry.size.height * 0.16
+                    )
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func answerOptionsGrid(in geometry: GeometryProxy) -> some View {
+        if usesTwoColumnAnswerLayout {
+            LazyVGrid(
+                columns: [
+                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035),
+                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035)
+                ],
+                spacing: geometry.size.height * 0.035
+            ) {
+                ForEach(viewModel.question.answerOptions) { option in
+                    AnswerOptionButton(
+                        option: option,
+                        size: CGSize(
+                            width: geometry.size.width * 0.32,
+                            height: geometry.size.height * 0.12
+                        ),
+                        maxImageSize: CGSize(
+                            width: geometry.size.width * 0.08,
+                            height: geometry.size.height * 0.075
+                        ),
+                        usesHorizontalContent: true,
+                        isWrong: viewModel.incorrectAnswerID == option.id,
+                        shakeTrigger: viewModel.shakeTrigger,
+                        action: {
+                            viewModel.selectAnswer(option)
+                        }
+                    )
+                }
+            }
+        } else {
+            HStack(spacing: geometry.size.width * 0.018) {
+                ForEach(viewModel.question.answerOptions) { option in
+                    AnswerOptionButton(
+                        option: option,
+                        size: CGSize(
+                            width: geometry.size.width * 0.18,
+                            height: geometry.size.height * 0.19
+                        ),
+                        maxImageSize: CGSize(
+                            width: geometry.size.width * 0.12,
+                            height: geometry.size.height * 0.14
+                        ),
+                        usesHorizontalContent: false,
+                        isWrong: viewModel.incorrectAnswerID == option.id,
+                        shakeTrigger: viewModel.shakeTrigger,
+                        action: {
+                            viewModel.selectAnswer(option)
+                        }
+                    )
+                }
             }
         }
     }
@@ -390,6 +460,7 @@ private struct AnswerOptionButton: View {
     let option: AnswerOption
     let size: CGSize
     let maxImageSize: CGSize
+    let usesHorizontalContent: Bool
     let isWrong: Bool
     let shakeTrigger: Int
     let action: () -> Void
@@ -404,23 +475,8 @@ private struct AnswerOptionButton: View {
                             .stroke(primaryBlue, lineWidth: 5)
                     )
 
-                VStack(spacing: 8) {
-                    if let imageAssetName = option.imageAssetName {
-                        Image(imageAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: maxImageSize.width, maxHeight: maxImageSize.height)
-                    }
-
-                    if let text = option.text {
-                        Text(text)
-                            .font(.owlBody)
-                            .foregroundStyle(.black)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                }
-                .padding(12)
+                optionContent
+                    .padding(usesHorizontalContent ? 16 : 12)
             }
             .frame(width: size.width, height: size.height)
         }
@@ -431,6 +487,46 @@ private struct AnswerOptionButton: View {
             cornerRadius: 18
         )
         .accessibilityLabel(option.text ?? "Pilihan jawaban")
+    }
+
+    @ViewBuilder
+    private var optionContent: some View {
+        if usesHorizontalContent {
+            HStack(spacing: 18) {
+                optionImage
+
+                optionText
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            VStack(spacing: 8) {
+                optionImage
+                optionText
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var optionImage: some View {
+        if let imageAssetName = option.imageAssetName {
+            Image(imageAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: maxImageSize.width, maxHeight: maxImageSize.height)
+        }
+    }
+
+    @ViewBuilder
+    private var optionText: some View {
+        if let text = option.text {
+            Text(text)
+                .font(.owlBody)
+                .fontWeight(.bold)
+                .foregroundStyle(primaryBlue)
+                .multilineTextAlignment(usesHorizontalContent ? .leading : .center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.65)
+        }
     }
 }
 
