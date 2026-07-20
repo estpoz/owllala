@@ -37,6 +37,7 @@ struct StageNavigationVM: View {
                             storageService: storageService
                         )
                     )
+                    .autoDisplayAdjustments()
                     .navigationDestination(for: Chapter.self) { chapter in
                         ChapterGamePlayView(
                             viewModel: ChapterGameplayViewModel(
@@ -46,9 +47,11 @@ struct StageNavigationVM: View {
                                 storageService: storageService
                             )
                         )
+                        .autoDisplayAdjustments()
                     }
                 }
         }
+        .appTextSizeAdjustment()
         .environmentObject(storageService)
         .environmentObject(settingsViewModel) // <-- tambahkan, harus jadi ancestor semua view di atas
     }

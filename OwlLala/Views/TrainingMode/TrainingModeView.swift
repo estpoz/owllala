@@ -22,19 +22,19 @@ struct TrainingModeView: View {
             let peakPointY = screenHeight * 0.55
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
-            ZStack {
-                Color(red: 0.937, green: 0.953, blue: 0.957)
-                    .ignoresSafeArea()
-                
-                // Designated background layer: dims with Kecerahan Latar
-                // Belakang; the chapter nodes and path stay full-bright.
-                Image("PatternBG")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: screenWidth, height: screenHeight)
-                    .appBackgroundBrightness()
-                    .ignoresSafeArea()
-                
+            AppScreen {
+                ZStack {
+                    Color(red: 0.937, green: 0.953, blue: 0.957)
+                        .ignoresSafeArea()
+
+                    Image("PatternBG")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: screenWidth, height: screenHeight)
+                        .ignoresSafeArea()
+                }
+            } content: {
+                ZStack {
                 // MARK: Endless Circular Roadmap Track Framework
                 if !viewModel.items.isEmpty {
                     ZStack {
@@ -177,6 +177,7 @@ struct TrainingModeView: View {
                     Spacer()
                 }
                 .zIndex(2) // Layer 2: Elevated to resolve complete hit-testing interaction bugs
+                }
             }
         }
         .navigationBarHidden(true)
