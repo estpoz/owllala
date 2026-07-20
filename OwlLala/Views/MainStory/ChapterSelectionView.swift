@@ -21,7 +21,7 @@ struct ChapterSelectionView: View {
             let innerCoreDiameter = nodeDiameter * 0.93
             
             // MARK: Adaptive Layout & Font Size Hard Caps
-            let isLargeLayout = dynamicTypeSize >= .accessibility2
+            let isLargeLayout = dynamicTypeSize >= .accessibility1
             
             // Hard-stops the font metric growth at AX3 scale factor to prevent overlap blowout
             let effectiveTitleSize: CGFloat = {
@@ -105,6 +105,8 @@ struct ChapterSelectionView: View {
                                         }
                                     }
                                     .scaleEffect(offset == 0 ? pulseScale : 1.0)
+                                    // FIX 1: Explicitly tie the animation block layout strictly to pulseScale changes
+                                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulseScale)
                                     
                                     // 2. The Stationary Top Stars Component
                                     if !isLargeLayout {
@@ -178,9 +180,9 @@ struct ChapterSelectionView: View {
                                 viewModel.selectedChapter = nil
                                 dismiss()
                             }
+                            .padding(.leading, screenWidth * 0.04)
                             Spacer()
                         }
-                        .padding(.horizontal, screenWidth * 0.04)
                         
                         // Foreground Layer: Center-aligned multi-line header title
                         Text("\(viewModel.story.title) : \(viewModel.story.subtitle ?? "")")
@@ -200,9 +202,8 @@ struct ChapterSelectionView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            withAnimation(Animation.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-                pulseScale = 1.02
-            }
+            // FIX 2: Set target state instantly without a broad withAnimation wrapper block to safely prevent layout bleeding
+            pulseScale = 1.02
         }
     }
     
