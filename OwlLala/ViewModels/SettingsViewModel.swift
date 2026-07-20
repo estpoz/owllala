@@ -122,7 +122,7 @@ final class SettingsViewModel: ObservableObject {
         let normalizedSettings = Settings(
             backgroundBrightness: draftSettings.backgroundBrightness,
             colorVisionSimulation: draftSettings.colorVisionSimulation,
-            textScale: draftSettings.textScale
+            textSize: draftSettings.textSize
         )
 
         storageService.updateSettings(normalizedSettings)
@@ -155,14 +155,13 @@ final class SettingsViewModel: ObservableObject {
         draftSettings.setBackgroundBrightness(value)
     }
 
-    /// Updates the draft's text-size scale ("Ukuran Teks"); the `Settings`
-    /// model clamps the value into its supported range.
+    /// Updates the draft's Dynamic Type category ("Ukuran Teks").
     ///
     /// Bound to the text-size slider on both settings surfaces.
     ///
-    /// - Parameter value: The requested text scale.
-    func setDraftTextScale(_ value: Double) {
-        draftSettings.setTextScale(value)
+    /// - Parameter value: The requested app text-size category.
+    func setDraftTextSize(_ value: AppTextSize) {
+        draftSettings.setTextSize(value)
     }
 
     // MARK: Color Filter

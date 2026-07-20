@@ -17,7 +17,7 @@
 //
 //  All logic lives in `SettingsViewModel` — this file is presentation only:
 //  every control simply calls a view-model function (`setDraftBrightness`,
-//  `setDraftTextScale`, `setFilterEnabled`, `selectSimulation`, `save`,
+//  `setDraftTextSize`, `setFilterEnabled`, `selectSimulation`, `save`,
 //  `cancel`). Styled per the Hi-Fi design: SF Pro Rounded type scale and the
 //  #0042AA primary blue from `AppTheme.swift`.
 //
@@ -73,18 +73,13 @@ struct SettingsView: View {
         .navigationBarBackButtonHidden(true)
     }
 
-    /// The modal state of the page: the full-screen surface laid out at the
-    /// screen's size, then uniformly scaled into a card — so the modal always
-    /// has exactly the page's layout, just smaller. The larger
-    /// `saveBottomPadding` lifts "Simpan" clear of the card's bottom edge.
+    /// The modal state uses the same responsive surface at the card's actual
+    /// size. It is not scaled down as a bitmap, so AX5 text and controls retain
+    /// their intended accessibility dimensions and can scroll when necessary.
     private var modalPresentation: some View {
         GeometryReader { geometry in
-            // Card caps: ~82% of the screen width / 86% height, never larger
-            // than 900×720 (comfortable on the iPad Pro 11-inch and up).
-            let cardWidth = min(geometry.size.width * 0.82, 900)
-            let cardHeight = min(geometry.size.height * 0.86, 720)
-            let scale = min(cardWidth / max(geometry.size.width, 1),
-                            cardHeight / max(geometry.size.height, 1))
+            let cardWidth = min(geometry.size.width * 0.90, 1_000)
+            let cardHeight = min(geometry.size.height * 0.88, 760)
 
             ZStack {
                 // Dimmed backdrop over the content behind the card.
@@ -94,17 +89,12 @@ struct SettingsView: View {
 
                 SettingsSurface(
                     viewModel: viewModel,
-                    saveBottomPadding: 96,
+                    saveBottomPadding: 40,
                     navigationSystemImageName: "xmark",
                     navigationAccessibilityLabel: "Tutup",
                     onDismiss: onDismiss
                 )
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .scaleEffect(scale, anchor: .center)
-                .frame(
-                    width: geometry.size.width * scale,
-                    height: geometry.size.height * scale
-                )
+                .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -142,12 +132,17 @@ struct SettingsSurface: View {
     /// Invoked after save/cancel; the host removes the surface from the tree.
     let onDismiss: () -> Void
 
+    /// Navigation geometry grows with the selected text size, but is capped so
+    /// it remains a compact corner control beside the centered title.
+    @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
+    @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
+
     var body: some View {
-        AppScreen {
-            Color.white
-                .ignoresSafeArea()
-        } content: {
-            ZStack(alignment: .topLeading) {
+        ZStack(alignment: .topLeading) {
+            AppScrollScreen(showsIndicators: false) {
+                Color.white
+                    .ignoresSafeArea()
+            } content: {
                 SettingsPanelContent(
                     viewModel: viewModel,
                     saveBottomPadding: saveBottomPadding
@@ -155,19 +150,19 @@ struct SettingsSurface: View {
                     viewModel.save()
                     onDismiss()
                 }
-
-                CircleIconButton(
-                    systemImageName: navigationSystemImageName,
-                    accessibilityLabel: navigationAccessibilityLabel
-                ) {
-                    viewModel.cancel()
-                    onDismiss()
-                }
-                // Keep the shared 98pt hit target, but visually match the compact
-                // blue navigation button without changing buttons on other screens.
-                .scaleEffect(0.72)
-                .padding(20)
+                .frame(maxWidth: .infinity)
             }
+
+            CircleIconButton(
+                systemImageName: navigationSystemImageName,
+                accessibilityLabel: navigationAccessibilityLabel
+            ) {
+                viewModel.cancel()
+                onDismiss()
+            }
+            .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
+            .padding(min(navigationPadding, 28))
+            .appAdaptiveColorFilter()
         }
     }
 }
@@ -194,114 +189,118 @@ struct SettingsPanelContent: View {
     /// Invoked when the child taps "Simpan"; the host saves and dismisses.
     let onSave: () -> Void
 
-    /// Dynamic Type multipliers for the title, headlines, and body labels.
-    @ScaledMetric(relativeTo: .largeTitle) private var titleScale: CGFloat = 1
-    @ScaledMetric(relativeTo: .headline) private var labelScale: CGFloat = 1
-    @ScaledMetric(relativeTo: .body) private var bodyScale: CGFloat = 1
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    /// Layout constants matched to the reference photo, sized to fit the iPad
-    /// Pro 11-inch in landscape (1194×834 pt): side margins + controls column
-    /// + column gap + preview image total ≤ 1194 pt, so the side-by-side
-    /// layout holds on the 11-inch instead of falling back to the vertical
-    /// stack. The controls column is wide so the sliders run long and thin
-    /// like the reference, with the image tucked top-right.
+    /// Typography, control geometry, image dimensions, and spacing all react
+    /// to the same Dynamic Type environment. Geometry is capped only where an
+    /// unbounded value would consume the whole iPad width; text itself is never
+    /// capped, including at Accessibility 5.
+    @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .headline) private var labelFontSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var optionFontSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var smallAFontSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var largeAFontSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .caption) private var endpointFontSize: CGFloat = 11
+    @ScaledMetric(relativeTo: .body) private var smallIconSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var largeIconSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .body) private var titleTopPadding: CGFloat = 30
+    @ScaledMetric(relativeTo: .body) private var contentTopSpacing: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var horizontalPadding: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var columnSpacing: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var groupSpacing: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var saveTopSpacing: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var labelToControlSpacing: CGFloat = 6
+    @ScaledMetric(relativeTo: .body) private var previewWidth: CGFloat = 340
+    @ScaledMetric(relativeTo: .body) private var previewCornerRadius: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var radioOuterSize: CGFloat = 17
+    @ScaledMetric(relativeTo: .body) private var radioInnerSize: CGFloat = 8
+
     private enum PanelLayout {
-        /// Top inset of the "Pengaturan" title.
-        static let titleTopPadding: CGFloat = 30
-        /// Gap between the title and the content block.
-        static let contentTopSpacing: CGFloat = 42
-        /// Side margins of the content block (controls + image).
-        static let horizontalPadding: CGFloat = 64
-        /// Gap between the controls column and the preview image.
-        static let columnSpacing: CGFloat = 36
-        /// Width of the controls column (long sliders per the reference).
         static let controlsMaxWidth: CGFloat = 690
-        /// Maximum width of the preview image.
-        static let previewMaxWidth: CGFloat = 340
-        /// Vertical gap between a label and its own control.
-        static let labelToControlSpacing: CGFloat = 4
-        /// Vertical gap between one setting group and the next.
-        static let groupSpacing: CGFloat = 14
-        /// Point size of the centered screen title.
-        static let titleFontSize: CGFloat = 44
-        /// Point size of the setting labels ("Kecerahan Latar Belakang", …).
-        static let labelFontSize: CGFloat = 20
-        /// Point size of the filter option labels.
-        static let optionFontSize: CGFloat = 18
-        /// Bottom inset of the "Simpan" button.
+        static let accessibilityContentMaxWidth: CGFloat = 760
+        static let regularPreviewMaxWidth: CGFloat = 420
+        static let accessibilityPreviewMaxWidth: CGFloat = 720
         static let saveBottomPadding: CGFloat = 44
     }
 
     var body: some View {
-        // NOTE: no ScrollView and no system Slider/Toggle — the subtree must
-        // stay pure-SwiftUI so the whole-screen color filter can rasterize it
-        // (see DisplayFilters.swift).
         VStack(spacing: 0) {
-            // Compact centered title, matching the reference's hierarchy.
-            // Shrinks (never wraps) if the container is too narrow for the
-            // scaled size, so the title stays on one line at every text size.
             Text("Pengaturan")
-                .font(.owlRounded(PanelLayout.titleFontSize * titleScale, .bold))
+                .font(.owlRounded(titleFontSize, .bold))
                 .foregroundStyle(.black)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                .padding(.top, PanelLayout.titleTopPadding)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 110)
+                .padding(.top, min(titleTopPadding, 44))
 
-            // Controls on the left, image on the right (Hi-Fi layout); falls
-            // back to a vertical stack only when the width can't fit both.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: PanelLayout.columnSpacing) {
-                    controls
-                        .frame(maxWidth: PanelLayout.controlsMaxWidth, alignment: .leading)
-
-                    previewImage
-                }
-                .padding(.horizontal, PanelLayout.horizontalPadding)
-
-                // Narrow/large-text fallback: controls above a smaller image so
-                // everything still fits without scrolling.
-                VStack(alignment: .leading, spacing: 24) {
-                    controls
-
-                    previewImage
-                        .frame(maxWidth: 280)
-                }
-                .padding(.horizontal, 32)
+            if dynamicTypeSize.isAccessibilitySize {
+                accessibilityLayout
+            } else {
+                regularLayout
             }
-            .padding(.top, PanelLayout.contentTopSpacing)
-
-            Spacer(minLength: 16)
 
             PrimaryActionButton(title: "Simpan", action: onSave)
-                // The reference uses a deliberately small confirmation button;
-                // scaling here avoids changing the shared button component.
-                .scaleEffect(0.82)
                 .padding(.bottom, saveBottomPadding)
-                .padding(.top, 10)
+                .padding(.top, min(saveTopSpacing, 96))
+                .padding(.horizontal, 32)
         }
-        // Larger Text support without a ScrollView (which the whole-screen
-        // color filter can't rasterize): text grows with Dynamic Type up to
-        // accessibility1 — the largest size at which every control still fits
-        // both the full page and the modal card — and holds there, so the
-        // layout never breaks at the extreme accessibility sizes.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Side-by-side layout used from X Small through XXX Large. Both columns
+    /// share a top edge and the complete composition is centered on the iPad.
+    private var regularLayout: some View {
+        HStack(alignment: .top, spacing: min(columnSpacing, 48)) {
+            controls
+                .frame(
+                    maxWidth: PanelLayout.controlsMaxWidth,
+                    alignment: .leading
+                )
+
+            previewImage
+                .frame(width: min(previewWidth, PanelLayout.regularPreviewMaxWidth))
+        }
+        .frame(maxWidth: 1_100, alignment: .center)
+        .padding(.horizontal, min(horizontalPadding, 80))
+        .padding(.top, min(contentTopSpacing, 48))
+    }
+
+    /// AX1–AX5 layout. Controls and artwork use the same centered width so the
+    /// page remains symmetrical; the surrounding `AppScrollScreen` prevents
+    /// clipping while preserving the true accessibility text size.
+    private var accessibilityLayout: some View {
+        VStack(alignment: .center, spacing: min(groupSpacing * 2, 56)) {
+            controls
+                .frame(
+                    maxWidth: PanelLayout.accessibilityContentMaxWidth,
+                    alignment: .leading
+                )
+
+            previewImage
+                .frame(
+                    maxWidth: min(
+                        previewWidth,
+                        PanelLayout.accessibilityPreviewMaxWidth
+                    )
+                )
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, min(horizontalPadding * 0.65, 48))
+        .padding(.top, min(contentTopSpacing, 52))
     }
 
     /// The left column: brightness slider, text-size slider, filter switch,
     /// and filter options — grouped with the Hi-Fi's label→control rhythm.
     /// Each control calls straight into the view model.
-    /// Compact labels use SF Pro Rounded Medium to match the reference.
     private var controls: some View {
-        VStack(alignment: .leading, spacing: PanelLayout.labelToControlSpacing) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Kecerahan Latar Belakang")
-                .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
+                .font(.owlRounded(labelFontSize, .medium))
                 .foregroundStyle(.black)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
 
-            HStack(spacing: 14) {
+            HStack(spacing: min(labelToControlSpacing * 2, 20)) {
                 Image(systemName: "sun.min")
-                    .font(.system(size: 16 * labelScale, weight: .semibold))
+                    .font(.system(size: smallIconSize, weight: .semibold))
                     .foregroundStyle(.black)
 
                 SettingsSlider(
@@ -314,70 +313,111 @@ struct SettingsPanelContent: View {
                 )
 
                 Image(systemName: "sun.max")
-                    .font(.system(size: 22 * labelScale, weight: .semibold))
+                    .font(.system(size: largeIconSize, weight: .semibold))
                     .foregroundStyle(.black)
             }
+            .padding(.top, min(labelToControlSpacing, 14))
 
             Text("Ukuran Teks")
-                .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
+                .font(.owlRounded(labelFontSize, .medium))
                 .foregroundStyle(.black)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.top, PanelLayout.groupSpacing)
+                .padding(.top, min(groupSpacing, 34))
 
-            // Text-size slider between a small and a large "A", per the Hi-Fi.
-            HStack(spacing: 14) {
-                Text("A")
-                    .font(.owlRounded(16 * labelScale, .medium))
-                    .foregroundStyle(.black)
+            HStack(alignment: .center, spacing: min(labelToControlSpacing * 2, 20)) {
+                textSizeEndpoint(
+                    letterSize: smallAFontSize,
+                    caption: "XS"
+                )
 
                 SettingsSlider(
                     value: Binding(
-                        get: { viewModel.draftSettings.textScale },
-                        set: { viewModel.setDraftTextScale($0) }
+                        get: { Double(viewModel.draftSettings.textSize.index) },
+                        set: {
+                            viewModel.setDraftTextSize(
+                                AppTextSize(nearestIndex: Int($0.rounded()))
+                            )
+                        }
                     ),
-                    range: Settings.minimumTextScale...Settings.maximumTextScale,
-                    accessibilityLabel: "Ukuran Teks"
+                    range: 0...Double(AppTextSize.allCases.count - 1),
+                    step: 1,
+                    accessibilityLabel: "Ukuran Teks",
+                    accessibilityValue: textSizeAccessibilityName
                 )
 
-                Text("A")
-                    .font(.owlRounded(26 * labelScale, .medium))
-                    .foregroundStyle(.black)
-            }
-
-            HStack(spacing: 12) {
-                Text("Filter Warna")
-                    .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
-                    .foregroundStyle(.black)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-
-                SettingsToggle(
-                    isOn: Binding(
-                        get: { viewModel.isFilterEnabled },
-                        set: { viewModel.setFilterEnabled($0) }
-                    ),
-                    accessibilityLabel: "Filter Warna"
+                textSizeEndpoint(
+                    letterSize: largeAFontSize,
+                    caption: "AX5"
                 )
             }
-            .padding(.top, PanelLayout.groupSpacing)
+            .padding(.top, min(labelToControlSpacing, 14))
 
-            // Filter options in a row while they fit; at larger text sizes
-            // they stack vertically instead of clipping off the edge.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 24) {
+            filterHeader
+                .padding(.top, min(groupSpacing, 34))
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: min(labelToControlSpacing, 14)) {
                     ForEach(ColorVisionSimulation.allCases) { simulation in
                         simulationOption(simulation)
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
+            } else {
+                HStack(spacing: 24) {
                     ForEach(ColorVisionSimulation.allCases) { simulation in
                         simulationOption(simulation)
                     }
                 }
             }
         }
+    }
+
+    /// At AX sizes the switch moves below its label; this keeps both elements
+    /// full-sized instead of compressing either side of one horizontal row.
+    @ViewBuilder
+    private var filterHeader: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: min(labelToControlSpacing, 14)) {
+                filterLabel
+                filterToggle
+            }
+        } else {
+            HStack(spacing: 12) {
+                filterLabel
+                filterToggle
+            }
+        }
+    }
+
+    private var filterLabel: some View {
+        Text("Filter Warna")
+            .font(.owlRounded(labelFontSize, .medium))
+            .foregroundStyle(.black)
+    }
+
+    private var filterToggle: some View {
+        SettingsToggle(
+            isOn: Binding(
+                get: { viewModel.isFilterEnabled },
+                set: { viewModel.setFilterEnabled($0) }
+            ),
+            accessibilityLabel: "Filter Warna"
+        )
+    }
+
+    private func textSizeEndpoint(
+        letterSize: CGFloat,
+        caption: String
+    ) -> some View {
+        VStack(spacing: 0) {
+            Text("A")
+                .font(.owlRounded(letterSize, .medium))
+                .foregroundStyle(.black)
+
+            Text(caption)
+                .font(.owlRounded(endpointFontSize, .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(minWidth: 36)
+        .accessibilityHidden(true)
     }
 
     /// One selectable filter option (radio dot + label). Disabled and greyed
@@ -398,27 +438,35 @@ struct SettingsPanelContent: View {
                     if isSelected && isEnabled {
                         Circle()
                             .stroke(AppColor.primary, lineWidth: 2)
-                            .frame(width: 17 * labelScale, height: 17 * labelScale)
+                            .frame(
+                                width: min(radioOuterSize, 34),
+                                height: min(radioOuterSize, 34)
+                            )
                         Circle()
                             .fill(AppColor.primary)
-                            .frame(width: 8 * labelScale, height: 8 * labelScale)
+                            .frame(
+                                width: min(radioInnerSize, 17),
+                                height: min(radioInnerSize, 17)
+                            )
                     } else {
                         Circle()
                             .fill(Color(white: 0.78))
-                            .frame(width: 14 * labelScale, height: 14 * labelScale)
+                            .frame(
+                                width: min(radioOuterSize * 0.82, 30),
+                                height: min(radioOuterSize * 0.82, 30)
+                            )
                     }
                 }
-                .frame(width: 18 * labelScale, height: 18 * labelScale)
+                .frame(
+                    width: min(radioOuterSize, 34),
+                    height: min(radioOuterSize, 34)
+                )
 
-                // Shrinks rather than wrapping so each option stays on one
-                // readable line.
                 Text(simulation.displayName)
-                    .font(.owlRounded(PanelLayout.optionFontSize * bodyScale, .regular))
+                    .font(.owlRounded(optionFontSize, .regular))
                     .foregroundStyle(isEnabled ? .black : Color(white: 0.72))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .multilineTextAlignment(.leading)
             }
-            // 44pt minimum hit target for the whole dot + label row.
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
@@ -444,9 +492,13 @@ struct SettingsPanelContent: View {
             previewPlaceholder
             #endif
         }
-        .frame(maxWidth: PanelLayout.previewMaxWidth)
         .aspectRatio(3 / 2, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: min(previewCornerRadius, 18),
+                style: .continuous
+            )
+        )
         // NOT dimmed: images and other foreground content keep their colors
         // at every brightness level — only designated background layers dim.
         .accessibilityLabel("Pratinjau kecerahan latar belakang")
@@ -467,8 +519,37 @@ struct SettingsPanelContent: View {
             )
 
             Image(systemName: "photo")
-                .font(.system(size: 44, weight: .regular))
+                .font(.system(size: min(titleFontSize, 88), weight: .regular))
                 .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+
+    private var textSizeAccessibilityName: String {
+        switch viewModel.draftSettings.textSize {
+        case .extraSmall:
+            return "X Kecil"
+        case .small:
+            return "Kecil"
+        case .medium:
+            return "Sedang"
+        case .large:
+            return "Besar"
+        case .extraLarge:
+            return "Ekstra Besar"
+        case .extraExtraLarge:
+            return "Ekstra Ekstra Besar"
+        case .extraExtraExtraLarge:
+            return "Ekstra Ekstra Ekstra Besar"
+        case .accessibility1:
+            return "Aksesibilitas 1"
+        case .accessibility2:
+            return "Aksesibilitas 2"
+        case .accessibility3:
+            return "Aksesibilitas 3"
+        case .accessibility4:
+            return "Aksesibilitas 4"
+        case .accessibility5:
+            return "Aksesibilitas 5"
         }
     }
 }
@@ -486,20 +567,29 @@ struct SettingsSlider: View {
     /// The allowed value range (e.g. the Settings brightness bounds).
     let range: ClosedRange<Double>
 
+    /// Optional interval for a discrete slider such as the 12 text sizes.
+    var step: Double? = nil
+
     /// Spoken label for VoiceOver.
     let accessibilityLabel: String
 
-    /// Thumb diameter in points (small solid-blue dot per the reference).
-    private let thumbSize: CGFloat = 18
+    /// Optional spoken value; continuous sliders fall back to a percentage.
+    var accessibilityValue: String? = nil
 
-    /// Track height in points (thin line per the reference).
-    private let trackHeight: CGFloat = 3
+    @ScaledMetric(relativeTo: .body) private var scaledThumbSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var scaledTrackHeight: CGFloat = 3
+    @ScaledMetric(relativeTo: .body) private var scaledControlHeight: CGFloat = 44
+
+    private var thumbSize: CGFloat { min(scaledThumbSize, 34) }
+    private var trackHeight: CGFloat { min(scaledTrackHeight, 7) }
+    private var controlHeight: CGFloat { min(max(scaledControlHeight, 44), 72) }
 
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let travel = max(width - thumbSize, 1)
-            let fraction = (value - range.lowerBound) / (range.upperBound - range.lowerBound)
+            let rangeLength = max(range.upperBound - range.lowerBound, 0.000_001)
+            let fraction = (value - range.lowerBound) / rangeLength
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -522,27 +612,49 @@ struct SettingsSlider: View {
                     .onChanged { gesture in
                         let tapped = (gesture.location.x - thumbSize / 2) / travel
                         let clamped = min(max(tapped, 0), 1)
-                        value = range.lowerBound + clamped * (range.upperBound - range.lowerBound)
+                        value = adjustedValue(
+                            range.lowerBound + clamped * rangeLength
+                        )
                     }
             )
         }
         // 44pt minimum hit target (Apple HIG); the track/thumb stay their
         // visual size, centered in the taller touch area.
-        .frame(height: 44)
+        .frame(height: controlHeight)
         .accessibilityElement()
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue("\(Int(((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * 100)) persen")
+        .accessibilityValue(spokenValue)
         .accessibilityAdjustableAction { direction in
-            let step = (range.upperBound - range.lowerBound) / 10
+            let adjustment = step ?? (range.upperBound - range.lowerBound) / 10
             switch direction {
             case .increment:
-                value = min(value + step, range.upperBound)
+                value = adjustedValue(value + adjustment)
             case .decrement:
-                value = max(value - step, range.lowerBound)
+                value = adjustedValue(value - adjustment)
             @unknown default:
                 break
             }
         }
+    }
+
+    private var spokenValue: String {
+        if let accessibilityValue {
+            return accessibilityValue
+        }
+
+        let rangeLength = max(range.upperBound - range.lowerBound, 0.000_001)
+        let percentage = Int(((value - range.lowerBound) / rangeLength) * 100)
+        return "\(percentage) persen"
+    }
+
+    private func adjustedValue(_ proposedValue: Double) -> Double {
+        let clamped = min(max(proposedValue, range.lowerBound), range.upperBound)
+        guard let step, step > 0 else {
+            return clamped
+        }
+
+        let offset = ((clamped - range.lowerBound) / step).rounded() * step
+        return min(max(range.lowerBound + offset, range.lowerBound), range.upperBound)
     }
 }
 
@@ -556,6 +668,16 @@ struct SettingsToggle: View {
     /// Spoken label for VoiceOver.
     let accessibilityLabel: String
 
+    @ScaledMetric(relativeTo: .body) private var scaledWidth: CGFloat = 48
+    @ScaledMetric(relativeTo: .body) private var scaledHeight: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var scaledInset: CGFloat = 3
+    @ScaledMetric(relativeTo: .body) private var scaledHitHeight: CGFloat = 44
+
+    private var switchWidth: CGFloat { min(scaledWidth, 72) }
+    private var switchHeight: CGFloat { min(scaledHeight, 42) }
+    private var switchInset: CGFloat { min(scaledInset, 5) }
+    private var hitHeight: CGFloat { min(max(scaledHitHeight, 44), 70) }
+
     var body: some View {
         Button {
             withAnimation(.spring(response: 0.22, dampingFraction: 0.9)) {
@@ -566,15 +688,15 @@ struct SettingsToggle: View {
             // controls share one clear visual state.
             Capsule()
                 .fill(isOn ? AppColor.primary : Color(white: 0.85))
-                .frame(width: 48, height: 28)
+                .frame(width: switchWidth, height: switchHeight)
                 .overlay(alignment: isOn ? .trailing : .leading) {
                     Circle()
                         .fill(.white)
                         .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
-                        .padding(3)
+                        .padding(switchInset)
                 }
                 // 44pt minimum hit target; the capsule keeps its visual size.
-                .frame(minHeight: 44)
+                .frame(minHeight: hitHeight)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
