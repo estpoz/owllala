@@ -132,6 +132,10 @@ struct SettingsSurface: View {
     /// Invoked after save/cancel; the host removes the surface from the tree.
     let onDismiss: () -> Void
 
+    /// Normal sizes fit the original fixed surface. Accessibility sizes need
+    /// vertical scrolling to preserve Apple's native AX text dimensions.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     /// Navigation geometry grows with the selected text size, but is capped so
     /// it remains a compact corner control beside the centered title.
     @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
@@ -139,18 +143,28 @@ struct SettingsSurface: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            AppScrollScreen(showsIndicators: false) {
-                Color.white
-                    .ignoresSafeArea()
-            } content: {
-                SettingsPanelContent(
-                    viewModel: viewModel,
-                    saveBottomPadding: saveBottomPadding
+            if dynamicTypeSize.isAccessibilitySize {
+                // The UIKit-backed scroll surface must stay outside a shader.
+                // Live filter previews still update the gameplay behind this
+                // modal, while the controls remain visible and reachable.
+                AppScrollScreen(
+                    showsIndicators: false,
+                    appliesColorFilterToContent: false
                 ) {
-                    viewModel.save()
-                    onDismiss()
+                    Color.white
+                        .ignoresSafeArea()
+                } content: {
+                    panelContent
                 }
-                .frame(maxWidth: .infinity)
+            } else {
+                // X Small through XXX Large fit without scrolling, allowing the
+                // complete pure-SwiftUI panel to retain its live color preview.
+                AppScreen {
+                    Color.white
+                        .ignoresSafeArea()
+                } content: {
+                    panelContent
+                }
             }
 
             CircleIconButton(
@@ -164,6 +178,17 @@ struct SettingsSurface: View {
             .padding(min(navigationPadding, 28))
             .appAdaptiveColorFilter()
         }
+    }
+
+    private var panelContent: some View {
+        SettingsPanelContent(
+            viewModel: viewModel,
+            saveBottomPadding: saveBottomPadding
+        ) {
+            viewModel.save()
+            onDismiss()
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
