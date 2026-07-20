@@ -20,8 +20,11 @@ struct StorySelectionView: View {
             let bookHeight = bookWidth * 1.314
             
             ZStack {
+                // Designated background layer: dims with Kecerahan Latar
+                // Belakang; the books and text stay full-bright.
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
+                    .appBackgroundBrightness()
                 
                 Image("PatternBG")
                     .resizable()
@@ -72,6 +75,9 @@ struct StorySelectionView: View {
             }
         }
         .navigationBarHidden(true)
+        // Declares the ScrollView so the automatic adjustments at the
+        // navigation layer skip the color shader for this screen.
+        .screenContainsScrollingContent()
     }
     
     @ViewBuilder
@@ -142,5 +148,9 @@ struct StoryBookView: View {
 }
 
 #Preview {
-    StorySelectionView(viewModel: StorySelectionViewModel())
+    let storageService = StorageService()
+
+    return StorySelectionView(viewModel: StorySelectionViewModel())
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }

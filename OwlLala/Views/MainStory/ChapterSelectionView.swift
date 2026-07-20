@@ -26,10 +26,13 @@ struct ChapterSelectionView: View {
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                 
+                // Designated background layer: dims with Kecerahan Latar
+                // Belakang; the chapter nodes and path stay full-bright.
                 Image("PatternBG")
                     .resizable()
                     .scaledToFill()
                     .frame(width: screenWidth, height: screenHeight)
+                    .appBackgroundBrightness()
                     .ignoresSafeArea()
                 
                 // MARK: Endless Circular Roadmap Track Framework
@@ -179,8 +182,12 @@ struct ChapterSelectionView: View {
 
 #Preview {
     let selectionVM = StorySelectionViewModel()
+    let storageService = StorageService()
+
     if let realStory = selectionVM.items.first?.story {
         ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
             .previewInterfaceOrientation(.landscapeLeft)
+            .environmentObject(storageService)
+            .environmentObject(SettingsViewModel(storageService: storageService))
     }
 }
