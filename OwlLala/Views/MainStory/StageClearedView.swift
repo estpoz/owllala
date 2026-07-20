@@ -42,8 +42,9 @@ struct StageClearedView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
 
-                // Baru: Konten dibungkus ScrollView agar tidak terpotong saat font kebesaran
-                ScrollView(.vertical, showsIndicators: true) {
+                // Centralized scroll container keeps accessibility scrolling
+                // compatible with the saved color-vision filter.
+                AppFilteredScrollView(.vertical, showsIndicators: true) {
                     cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
                 }
                 .frame(width: cardWidth, height: cardHeight)
@@ -53,6 +54,7 @@ struct StageClearedView: View {
                         .scaledToFill()
                         .frame(width: cardWidth, height: cardHeight)
                         .clipped()
+                        .appBackgroundAdjustments()
                 )
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
                 .overlay(
@@ -64,9 +66,6 @@ struct StageClearedView: View {
             }
         }
         .ignoresSafeArea()
-        // Declares the ScrollView; the automatic adjustments at the navigation
-        // layer skip the color shader while this overlay is on screen.
-        .screenContainsScrollingContent()
     }
 
     // MARK: - Card content
@@ -166,4 +165,3 @@ struct StageClearedView: View {
     .environmentObject(storageService)
     .environmentObject(SettingsViewModel(storageService: storageService))
 }
-

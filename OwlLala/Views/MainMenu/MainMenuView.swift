@@ -28,16 +28,12 @@ struct MainMenuView: View {
             GeometryReader { geometry in
                 let baseUnit = min(geometry.size.width, geometry.size.height)
 
-                ZStack {
-                    // Designated background layer: only this dims with the
-                    // "Kecerahan Latar Belakang" setting — the owl, buttons,
-                    // and text stay at full brightness (Settings model rule).
+                AppScreen {
                     Image("bgPattern")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
-                        .appBackgroundBrightness()
-
+                } content: {
                     HStack(spacing: 50) {
                         OwlMascotView()
                             .frame(
@@ -64,11 +60,6 @@ struct MainMenuView: View {
                 }
             }
             .ignoresSafeArea()
-            // Applied INSIDE the NavigationStack (per screen), never around it:
-            // the stack is UIKit-backed and the color shader can't rasterize
-            // it (yellow "no entry" placeholder). The menu itself is pure
-            // SwiftUI, so the full adjustments are safe here.
-            .appDisplayAdjustments()
             .navigationDestination(item: $viewModel.destination) { destination in
                 // Choke point: every destination automatically gets the display
                 // adjustments — screens need zero adjustment lines themselves.

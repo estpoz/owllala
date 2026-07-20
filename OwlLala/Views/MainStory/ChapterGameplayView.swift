@@ -28,18 +28,44 @@ struct ChapterGamePlayView: View {
 
     var body: some View {
         ZStack {
-            // Designated background layer: dims with Kecerahan Latar Belakang;
-            // the story pages, question, and options stay full-bright.
-            Color(red: 0.937, green: 0.953, blue: 0.957)
-                .ignoresSafeArea()
-                .appBackgroundBrightness()
+            // The gameplay layer remains independently filterable when the
+            // scrolling Stage Cleared overlay asks the navigation wrapper to
+            // step aside. `AppScreen` centralizes both settings boundaries.
+            AppScreen {
+                Color(red: 0.937, green: 0.953, blue: 0.957)
+                    .ignoresSafeArea()
+            } content: {
+                ZStack {
+                    if viewModel.source == .mainStory && !hasStartedChapter {
+                        startChapterContent
+                    } else if viewModel.isQuestionPresented {
+                        questionContent
+                    } else if let storyPage = viewModel.currentStoryPage {
+                        storyPageContent(storyPage)
+                    }
 
-            if viewModel.source == .mainStory && !hasStartedChapter {
-                startChapterContent
-            } else if viewModel.isQuestionPresented {
-                questionContent
-            } else if let storyPage = viewModel.currentStoryPage {
-                storyPageContent(storyPage)
+                    if isShowingSettings {
+                        SettingsView(viewModel: settingsViewModel, isModal: true) {
+                            isShowingSettings = false
+                            resumeStoryVoiceOverIfNeeded()
+                        }
+                        .zIndex(3)
+                    }
+                }
+            }
+
+            if isShowingExitConfirmation {
+                ExitConfirmation(
+                    onContinueLearning: {
+                        isShowingExitConfirmation = false
+                        resumeStoryVoiceOverIfNeeded()
+                    },
+                    onDiscardProgress: {
+                        stopStoryVoiceOver()
+                        dismiss()
+                    }
+                )
+                .zIndex(2)
             }
 
             // MARK: - Success overlay, layered on top of gameplay
@@ -66,28 +92,6 @@ struct ChapterGamePlayView: View {
                 )
                 .transition(.opacity)
                 .zIndex(1)
-            }
-
-            if isShowingExitConfirmation {
-                ExitConfirmation(
-                    onContinueLearning: {
-                        isShowingExitConfirmation = false
-                        resumeStoryVoiceOverIfNeeded()
-                    },
-                    onDiscardProgress: {
-                        stopStoryVoiceOver()
-                        dismiss()
-                    }
-                )
-                .zIndex(2)
-            }
-
-            if isShowingSettings {
-                SettingsModalView(viewModel: settingsViewModel) {
-                    isShowingSettings = false
-                    resumeStoryVoiceOverIfNeeded()
-                }
-                .zIndex(3)
             }
         }
         .navigationBarHidden(true)
@@ -138,6 +142,7 @@ struct ChapterGamePlayView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
 
                 VStack(spacing: baseUnit * 0.035) {
                     Text("Bab \(viewModel.chapter.order)")

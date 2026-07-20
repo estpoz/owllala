@@ -6,7 +6,14 @@
 //
 //  OVERVIEW
 //  --------
-//  The full-screen Settings page opened from the main menu ("Pengaturan").
+//  THE one settings view of the app, sized for iPad Pro 11-inch. Two
+//  presentations of the same surface:
+//
+//    • `SettingsView(viewModel:onDismiss:)` — the full-screen page opened
+//      from the main menu ("Pengaturan").
+//    • `SettingsView(viewModel:isModal: true, onDismiss:)` — the SAME page
+//      rendered as a rounded card over a dimmed scrim, used by every caller
+//      outside the main menu (e.g. the gameplay pause settings).
 //
 //  All logic lives in `SettingsViewModel` — this file is presentation only:
 //  every control simply calls a view-model function (`setDraftBrightness`,
@@ -14,10 +21,10 @@
 //  `cancel`). Styled per the Hi-Fi design: SF Pro Rounded type scale and the
 //  #0042AA primary blue from `AppTheme.swift`.
 //
-//  This file also hosts the pieces shared with the gameplay overlay:
+//  Also hosted here:
 //    • `SettingsSurface`      — the COMPLETE page (background + panel + back
-//      button), also rendered by `SettingsModalView` inside a card, so the
-//      modal is always exactly this page in a modal frame.
+//      button) both presentations render, so the modal is always exactly
+//      this page in a modal frame.
 //    • `SettingsPanelContent` — the panel body (title, sliders, filter,
 //      image, save).
 //    • `SettingsSlider` / `SettingsToggle` — pure-SwiftUI controls. The system
@@ -28,37 +35,92 @@
 
 import SwiftUI
 
-// MARK: - Settings View (Main Menu)
+// MARK: - Settings View
 
-/// The full-screen settings page, pushed from the main menu's navigation when
-/// the `.settings` destination is selected.
+/// The app's single settings view.
+///
+///   • Main menu (`.settings` destination): `SettingsView(viewModel:onDismiss:)`
+///     — the surface fills the screen as a page.
+///   • Everywhere else (e.g. gameplay pause): pass `isModal: true` from inside
+///     the screen's `ZStack` — the SAME surface is scaled into a rounded card
+///     over a dimmed scrim, so edits preview live on the content behind it.
 struct SettingsView: View {
 
     /// The app-wide settings logic, shared through `ContentView` so the root
     /// can render `activeDisplaySettings` while this page edits the draft.
     @ObservedObject var viewModel: SettingsViewModel
 
-    /// Invoked after save/cancel; the host removes this page from the tree
-    /// (e.g. `MainMenuViewModel.clearDestination()`).
+    /// `false` (default) renders the full-screen page; `true` renders the same
+    /// surface inside a modal card over a scrim.
+    var isModal: Bool = false
+
+    /// Invoked after save/cancel; the host removes this view from the tree
+    /// (e.g. `MainMenuViewModel.clearDestination()` or clearing the gameplay
+    /// overlay flag).
     let onDismiss: () -> Void
 
     var body: some View {
-        SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
-            .onAppear {
-                viewModel.beginEditing()
+        Group {
+            if isModal {
+                modalPresentation
+            } else {
+                SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
             }
-            .navigationBarBackButtonHidden(true)
+        }
+        .onAppear {
+            viewModel.beginEditing()
+        }
+        .navigationBarBackButtonHidden(true)
+    }
+
+    /// The modal state of the page: the full-screen surface laid out at the
+    /// screen's size, then uniformly scaled into a card — so the modal always
+    /// has exactly the page's layout, just smaller. The larger
+    /// `saveBottomPadding` lifts "Simpan" clear of the card's bottom edge.
+    private var modalPresentation: some View {
+        GeometryReader { geometry in
+            // Card caps: ~82% of the screen width / 86% height, never larger
+            // than 900×720 (comfortable on the iPad Pro 11-inch and up).
+            let cardWidth = min(geometry.size.width * 0.82, 900)
+            let cardHeight = min(geometry.size.height * 0.86, 720)
+            let scale = min(cardWidth / max(geometry.size.width, 1),
+                            cardHeight / max(geometry.size.height, 1))
+
+            ZStack {
+                // Dimmed backdrop over the content behind the card.
+                Color.black
+                    .opacity(0.36)
+                    .ignoresSafeArea()
+
+                SettingsSurface(
+                    viewModel: viewModel,
+                    saveBottomPadding: 96,
+                    navigationSystemImageName: "xmark",
+                    navigationAccessibilityLabel: "Tutup",
+                    onDismiss: onDismiss
+                )
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .scaleEffect(scale, anchor: .center)
+                .frame(
+                    width: geometry.size.width * scale,
+                    height: geometry.size.height * scale
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
     }
 }
 
 // MARK: - Shared Surface
 
 /// The complete settings surface — white background, the settings panel, and
-/// the back button — shared by BOTH presentations:
+/// the back button — shared by BOTH presentations of `SettingsView`:
 ///
-///   • `SettingsView` shows it full screen (main menu → Pengaturan).
-///   • `SettingsModalView` shows the *same* surface inside a rounded card over
-///     a scrim (gameplay overlay).
+///   • Page (main menu → Pengaturan): shown full screen.
+///   • Modal (`isModal: true`): the *same* surface inside a rounded card over
+///     a scrim (e.g. gameplay overlay).
 ///
 /// Because both render this one view, the modal's content is always exactly
 /// the page's content, just in a modal frame.
@@ -69,35 +131,43 @@ struct SettingsSurface: View {
 
     /// Bottom inset of the "Simpan" button. The full-screen page uses the
     /// default; the modal passes a larger value so its button sits higher.
-    var saveBottomPadding: CGFloat = 40
+    var saveBottomPadding: CGFloat = 44
+
+    /// The full page navigates back; the modal presents an explicit close icon.
+    var navigationSystemImageName: String = "arrow.left"
+
+    /// Spoken label matching the navigation icon's purpose.
+    var navigationAccessibilityLabel: String = "Kembali"
 
     /// Invoked after save/cancel; the host removes the surface from the tree.
     let onDismiss: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Designated background layer: dims with "Kecerahan Latar
-            // Belakang" while the controls and text above stay full-bright.
+        AppScreen {
             Color.white
                 .ignoresSafeArea()
-                .appBackgroundBrightness()
+        } content: {
+            ZStack(alignment: .topLeading) {
+                SettingsPanelContent(
+                    viewModel: viewModel,
+                    saveBottomPadding: saveBottomPadding
+                ) {
+                    viewModel.save()
+                    onDismiss()
+                }
 
-            SettingsPanelContent(
-                viewModel: viewModel,
-                saveBottomPadding: saveBottomPadding
-            ) {
-                viewModel.save()
-                onDismiss()
+                CircleIconButton(
+                    systemImageName: navigationSystemImageName,
+                    accessibilityLabel: navigationAccessibilityLabel
+                ) {
+                    viewModel.cancel()
+                    onDismiss()
+                }
+                // Keep the shared 98pt hit target, but visually match the compact
+                // blue navigation button without changing buttons on other screens.
+                .scaleEffect(0.72)
+                .padding(20)
             }
-
-            CircleIconButton(
-                systemImageName: "arrow.left",
-                accessibilityLabel: "Kembali"
-            ) {
-                viewModel.cancel()
-                onDismiss()
-            }
-            .padding(32)
         }
     }
 }
@@ -129,25 +199,37 @@ struct SettingsPanelContent: View {
     @ScaledMetric(relativeTo: .headline) private var labelScale: CGFloat = 1
     @ScaledMetric(relativeTo: .body) private var bodyScale: CGFloat = 1
 
-    /// Layout constants measured from the Hi-Fi mockup so both surfaces keep
-    /// the same margins and rhythm.
+    /// Layout constants matched to the reference photo, sized to fit the iPad
+    /// Pro 11-inch in landscape (1194×834 pt): side margins + controls column
+    /// + column gap + preview image total ≤ 1194 pt, so the side-by-side
+    /// layout holds on the 11-inch instead of falling back to the vertical
+    /// stack. The controls column is wide so the sliders run long and thin
+    /// like the reference, with the image tucked top-right.
     private enum PanelLayout {
         /// Top inset of the "Pengaturan" title.
-        static let titleTopPadding: CGFloat = 36
+        static let titleTopPadding: CGFloat = 30
         /// Gap between the title and the content block.
-        static let contentTopSpacing: CGFloat = 56
+        static let contentTopSpacing: CGFloat = 42
         /// Side margins of the content block (controls + image).
-        static let horizontalPadding: CGFloat = 72
+        static let horizontalPadding: CGFloat = 64
         /// Gap between the controls column and the preview image.
-        static let columnSpacing: CGFloat = 56
-        /// Width of the controls column.
-        static let controlsMaxWidth: CGFloat = 700
+        static let columnSpacing: CGFloat = 36
+        /// Width of the controls column (long sliders per the reference).
+        static let controlsMaxWidth: CGFloat = 690
+        /// Maximum width of the preview image.
+        static let previewMaxWidth: CGFloat = 340
         /// Vertical gap between a label and its own control.
-        static let labelToControlSpacing: CGFloat = 6
+        static let labelToControlSpacing: CGFloat = 4
         /// Vertical gap between one setting group and the next.
-        static let groupSpacing: CGFloat = 22
+        static let groupSpacing: CGFloat = 14
+        /// Point size of the centered screen title.
+        static let titleFontSize: CGFloat = 44
+        /// Point size of the setting labels ("Kecerahan Latar Belakang", …).
+        static let labelFontSize: CGFloat = 20
+        /// Point size of the filter option labels.
+        static let optionFontSize: CGFloat = 18
         /// Bottom inset of the "Simpan" button.
-        static let saveBottomPadding: CGFloat = 40
+        static let saveBottomPadding: CGFloat = 44
     }
 
     var body: some View {
@@ -155,11 +237,11 @@ struct SettingsPanelContent: View {
         // stay pure-SwiftUI so the whole-screen color filter can rasterize it
         // (see DisplayFilters.swift).
         VStack(spacing: 0) {
-            // Large Title — SF Pro Rounded 60pt Bold, centered per the Hi-Fi.
+            // Compact centered title, matching the reference's hierarchy.
             // Shrinks (never wraps) if the container is too narrow for the
             // scaled size, so the title stays on one line at every text size.
             Text("Pengaturan")
-                .font(.owlRounded(AppFontSize.largeTitle * titleScale, .bold))
+                .font(.owlRounded(PanelLayout.titleFontSize * titleScale, .bold))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
@@ -191,8 +273,11 @@ struct SettingsPanelContent: View {
             Spacer(minLength: 16)
 
             PrimaryActionButton(title: "Simpan", action: onSave)
+                // The reference uses a deliberately small confirmation button;
+                // scaling here avoids changing the shared button component.
+                .scaleEffect(0.82)
                 .padding(.bottom, saveBottomPadding)
-                .padding(.top, 16)
+                .padding(.top, 10)
         }
         // Larger Text support without a ScrollView (which the whole-screen
         // color filter can't rasterize): text grows with Dynamic Type up to
@@ -205,18 +290,18 @@ struct SettingsPanelContent: View {
     /// The left column: brightness slider, text-size slider, filter switch,
     /// and filter options — grouped with the Hi-Fi's label→control rhythm.
     /// Each control calls straight into the view model.
-    /// Headline labels — SF Pro Rounded 32pt Medium.
+    /// Compact labels use SF Pro Rounded Medium to match the reference.
     private var controls: some View {
         VStack(alignment: .leading, spacing: PanelLayout.labelToControlSpacing) {
             Text("Kecerahan Latar Belakang")
-                .font(.owlRounded(AppFontSize.headline * labelScale, .medium))
+                .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
 
             HStack(spacing: 14) {
                 Image(systemName: "sun.min")
-                    .font(.system(size: 20 * labelScale, weight: .semibold))
+                    .font(.system(size: 16 * labelScale, weight: .semibold))
                     .foregroundStyle(.black)
 
                 SettingsSlider(
@@ -229,12 +314,12 @@ struct SettingsPanelContent: View {
                 )
 
                 Image(systemName: "sun.max")
-                    .font(.system(size: 26 * labelScale, weight: .semibold))
+                    .font(.system(size: 22 * labelScale, weight: .semibold))
                     .foregroundStyle(.black)
             }
 
             Text("Ukuran Teks")
-                .font(.owlRounded(AppFontSize.headline * labelScale, .medium))
+                .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -243,7 +328,7 @@ struct SettingsPanelContent: View {
             // Text-size slider between a small and a large "A", per the Hi-Fi.
             HStack(spacing: 14) {
                 Text("A")
-                    .font(.owlRounded(20 * labelScale, .medium))
+                    .font(.owlRounded(16 * labelScale, .medium))
                     .foregroundStyle(.black)
 
                 SettingsSlider(
@@ -256,13 +341,13 @@ struct SettingsPanelContent: View {
                 )
 
                 Text("A")
-                    .font(.owlRounded(32 * labelScale, .medium))
+                    .font(.owlRounded(26 * labelScale, .medium))
                     .foregroundStyle(.black)
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Text("Filter Warna")
-                    .font(.owlRounded(AppFontSize.headline * labelScale, .medium))
+                    .font(.owlRounded(PanelLayout.labelFontSize * labelScale, .medium))
                     .foregroundStyle(.black)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -280,7 +365,7 @@ struct SettingsPanelContent: View {
             // Filter options in a row while they fit; at larger text sizes
             // they stack vertically instead of clipping off the edge.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 26) {
+                HStack(spacing: 24) {
                     ForEach(ColorVisionSimulation.allCases) { simulation in
                         simulationOption(simulation)
                     }
@@ -307,30 +392,29 @@ struct SettingsPanelContent: View {
             viewModel.selectSimulation(simulation)
         } label: {
             HStack(spacing: 8) {
+                // Classic radio per the reference photo: selected = blue ring
+                // with a blue center dot; unselected = small grey disc.
                 ZStack {
-                    Circle()
-                        .fill(Color(white: 0.78))
-                        .frame(width: 22 * labelScale, height: 22 * labelScale)
-
                     if isSelected && isEnabled {
                         Circle()
-                            .fill(AppColor.primary)
-                            .frame(width: 22 * labelScale, height: 22 * labelScale)
+                            .stroke(AppColor.primary, lineWidth: 2)
+                            .frame(width: 17 * labelScale, height: 17 * labelScale)
                         Circle()
-                            .fill(.white)
+                            .fill(AppColor.primary)
                             .frame(width: 8 * labelScale, height: 8 * labelScale)
+                    } else {
+                        Circle()
+                            .fill(Color(white: 0.78))
+                            .frame(width: 14 * labelScale, height: 14 * labelScale)
                     }
                 }
+                .frame(width: 18 * labelScale, height: 18 * labelScale)
 
-                // Body — SF Pro Rounded 28pt Regular. Shrinks rather than
-                // wrapping so each option stays on one readable line.
+                // Shrinks rather than wrapping so each option stays on one
+                // readable line.
                 Text(simulation.displayName)
-                    .font(.owlRounded(AppFontSize.body * bodyScale, .regular))
-                    .foregroundStyle(
-                        isEnabled
-                            ? (isSelected ? AppColor.primary : .black)
-                            : Color(white: 0.72)
-                    )
+                    .font(.owlRounded(PanelLayout.optionFontSize * bodyScale, .regular))
+                    .foregroundStyle(isEnabled ? .black : Color(white: 0.72))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
@@ -360,9 +444,9 @@ struct SettingsPanelContent: View {
             previewPlaceholder
             #endif
         }
-        .frame(maxWidth: 420)
+        .frame(maxWidth: PanelLayout.previewMaxWidth)
         .aspectRatio(3 / 2, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         // NOT dimmed: images and other foreground content keep their colors
         // at every brightness level — only designated background layers dim.
         .accessibilityLabel("Pratinjau kecerahan latar belakang")
@@ -405,11 +489,11 @@ struct SettingsSlider: View {
     /// Spoken label for VoiceOver.
     let accessibilityLabel: String
 
-    /// Thumb diameter in points.
-    private let thumbSize: CGFloat = 26
+    /// Thumb diameter in points (small solid-blue dot per the reference).
+    private let thumbSize: CGFloat = 18
 
-    /// Track height in points.
-    private let trackHeight: CGFloat = 6
+    /// Track height in points (thin line per the reference).
+    private let trackHeight: CGFloat = 3
 
     var body: some View {
         GeometryReader { geometry in
@@ -427,9 +511,7 @@ struct SettingsSlider: View {
                     .frame(width: thumbSize / 2 + fraction * travel, height: trackHeight)
 
                 Circle()
-                    .fill(.white)
-                    .overlay(Circle().stroke(Color(white: 0.82), lineWidth: 0.5))
-                    .shadow(color: .black.opacity(0.22), radius: 3, x: 0, y: 1)
+                    .fill(AppColor.primary)
                     .frame(width: thumbSize, height: thumbSize)
                     .offset(x: fraction * travel)
             }
@@ -480,9 +562,11 @@ struct SettingsToggle: View {
                 isOn.toggle()
             }
         } label: {
+            // Use the same OwlLala blue as the settings sliders so all active
+            // controls share one clear visual state.
             Capsule()
-                .fill(isOn ? Color.green : Color(white: 0.85))
-                .frame(width: 58, height: 34)
+                .fill(isOn ? AppColor.primary : Color(white: 0.85))
+                .frame(width: 48, height: 28)
                 .overlay(alignment: isOn ? .trailing : .leading) {
                     Circle()
                         .fill(.white)
@@ -502,9 +586,21 @@ struct SettingsToggle: View {
 
 // MARK: - Preview
 
-#Preview("Settings View") {
+#Preview("Settings Page") {
     let settingsViewModel = SettingsViewModel(storageService: StorageService())
 
     return SettingsView(viewModel: settingsViewModel, onDismiss: {})
         .environmentObject(settingsViewModel)
+}
+
+#Preview("Settings Modal") {
+    let settingsViewModel = SettingsViewModel(storageService: StorageService())
+
+    return ZStack {
+        Color(white: 0.85)
+            .ignoresSafeArea()
+
+        SettingsView(viewModel: settingsViewModel, isModal: true, onDismiss: {})
+    }
+    .environmentObject(settingsViewModel)
 }
