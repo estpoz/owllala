@@ -52,8 +52,10 @@ storage, and navigation logic.
 ### Settings
 - Stores only:
   - background brightness;
-  - optional color-vision simulation.
-- Text size follows iPadOS Dynamic Type.
+  - optional color-vision simulation;
+  - the preferred app text size from X Small through Accessibility 5.
+- Text size uses the matching native iPadOS Dynamic Type category throughout
+  the app, including Accessibility 1–5.
 - Exit confirmation is always enabled and is not configurable.
 - Audio settings are not persisted in the MVP.
 

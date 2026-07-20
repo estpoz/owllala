@@ -35,16 +35,19 @@ struct ChapterSelectionView: View {
             let peakPointY = screenHeight * (isLargeLayout ? 0.65 : 0.55)
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
-            ZStack {
-                Color(red: 0.937, green: 0.953, blue: 0.957)
-                    .ignoresSafeArea()
-                
-                Image("PatternBG")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: screenWidth, height: screenHeight)
-                    .ignoresSafeArea()
-                
+            AppScreen {
+                ZStack {
+                    Color(red: 0.937, green: 0.953, blue: 0.957)
+                        .ignoresSafeArea()
+
+                    Image("PatternBG")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: screenWidth, height: screenHeight)
+                        .ignoresSafeArea()
+                }
+            } content: {
+                ZStack {
                 // MARK: Endless Circular Roadmap Track Framework
                 if !viewModel.items.isEmpty {
                     ZStack {
@@ -197,7 +200,8 @@ struct ChapterSelectionView: View {
                     
                     Spacer()
                 }
-                .zIndex(2)
+                .zIndex(2) // Layer 2: Elevates above the gesture layer to restore complete tap functionality
+                }
             }
         }
         .navigationBarHidden(true)
@@ -215,7 +219,12 @@ struct ChapterSelectionView: View {
 
 #Preview {
     let selectionVM = StorySelectionViewModel()
+    let storageService = StorageService()
+
     if let realStory = selectionVM.items.first?.story {
         ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
+            .previewInterfaceOrientation(.landscapeLeft)
+            .environmentObject(storageService)
+            .environmentObject(SettingsViewModel(storageService: storageService))
     }
 }

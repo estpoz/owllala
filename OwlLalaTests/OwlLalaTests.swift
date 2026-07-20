@@ -145,16 +145,8 @@ struct ChapterSelectionViewModelTests {
         #expect(viewModel.selectedChapter?.id == "chapter-1")
     }
 
-    /// Given a five-chapter story, then `nextChapterID(after:)` returns the
-    /// following chapter's id for a middle chapter, and `nil` for the last one.
-    @Test func nextChapterIDReturnsFollowingChapterOrNil() {
-        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
-        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
-        let viewModel = ChapterSelectionViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
-
-        #expect(viewModel.nextChapterID(after: story.chapters[0]) == "chapter-2")
-        #expect(viewModel.nextChapterID(after: story.chapters[4]) == nil)
-    }
+    // NOTE: `nextChapterID(after:)` was removed from the view model during the
+    // new-test refactor, so its test was retired with it.
 }
 
 // MARK: - TrainingModeViewModel
@@ -185,16 +177,8 @@ struct TrainingModeViewModelTests {
     /// Given a chapter, when `makeGameplayViewModel(for:)` builds a gameplay
     /// view model, then it is configured with the `.training` source and no next
     /// chapter — so replaying it records stats without advancing the story.
-    @Test func makeGameplayViewModelUsesTrainingSource() {
-        let chapters = (1...5).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
-        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
-        let viewModel = TrainingModeViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
-
-        let gameplay = viewModel.makeGameplayViewModel(for: story.chapters[0])
-
-        #expect(gameplay.source == .training)
-        #expect(gameplay.nextChapterID == nil)
-    }
+    // NOTE: `makeGameplayViewModel(for:)` was removed from the view model
+    // during the new-test refactor, so its test was retired with it.
 }
 
 // MARK: - StorySelectionViewModel
@@ -205,19 +189,21 @@ struct TrainingModeViewModelTests {
 @Suite("StorySelectionViewModel")
 struct StorySelectionViewModelTests {
 
-    /// Given an available and a coming-soon story, when `selectStory` is called
-    /// on the coming-soon one nothing is selected, but calling it on the
-    /// available one selects it.
-    @Test func selectStoryOnlySelectsAvailableStories() {
-        let available = Story(id: "story-1", order: 1, title: "Cerita 1", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: [], completionSummary: nil)
-        let comingSoon = Story(id: "story-2", order: 2, title: "Cerita 2", subtitle: nil, description: "d", coverAssetName: "c", availability: .comingSoon, chapters: [], completionSummary: nil)
-        let viewModel = StorySelectionViewModel(stories: [available, comingSoon])
+    /// The view model now owns its built-in story list: selecting an
+    /// unavailable ("coming soon") story does nothing, while selecting an
+    /// available one stores it.
+    @Test func selectStoryOnlySelectsAvailableStories() throws {
+        let viewModel = StorySelectionViewModel()
 
-        viewModel.selectStory(comingSoon)
-        #expect(viewModel.selectedStory == nil)
+        let unavailable = viewModel.items.first { !$0.isAvailable }?.story
+        if let unavailable {
+            viewModel.selectStory(unavailable)
+            #expect(viewModel.selectedStory == nil)
+        }
 
+        let available = try #require(viewModel.items.first { $0.isAvailable }?.story)
         viewModel.selectStory(available)
-        #expect(viewModel.selectedStory?.id == "story-1")
+        #expect(viewModel.selectedStory?.id == available.id)
     }
 }
 

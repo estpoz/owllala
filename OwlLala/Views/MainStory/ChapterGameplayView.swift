@@ -28,15 +28,44 @@ struct ChapterGamePlayView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.937, green: 0.953, blue: 0.957)
-                .ignoresSafeArea()
+            // The gameplay layer remains independently filterable when the
+            // scrolling Stage Cleared overlay asks the navigation wrapper to
+            // step aside. `AppScreen` centralizes both settings boundaries.
+            AppScreen {
+                Color(red: 0.937, green: 0.953, blue: 0.957)
+                    .ignoresSafeArea()
+            } content: {
+                ZStack {
+                    if viewModel.source == .mainStory && !hasStartedChapter {
+                        startChapterContent
+                    } else if viewModel.isQuestionPresented {
+                        questionContent
+                    } else if let storyPage = viewModel.currentStoryPage {
+                        storyPageContent(storyPage)
+                    }
 
-            if viewModel.source == .mainStory && !hasStartedChapter {
-                startChapterContent
-            } else if viewModel.isQuestionPresented {
-                questionContent
-            } else if let storyPage = viewModel.currentStoryPage {
-                storyPageContent(storyPage)
+                    if isShowingSettings {
+                        SettingsView(viewModel: settingsViewModel, isModal: true) {
+                            isShowingSettings = false
+                            resumeStoryVoiceOverIfNeeded()
+                        }
+                        .zIndex(3)
+                    }
+                }
+            }
+
+            if isShowingExitConfirmation {
+                ExitConfirmation(
+                    onContinueLearning: {
+                        isShowingExitConfirmation = false
+                        resumeStoryVoiceOverIfNeeded()
+                    },
+                    onDiscardProgress: {
+                        stopStoryVoiceOver()
+                        dismiss()
+                    }
+                )
+                .zIndex(2)
             }
 
             // MARK: - Success overlay, layered on top of gameplay
@@ -63,28 +92,6 @@ struct ChapterGamePlayView: View {
                 )
                 .transition(.opacity)
                 .zIndex(1)
-            }
-
-            if isShowingExitConfirmation {
-                ExitConfirmation(
-                    onContinueLearning: {
-                        isShowingExitConfirmation = false
-                        resumeStoryVoiceOverIfNeeded()
-                    },
-                    onDiscardProgress: {
-                        stopStoryVoiceOver()
-                        dismiss()
-                    }
-                )
-                .zIndex(2)
-            }
-
-            if isShowingSettings {
-                SettingsModalView(viewModel: settingsViewModel) {
-                    isShowingSettings = false
-                    resumeStoryVoiceOverIfNeeded()
-                }
-                .zIndex(3)
             }
         }
         .navigationBarHidden(true)
@@ -135,21 +142,30 @@ struct ChapterGamePlayView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
 
                 VStack(spacing: baseUnit * 0.035) {
                     Text("Bab \(viewModel.chapter.order)")
-                        .font(.owlLargeTitle)
+                        .appScaledFont(
+                            size: AppFontSize.largeTitle,
+                            relativeTo: .largeTitle,
+                            weight: .bold
+                        )
                         .foregroundStyle(.black)
 
                     Text(viewModel.chapter.title)
-                        .font(.owlHeadline)
+                        .appScaledFont(
+                            size: AppFontSize.headline,
+                            relativeTo: .headline,
+                            weight: .medium
+                        )
                         .foregroundStyle(.black)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
 
                     Text("\(displayedPageCount) Halaman")
-                        .font(.owlBody)
+                        .appScaledFont(size: AppFontSize.body)
                         .foregroundStyle(primaryBlue)
 
                     PrimaryActionButton(title: "Mulai") {
@@ -266,8 +282,10 @@ struct ChapterGamePlayView: View {
                 answerOptionsGrid(in: geometry)
 
                 Text(questionInstructionText)
-                    .font(.owlBody)
-                    .fontWeight(.semibold)
+                    .appScaledFont(
+                        size: AppFontSize.body,
+                        weight: .semibold
+                    )
                     .foregroundStyle(primaryBlue)
                     .padding(.top, geometry.size.height * 0.028)
                     .padding(.bottom, geometry.size.height * 0.035)
@@ -289,8 +307,11 @@ struct ChapterGamePlayView: View {
         if let promptImageAssetName = viewModel.question.promptImageAssetName {
             VStack(spacing: geometry.size.height * 0.025) {
                 Text(viewModel.question.prompt)
-                    .font(.owlHeadline)
-                    .fontWeight(.bold)
+                    .appScaledFont(
+                        size: AppFontSize.headline,
+                        relativeTo: .headline,
+                        weight: .bold
+                    )
                     .foregroundStyle(.black)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
@@ -321,8 +342,11 @@ struct ChapterGamePlayView: View {
         } else {
             HStack(alignment: .center, spacing: geometry.size.width * 0.025) {
                 Text(viewModel.question.prompt)
-                    .font(.owlHeadline)
-                    .fontWeight(.bold)
+                    .appScaledFont(
+                        size: AppFontSize.headline,
+                        relativeTo: .headline,
+                        weight: .bold
+                    )
                     .foregroundStyle(.black)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
@@ -520,8 +544,10 @@ private struct AnswerOptionButton: View {
     private var optionText: some View {
         if let text = option.text {
             Text(text)
-                .font(.owlBody)
-                .fontWeight(.bold)
+                .appScaledFont(
+                    size: AppFontSize.body,
+                    weight: .bold
+                )
                 .foregroundStyle(primaryBlue)
                 .multilineTextAlignment(usesHorizontalContent ? .leading : .center)
                 .lineLimit(2)

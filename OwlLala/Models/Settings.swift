@@ -21,17 +21,11 @@ struct Settings: Codable, Hashable, Sendable {
     /// The maximum supported background-brightness value.
     static let maximumBackgroundBrightness = 1.0
 
-    /// The minimum text-scale value (1.0 = follow the system size).
-    static let minimumTextScale = 1.0
-
-    /// The maximum text-scale value.
-    static let maximumTextScale = 1.4
-
     /// The default preferences used when no saved settings are available.
     static let defaultValue = Settings(
         backgroundBrightness: 1.0,
         colorVisionSimulation: nil,
-        textScale: 1.0
+        textSize: .large
     )
 
     /// Controls the brightness of supported application background layers.
@@ -50,11 +44,8 @@ struct Settings: Codable, Hashable, Sendable {
     /// retained.
     var colorVisionSimulation: ColorVisionSimulation?
 
-    /// The preferred text-size scale ("Ukuran Teks").
-    ///
-    /// `1.0` follows the system Dynamic Type size unchanged; larger values
-    /// scale the app's text up, within `minimumTextScale...maximumTextScale`.
-    var textScale: Double
+    /// The preferred app-wide Dynamic Type category ("Ukuran Teks").
+    var textSize: AppTextSize
 
     /// Indicates whether a color-vision simulation is currently active.
     var isColorVisionSimulationEnabled: Bool {
@@ -63,17 +54,16 @@ struct Settings: Codable, Hashable, Sendable {
 
     /// Creates application settings with normalized values.
     ///
-    /// Background brightness and text scale are clamped to their supported
-    /// ranges.
+    /// Background brightness is clamped to its supported range.
     ///
     /// - Parameters:
     ///   - backgroundBrightness: The preferred background-brightness level.
     ///   - colorVisionSimulation: The optional active simulation type.
-    ///   - textScale: The preferred text-size scale.
+    ///   - textSize: The preferred app-wide Dynamic Type category.
     init(
         backgroundBrightness: Double = 1.0,
         colorVisionSimulation: ColorVisionSimulation? = nil,
-        textScale: Double = 1.0
+        textSize: AppTextSize = .large
     ) {
         self.backgroundBrightness = min(
             max(
@@ -85,29 +75,53 @@ struct Settings: Codable, Hashable, Sendable {
 
         self.colorVisionSimulation = colorVisionSimulation
 
-        self.textScale = min(
-            max(textScale, Self.minimumTextScale),
-            Self.maximumTextScale
-        )
+        self.textSize = textSize
     }
 
     /// Restores settings from persisted data.
     ///
-    /// `textScale` is decoded leniently (defaulting to `1.0`) so settings saved
-    /// by versions of the app from before the text-size feature still load.
+    /// Settings saved by the earlier multiplier-based text-size slider are
+    /// migrated to the closest matching Dynamic Type category.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        let decodedTextSize: AppTextSize
+        if let textSize = try container.decodeIfPresent(
+            AppTextSize.self,
+            forKey: .textSize
+        ) {
+            decodedTextSize = textSize
+        } else if let legacyScale = try container.decodeIfPresent(
+            Double.self,
+            forKey: .textScale
+        ) {
+            decodedTextSize = AppTextSize(legacyTextScale: legacyScale)
+        } else {
+            decodedTextSize = .large
+        }
 
         self.init(
             backgroundBrightness: try container.decode(Double.self, forKey: .backgroundBrightness),
             colorVisionSimulation: try container.decodeIfPresent(ColorVisionSimulation.self, forKey: .colorVisionSimulation),
-            textScale: try container.decodeIfPresent(Double.self, forKey: .textScale) ?? Self.minimumTextScale
+            textSize: decodedTextSize
         )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(backgroundBrightness, forKey: .backgroundBrightness)
+        try container.encodeIfPresent(
+            colorVisionSimulation,
+            forKey: .colorVisionSimulation
+        )
+        try container.encode(textSize, forKey: .textSize)
     }
 
     private enum CodingKeys: String, CodingKey {
         case backgroundBrightness
         case colorVisionSimulation
+        case textSize
+        /// Legacy key used before the slider represented Dynamic Type steps.
         case textScale
     }
 
@@ -142,16 +156,58 @@ struct Settings: Codable, Hashable, Sendable {
         colorVisionSimulation = nil
     }
 
-    /// Updates the preferred text-size scale.
-    ///
-    /// Values outside the supported range are clamped automatically.
-    ///
-    /// - Parameter value: The requested text scale.
-    mutating func setTextScale(_ value: Double) {
-        textScale = min(
-            max(value, Self.minimumTextScale),
-            Self.maximumTextScale
-        )
+    /// Updates the preferred app-wide Dynamic Type category.
+    mutating func setTextSize(_ value: AppTextSize) {
+        textSize = value
+    }
+}
+
+// MARK: - App Text Size
+
+/// A persisted, framework-independent representation of every supported
+/// iPadOS Dynamic Type category, from X Small through Accessibility 5.
+enum AppTextSize: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
+    case extraSmall
+    case small
+    case medium
+    case large
+    case extraLarge
+    case extraExtraLarge
+    case extraExtraExtraLarge
+    case accessibility1
+    case accessibility2
+    case accessibility3
+    case accessibility4
+    case accessibility5
+
+    var id: String { rawValue }
+
+    /// Stable ordinal used by the stepped Settings slider.
+    var index: Int {
+        Self.allCases.firstIndex(of: self) ?? 0
+    }
+
+    /// Creates the closest valid choice for a slider index.
+    init(nearestIndex index: Int) {
+        let clampedIndex = min(max(index, 0), Self.allCases.count - 1)
+        self = Self.allCases[clampedIndex]
+    }
+
+    /// Migrates the previous `1.0...1.4` multiplier into the category it
+    /// rendered before this discrete range was introduced.
+    fileprivate init(legacyTextScale: Double) {
+        switch legacyTextScale {
+        case ..<1.05:
+            self = .large
+        case ..<1.15:
+            self = .extraLarge
+        case ..<1.25:
+            self = .extraExtraLarge
+        case ..<1.35:
+            self = .extraExtraExtraLarge
+        default:
+            self = .accessibility1
+        }
     }
 }
 
