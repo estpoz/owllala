@@ -20,14 +20,18 @@ struct StorySelectionView: View {
             let bookHeight = bookWidth * 1.314
             
             ZStack {
+                // Designated background layer: dims with Kecerahan Latar
+                // Belakang; the books and text stay full-bright.
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
                 
                 Image("PatternBG")
                     .resizable()
                     .scaledToFill()
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
                 
                 VStack(spacing: 0) {
                     // MARK: Fixed Top Header Layer
@@ -46,11 +50,11 @@ struct StorySelectionView: View {
                             .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
                     }
                     .padding(.top, screenHeight * 0.04)
-                    .padding(.bottom, screenHeight * 0.02)
+                    .appAdaptiveColorFilter()
                     
                     // MARK: Content Scroll Layer Area
                     if dynamicTypeSize.isAccessibilitySize {
-                        ScrollView(.vertical, showsIndicators: false) {
+                        AppFilteredScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
                                 ForEach(viewModel.items) { item in
                                     StoryBookView(
@@ -164,5 +168,9 @@ struct StoryBookView: View {
 }
 
 #Preview {
-    StorySelectionView(viewModel: StorySelectionViewModel())
+    let storageService = StorageService()
+
+    return StorySelectionView(viewModel: StorySelectionViewModel())
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }

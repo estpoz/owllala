@@ -253,6 +253,26 @@ enum ChapterHints {
 
         return dataHint.isEmpty ? hint(forChapterOrder: chapter.order) : dataHint
     }
+
+    /// Returns the asset-catalog name of the chapter's cover illustration,
+    /// shown in the circle frame beside the hint speech bubble.
+    ///
+    /// Assets are named `chapterCover1`...`chapterCover6`; out-of-range orders
+    /// fall back to `chapterCover1`.
+    ///
+    /// - Parameter order: The chapter's `order` (1-based).
+    /// - Returns: The cover asset name for that chapter.
+    static func coverImageName(forChapterOrder order: Int) -> String {
+        (1...6).contains(order) ? "chapterCover\(order)" : "chapterCover1"
+    }
+
+    /// Returns the cover asset name for a chapter.
+    ///
+    /// - Parameter chapter: The chapter being played.
+    /// - Returns: The cover asset name for the circle frame.
+    static func coverImageName(for chapter: Chapter) -> String {
+        coverImageName(forChapterOrder: chapter.order)
+    }
 }
 
 /// The hint overlay shown after the child's SECOND wrong answer: the owl
@@ -268,24 +288,54 @@ struct HintOverlay: View {
     /// The hint sentence displayed inside the speech bubble.
     let hintText: String
 
+    /// Asset name of the chapter cover shown in the circle frame beside the
+    /// speech bubble (`chapterCover1`...`chapterCover6`).
+    let illustrationImageName: String
+
     /// Invoked when the child taps the button to try again; the host hides
     /// the overlay (e.g. `viewModel.dismissHint()`).
     let onDismiss: () -> Void
 
-    /// Dynamic Type multipliers for the bubble text and owl size.
+    /// Dynamic Type multipliers for the bubble text and illustration size.
     @ScaledMetric(relativeTo: .body) private var bubbleTextScale: CGFloat = 1
     @ScaledMetric(relativeTo: .body) private var owlScale: CGFloat = 1
 
-    /// Creates the overlay with an explicit hint sentence.
-    init(hintText: String, onDismiss: @escaping () -> Void) {
+    /// Creates the overlay with an explicit hint sentence and cover image.
+    ///
+    /// - Parameters:
+    ///   - hintText: The sentence inside the speech bubble.
+    ///   - illustrationImageName: The chapter-cover asset for the circle
+    ///     frame; defaults to chapter 1's cover.
+    ///   - onDismiss: Called when the child taps "Coba Lagi".
+    init(
+        hintText: String,
+        illustrationImageName: String = ChapterHints.coverImageName(forChapterOrder: 1),
+        onDismiss: @escaping () -> Void
+    ) {
         self.hintText = hintText
+        self.illustrationImageName = illustrationImageName
         self.onDismiss = onDismiss
     }
 
-    /// Creates the overlay for a chapter, resolving its hint automatically
-    /// via `ChapterHints` — the usual initializer for gameplay.
+    /// Creates the overlay for a chapter, resolving its hint text AND its
+    /// cover illustration automatically — the usual initializer for gameplay,
+    /// so every chapter shows its own cover in the circle.
     init(chapter: Chapter, onDismiss: @escaping () -> Void) {
-        self.init(hintText: ChapterHints.hint(for: chapter), onDismiss: onDismiss)
+        self.init(
+            hintText: ChapterHints.hint(for: chapter),
+            illustrationImageName: ChapterHints.coverImageName(for: chapter),
+            onDismiss: onDismiss
+        )
+    }
+
+    /// Creates the overlay for a chapter number (1–5), for hosts that don't
+    /// have a `Chapter` value at hand.
+    init(chapterOrder: Int, onDismiss: @escaping () -> Void) {
+        self.init(
+            hintText: ChapterHints.hint(forChapterOrder: chapterOrder),
+            illustrationImageName: ChapterHints.coverImageName(forChapterOrder: chapterOrder),
+            onDismiss: onDismiss
+        )
     }
 
     var body: some View {
@@ -295,42 +345,52 @@ struct HintOverlay: View {
                 .opacity(0.36)
                 .ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                // Owl + speech bubble, side by side like a conversation.
-                HStack(alignment: .center, spacing: 0) {
-                    owlIllustration
-                    speechBubble
-                }
-
-                dismissButton
+            // Chapter cover + speech bubble, side by side like a conversation,
+            // with clear breathing room between the frame and the bubble.
+            HStack(alignment: .center, spacing: 24) {
+                owlIllustration
+                speechBubble
             }
             .padding(40)
         }
-        // Larger Text without a ScrollView: grows up to accessibility1, then
-        // holds, mirroring the settings screens.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        // No button: tapping ANYWHERE on the screen dismisses the hint so the
+        // child can try again.
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onDismiss()
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Ketuk di mana saja untuk mencoba lagi")
     }
 
-    /// The owl mascot delivering the hint.
+    /// The chapter cover inside the circle frame beside the speech bubble.
+    /// The image is fitted (not cropped) on a white disc, so the whole cover
+    /// illustration stays visible inside the frame.
     private var owlIllustration: some View {
-        Image("homeScreen")
-            .resizable()
-            .scaledToFill()
-            .frame(width: 180 * owlScale, height: 180 * owlScale)
-            .clipShape(Circle())
-            .overlay(
-                Circle()
-                    .stroke(.black, lineWidth: 3)
-            )
-            .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
-            .accessibilityHidden(true)
+        ZStack {
+            Circle()
+                .fill(.white)
+
+            Image(illustrationImageName)
+                .resizable()
+                .scaledToFit()
+                .padding(14)
+        }
+        .frame(width: 180 * owlScale, height: 180 * owlScale)
+        .clipShape(Circle())
+        .overlay(
+            Circle()
+                .stroke(.black, lineWidth: 3)
+        )
+        .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
+        .accessibilityHidden(true)
     }
 
     /// The speech bubble with the chapter's hint. Text follows Dynamic Type
     /// and wraps freely inside the bubble.
     private var speechBubble: some View {
         HStack(alignment: .center, spacing: -1) {
-            // Tail pointing at the owl.
+            // Tail pointing at the chapter cover.
             BubbleTail()
                 .fill(.white)
                 .frame(width: 26, height: 30)
@@ -346,11 +406,6 @@ struct HintOverlay: View {
         .frame(maxWidth: 520, alignment: .leading)
         .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
         .accessibilityLabel("Petunjuk: \(hintText)")
-    }
-
-    /// The action button that closes the hint so the child can try again.
-    private var dismissButton: some View {
-        PrimaryActionButton(title: "Coba Lagi", action: onDismiss)
     }
 }
 
@@ -408,21 +463,28 @@ extension View {
     }
 
     /// Overlays the owl hint (speech bubble + "Coba Lagi") on this view while
-    /// `isPresented` is true, with an explicit hint sentence.
+    /// `isPresented` is true, with an explicit hint sentence and chapter cover.
     ///
     /// - Parameters:
     ///   - isPresented: Whether the hint is showing.
     ///   - hintText: The sentence inside the speech bubble.
+    ///   - illustrationImageName: The chapter-cover asset for the circle frame
+    ///     (defaults to chapter 1's cover).
     ///   - onDismiss: Called when the child taps "Coba Lagi".
     /// - Returns: The view with the hint overlay attached.
     func hintOverlay(
         isPresented: Bool,
         hintText: String,
+        illustrationImageName: String = ChapterHints.coverImageName(forChapterOrder: 1),
         onDismiss: @escaping () -> Void
     ) -> some View {
         overlay {
             if isPresented {
-                HintOverlay(hintText: hintText, onDismiss: onDismiss)
+                HintOverlay(
+                    hintText: hintText,
+                    illustrationImageName: illustrationImageName,
+                    onDismiss: onDismiss
+                )
             }
         }
     }
@@ -497,7 +559,25 @@ extension View {
 }
 
 #Preview("Hint") {
-    HintOverlay(hintText: ChapterHints.hint(forChapterOrder: 5)) {}
+    // Tap the picker to see each chapter's cover + hint pair.
+    @Previewable @State var chapterOrder = 1
+
+    ZStack {
+        HintOverlay(chapterOrder: chapterOrder) {}
+
+        VStack {
+            Picker("Bab", selection: $chapterOrder) {
+                ForEach(1...5, id: \.self) { order in
+                    Text("Bab \(order)").tag(order)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 420)
+            .padding(.top, 24)
+
+            Spacer()
+        }
+    }
 }
 
 #Preview("All Feedback (modifiers)") {
@@ -516,7 +596,10 @@ extension View {
             RoundedRectangle(cornerRadius: 18)
                 .fill(.white)
                 .frame(width: 280, height: 130)
-                .overlay(Text("Kartu Jawaban").font(.owlBody))
+                .overlay(
+                    Text("Kartu Jawaban")
+                        .appScaledFont(size: AppFontSize.body)
+                )
                 .wrongAnswerFeedback(isWrong: isWrong, shakeTrigger: shakeTrigger)
 
             HStack(spacing: 16) {

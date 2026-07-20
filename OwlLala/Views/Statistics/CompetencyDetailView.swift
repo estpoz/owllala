@@ -45,7 +45,7 @@ struct CompetencyDetailView: View {
             let horizontalPadding = max(proxy.size.width * 0.06, 32)
             let verticalPadding = max(proxy.size.height * 0.045, 24)
 
-            ScrollView {
+            AppFilteredScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 

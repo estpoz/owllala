@@ -79,6 +79,10 @@ struct StatisticsView: View {
                         middleHeight: middleHeight,
                         summaryHeight: summaryHeight
                     )
+                    // When a scrolling detail overlay is presented, the
+                    // navigation-level shader steps aside. This pure content
+                    // island then keeps the underlying statistics filtered.
+                    .appAdaptiveColorFilter()
                 }
 
                 if let selectedItem, let guidance = viewModel.guidance(for: selectedItem.competency) {
@@ -87,9 +91,6 @@ struct StatisticsView: View {
             }
         }
         
-        // Designated background layer: only this dims with the "Kecerahan
-        // Latar Belakang" setting — cards, text, and icons stay full-bright.
-        .background(Color.white.appBackgroundBrightness())
         .navigationBarBackButtonHidden(true)
         .background(StatisticsBackground())
     }
@@ -160,7 +161,7 @@ struct StatisticsView: View {
         contentSpacing: CGFloat,
         headerHeight: CGFloat
     ) -> some View {
-        ScrollView {
+        AppFilteredScrollView {
             VStack(spacing: contentSpacing) {
                 header(width: size.width)
                     .frame(height: headerHeight)
@@ -397,6 +398,7 @@ struct StatisticsBackground: View {
             .scaledToFill()
             .ignoresSafeArea()
             .background(Color.white)
+            .appBackgroundAdjustments()
     }
 }
 
