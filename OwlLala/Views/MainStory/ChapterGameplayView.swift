@@ -277,12 +277,12 @@ struct ChapterGamePlayView: View {
                 .padding(.horizontal, geometry.size.width * 0.045)
                 .padding(.top, geometry.size.height * 0.045)
 
-                Spacer(minLength: geometry.size.height * (usesTwoColumnAnswerLayout ? 0.12 : 0.07))
+                Spacer(minLength: geometry.size.height * topQuestionSpacing)
 
                 questionPromptArea(in: geometry)
                     .padding(.horizontal, geometry.size.width * 0.12)
 
-                Spacer(minLength: geometry.size.height * (usesTwoColumnAnswerLayout ? 0.075 : 0.035))
+                Spacer(minLength: geometry.size.height * answerTopSpacing)
 
                 answerOptionsGrid(in: geometry)
 
@@ -303,14 +303,32 @@ struct ChapterGamePlayView: View {
         viewModel.chapter.order == 2
     }
 
+    private var usesCompactPromptImageLayout: Bool {
+        viewModel.chapter.order == 4
+    }
+
+    private var usesChapterFivePromptLayout: Bool {
+        viewModel.chapter.order == 5
+    }
+
+    private var topQuestionSpacing: CGFloat {
+        usesTwoColumnAnswerLayout ? 0.12 : 0.055
+    }
+
+    private var answerTopSpacing: CGFloat {
+        usesTwoColumnAnswerLayout ? 0.075 : 0.035
+    }
+
     private var questionInstructionText: String {
         usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
     }
 
     @ViewBuilder
     private func questionPromptArea(in geometry: GeometryProxy) -> some View {
-        if let promptImageAssetName = viewModel.question.promptImageAssetName {
-            VStack(spacing: geometry.size.height * 0.025) {
+        if usesChapterFivePromptLayout {
+            chapterFivePromptArea(in: geometry)
+        } else if let promptImageAssetName = viewModel.question.promptImageAssetName {
+            VStack(spacing: geometry.size.height * 0.02) {
                 Text(viewModel.question.prompt)
                     .appScaledFont(
                         size: AppFontSize.headline,
@@ -321,24 +339,23 @@ struct ChapterGamePlayView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .minimumScaleFactor(0.72)
-                    .padding(.bottom, 20)
 
                 HStack(alignment: .center, spacing: geometry.size.width * 0.055) {
                     Image(promptImageAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(
-                            width: geometry.size.width * 0.18,
-                            height: geometry.size.height * 0.24
+                            width: geometry.size.width * (usesCompactPromptImageLayout ? 0.15 : 0.18),
+                            height: geometry.size.height * (usesCompactPromptImageLayout ? 0.17 : 0.24)
                         )
-                        .accessibilityLabel("Bayangan benda")
+                        .accessibilityLabel("Gambar petunjuk")
 
                     Image("ingameOwl")
                         .resizable()
                         .scaledToFit()
                         .frame(
-                            width: geometry.size.width * 0.13,
-                            height: geometry.size.height * 0.18
+                            width: geometry.size.width * 0.12,
+                            height: geometry.size.height * 0.16
                         )
                         .accessibilityHidden(true)
                 }
@@ -371,6 +388,43 @@ struct ChapterGamePlayView: View {
         }
     }
 
+    private func chapterFivePromptArea(in geometry: GeometryProxy) -> some View {
+        HStack(alignment: .center, spacing: geometry.size.width * 0.03) {
+            VStack(spacing: geometry.size.height * 0.018) {
+                Text(viewModel.question.prompt)
+                    .font(.owlHeadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.68)
+
+                VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
+                    Text("Bentuk : Kotak")
+                    Text("Warna : Biru")
+                    Text("Pola : Bergaris")
+                }
+                .font(.owlBody)
+                .fontWeight(.bold)
+                .foregroundStyle(primaryBlue)
+                .multilineTextAlignment(.leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            }
+            .frame(width: geometry.size.width * 0.36)
+
+            Image("ingameOwl")
+                .resizable()
+                .scaledToFit()
+                .frame(
+                    width: geometry.size.width * 0.12,
+                    height: geometry.size.height * 0.16
+                )
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder
     private func answerOptionsGrid(in geometry: GeometryProxy) -> some View {
         if usesTwoColumnAnswerLayout {
@@ -393,6 +447,7 @@ struct ChapterGamePlayView: View {
                             height: geometry.size.height * 0.075
                         ),
                         usesHorizontalContent: true,
+                        appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
                         isWrong: viewModel.incorrectAnswerID == option.id,
                         shakeTrigger: viewModel.shakeTrigger,
                         action: {
@@ -415,6 +470,7 @@ struct ChapterGamePlayView: View {
                             height: geometry.size.height * 0.14
                         ),
                         usesHorizontalContent: false,
+                        appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
                         isWrong: viewModel.incorrectAnswerID == option.id,
                         shakeTrigger: viewModel.shakeTrigger,
                         action: {
@@ -424,6 +480,10 @@ struct ChapterGamePlayView: View {
                 }
             }
         }
+    }
+
+    private func shouldDimIncorrectChapterThreeOption(_ option: AnswerOption) -> Bool {
+        viewModel.chapter.order == 3 && option.id != viewModel.question.correctAnswerID
     }
 
     private func startChapter() {
@@ -490,6 +550,7 @@ private struct AnswerOptionButton: View {
     let size: CGSize
     let maxImageSize: CGSize
     let usesHorizontalContent: Bool
+    let appliesLowContrastOverlay: Bool
     let isWrong: Bool
     let shakeTrigger: Int
     let action: () -> Void
@@ -506,6 +567,13 @@ private struct AnswerOptionButton: View {
 
                 optionContent
                     .padding(usesHorizontalContent ? 16 : 12)
+
+                if appliesLowContrastOverlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.white.opacity(0.65))
+                        .padding(4)
+                        .allowsHitTesting(false)
+                }
             }
             .frame(width: size.width, height: size.height)
         }
@@ -585,7 +653,7 @@ private struct AnswerOptionButton: View {
                             id: "chapter-1-page-2",
                             order: 2,
                             illustrationAssetName: "page1-2",
-                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan bentuk, bukan warna.",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari lokasi benda berdasarkan bentuk, bukan warna.",
                             voiceOverAssetName: "chapter1-2"
                         ),
                         StoryPage(
