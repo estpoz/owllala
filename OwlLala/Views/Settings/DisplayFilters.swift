@@ -132,9 +132,8 @@ extension View {
     /// Scales the app's text according to the "Ukuran Teks" setting by raising
     /// the subtree's Dynamic Type size.
     ///
-    /// `textScale == 1.0` leaves the system size untouched; larger values map
-    /// to progressively larger Dynamic Type sizes, which all text using
-    /// `@ScaledMetric`/text styles follows automatically.
+    /// Every saved choice maps directly to an iPadOS Dynamic Type category,
+    /// which all text using `@ScaledMetric` or text styles follows.
     ///
     /// - Parameter settings: The settings whose text scale to apply.
     /// - Returns: The view with the adjusted type size.
@@ -145,9 +144,7 @@ extension View {
     /// Teks slider snap back while dragging).
     func textSizeAdjustment(for settings: Settings) -> some View {
         transformEnvironment(\.dynamicTypeSize) { dynamicTypeSize in
-            if let preferred = settings.preferredDynamicTypeSize {
-                dynamicTypeSize = preferred
-            }
+            dynamicTypeSize = settings.preferredDynamicTypeSize
         }
     }
 }
@@ -156,24 +153,36 @@ extension View {
 
 extension Settings {
 
-    /// The Dynamic Type size the app should render at for the current
-    /// `textScale`, or `nil` when the system size should be left untouched
-    /// (`textScale` ≈ 1.0).
+    /// The native Dynamic Type size matching the saved app preference.
     ///
     /// Lives here rather than in the model because `DynamicTypeSize` is a
     /// SwiftUI type and the Models layer stays UI-framework-free.
-    var preferredDynamicTypeSize: DynamicTypeSize? {
-        switch textScale {
-        case ..<1.05:
-            return nil
-        case ..<1.15:
+    var preferredDynamicTypeSize: DynamicTypeSize {
+        switch textSize {
+        case .extraSmall:
+            return .xSmall
+        case .small:
+            return .small
+        case .medium:
+            return .medium
+        case .large:
+            return .large
+        case .extraLarge:
             return .xLarge
-        case ..<1.25:
+        case .extraExtraLarge:
             return .xxLarge
-        case ..<1.35:
+        case .extraExtraExtraLarge:
             return .xxxLarge
-        default:
+        case .accessibility1:
             return .accessibility1
+        case .accessibility2:
+            return .accessibility2
+        case .accessibility3:
+            return .accessibility3
+        case .accessibility4:
+            return .accessibility4
+        case .accessibility5:
+            return .accessibility5
         }
     }
 }

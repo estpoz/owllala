@@ -278,7 +278,11 @@ struct GameplayTopBar: View {
                 .accessibilityHidden(true)
 
             Text("\(displayedCurrentPage) / \(displayedTotalPages)")
-                .font(.system(size: indicatorTextSize, weight: .medium, design: .rounded))
+                .appScaledFont(
+                    size: indicatorTextSize,
+                    relativeTo: .title,
+                    weight: .medium
+                )
                 .foregroundStyle(primaryBlue)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
