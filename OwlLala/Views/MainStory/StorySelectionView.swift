@@ -33,13 +33,9 @@ struct StorySelectionView: View {
                     // MARK: Fixed Top Header Layer
                     ZStack {
                         HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
-                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
-                                    .clipShape(Circle())
+                            // Using the production BackButton component from Buttons.swift
+                            BackButton(style: .filled) {
+                                dismiss()
                             }
                             .padding(.leading, screenWidth * 0.04)
                             Spacer()
@@ -51,60 +47,40 @@ struct StorySelectionView: View {
                     }
                     .padding(.top, screenHeight * 0.04)
                     .padding(.bottom, screenHeight * 0.02)
-                    .background(Color(red: 0.937, green: 0.953, blue: 0.957).opacity(0.001))
                     
+                    // MARK: Content Scroll Layer Area
                     if dynamicTypeSize.isAccessibilitySize {
-                        ScrollView(.vertical, showsIndicators: true) {
+                        ScrollView(.vertical, showsIndicators: false) {
                             VStack(spacing: screenHeight * 0.04) {
                                 ForEach(viewModel.items) { item in
-                                    GeometryReader { itemGeo in
-                                        let minY = itemGeo.frame(in: .global).minY
-                                        let triggerThreshold = screenHeight * 0.18
-                                        let excessDistance = max(0, triggerThreshold - minY)
-                                        
-                                        // Dynamic blur target calculation based on distance scrolled up
-                                        let calculatedBlur = min(12, excessDistance / 10.0)
-                                        
-                                        StoryBookView(
-                                            item: item,
-                                            width: bookWidth,
-                                            height: bookHeight,
-                                            titleSize: title1Size,
-                                            subtitleSize: headlineSize
-                                        ) {
-                                            viewModel.selectStory(item.story)
-                                        }
-                                        .overlay(
-                                            // Duplicate the view layout inside a masked overlay container
-                                            StoryBookView(
-                                                item: item,
-                                                width: bookWidth,
-                                                height: bookHeight,
-                                                titleSize: title1Size,
-                                                subtitleSize: headlineSize
-                                            ) {}
-                                            .blur(radius: calculatedBlur)
-                                            // Mask applies the blur strictly to the top 25% edge of the book container
-                                            .mask(
-                                                LinearGradient(
-                                                    gradient: Gradient(stops: [
-                                                        .init(color: .black, location: 0.0),
-                                                        .init(color: .black.opacity(0.0), location: 0.25)
-                                                    ]),
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                )
-                                            )
-                                            .opacity(calculatedBlur > 0 ? 1.0 : 0.0)
-                                        )
-                                        .frame(maxWidth: .infinity)
+                                    StoryBookView(
+                                        item: item,
+                                        width: bookWidth,
+                                        height: bookHeight,
+                                        titleSize: title1Size,
+                                        subtitleSize: headlineSize
+                                    ) {
+                                        viewModel.selectStory(item.story)
                                     }
-                                    .frame(height: bookHeight)
+                                    .frame(maxWidth: .infinity)
                                 }
                             }
-                            .padding(.vertical, screenHeight * 0.02)
+                            .padding(.top, screenHeight * 0.03)
+                            .padding(.bottom, screenHeight * 0.06)
                         }
-                        .frame(maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .mask(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .black, location: 0.08),
+                                    .init(color: .black, location: 0.88),
+                                    .init(color: .clear, location: 1.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                     } else {
                         Spacer(minLength: 0)
                         
