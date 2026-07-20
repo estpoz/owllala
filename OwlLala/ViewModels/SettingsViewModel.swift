@@ -6,10 +6,11 @@
 //
 //  OVERVIEW
 //  --------
-//  Owns ALL logic for the settings feature. Both settings surfaces — the
-//  full-screen page (`SettingsView`, opened from the main menu) and the
-//  gameplay overlay (`SettingsModalView`) — are thin views that only call the
-//  functions on this view model; no settings rules live in the views.
+//  Owns ALL logic for the settings feature. Both presentations of
+//  `SettingsView` — the full-screen page opened from the main menu and the
+//  modal card (`isModal: true`) used everywhere else — are thin views that
+//  only call the functions on this view model; no settings rules live in the
+//  views.
 //
 //  EDITING FLOW
 //  ------------
@@ -20,9 +21,9 @@
 //
 //  WHERE IT IS USED
 //  ----------------
-//  Created by `SettingsView` and `SettingsModalView` (via the buttons in
-//  `Components/Buttons.swift`). Persisted through `StorageService`. Covered by
-//  `SettingsViewModelTests` in `OwlLalaTests`.
+//  Created by `SettingsView` (via the buttons in `Components/Buttons.swift`).
+//  Persisted through `StorageService`. Covered by `SettingsViewModelTests` in
+//  `OwlLalaTests`.
 //
 
 import Combine
@@ -56,9 +57,9 @@ final class SettingsViewModel: ObservableObject {
     /// The settings the app should currently RENDER with: the draft while an
     /// editing session is open (live preview), otherwise the saved settings.
     ///
-    /// `ContentView` applies `displayAdjustments(for:)` with this value at the
-    /// root of the view tree, which is what makes brightness and the color
-    /// filter apply to every screen in the app at once.
+    /// The centralized screen, background, and scroll containers read this
+    /// value from the environment, so preview and saved settings update every
+    /// current screen without feature-specific settings plumbing.
     var activeDisplaySettings: Settings {
         isEditing ? draftSettings : savedSettings
     }
@@ -134,8 +135,7 @@ final class SettingsViewModel: ObservableObject {
     /// Discards the draft, restores the persisted settings, and ends the
     /// editing session.
     ///
-    /// Called by the back arrow (`SettingsView`) and close button
-    /// (`SettingsModalView`).
+    /// Called by the back arrow of `SettingsView` (page and modal alike).
     func cancel() {
         savedSettings = storageService.settings
         draftSettings = storageService.settings
