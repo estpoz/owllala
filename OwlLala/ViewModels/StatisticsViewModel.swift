@@ -132,13 +132,13 @@ enum StatisticsGuidanceContent {
 @MainActor
 final class StatisticsViewModel: ObservableObject {
 
-    /// The fixed presentation order for the Statistics screen.
+    /// The fixed presentation order for Statistics, matching Story 1 chapter order.
     static let competencyOrder: [Competency] = [
-        .labelSymbol,
-        .pattern,
-        .context,
         .shape,
-        .brightnessContrast
+        .labelSymbol,
+        .brightnessContrast,
+        .pattern,
+        .context
     ]
 
     let stories: [Story]

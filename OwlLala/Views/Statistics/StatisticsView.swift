@@ -496,9 +496,19 @@ extension Competency {
         userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewPreview") ?? .standard
     )
 
+    // Preview-only progress seed: keeps the Statistics preview representative
+    // without changing app runtime data or bypassing `StorageService`.
+    storageService.resetToDefaults()
+    storageService.updateUserStats { stats in
+        stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
+        stats.recordCompletedGame(chapterID: "chapter-2", earnedStars: 2)
+        stats.recordCompletedGame(chapterID: "chapter-3", earnedStars: 1)
+        stats.recordCompletedGame(chapterID: "chapter-4", earnedStars: 3)
+    }
+
     return StatisticsView(
         viewModel: StatisticsViewModel(
-            stories: [],
+            stories: StoryCatalog.stories,
             storageService: storageService
         ),
         onBack: {}
