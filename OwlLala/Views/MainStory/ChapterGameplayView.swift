@@ -43,15 +43,20 @@ struct ChapterGamePlayView: View {
                     } else if let storyPage = viewModel.currentStoryPage {
                         storyPageContent(storyPage)
                     }
-
-                    if isShowingSettings {
-                        SettingsView(viewModel: settingsViewModel, isModal: true) {
-                            isShowingSettings = false
-                            resumeStoryVoiceOverIfNeeded()
-                        }
-                        .zIndex(3)
-                    }
                 }
+            }
+
+            // Keep the Settings modal outside gameplay's shader boundary.
+            // Its UIKit-backed scroll view owns an independent filtering layer;
+            // nesting it inside `AppScreen` makes the shader render its content
+            // as blank. The shared view model still provides live draft previews
+            // to both the gameplay behind the modal and the modal itself.
+            if isShowingSettings {
+                SettingsView(viewModel: settingsViewModel, isModal: true) {
+                    isShowingSettings = false
+                    resumeStoryVoiceOverIfNeeded()
+                }
+                .zIndex(3)
             }
 
             if isShowingExitConfirmation {
