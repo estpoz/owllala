@@ -273,28 +273,89 @@ struct SettingsViewModelTests {
 // MARK: - StatisticsViewModel
 
 /// Behavior of `StatisticsViewModel` — deriving the parent-facing summary
-/// (total stars, completed count, per-competency items) from persisted progress
-/// across the stories.
+/// (total stars, completed count, per-competency items, and guidance content)
+/// from persisted progress plus static story content.
 @MainActor
 @Suite("StatisticsViewModel")
 struct StatisticsViewModelTests {
 
-    /// Given two chapters completed with 3 and 2 stars, then the summary reports
-    /// 5 total stars, 2 completed chapters, and one competency item per chapter
-    /// in the story.
-    @Test func summaryValuesReflectRecordedProgress() {
-        let chapters = Competency.allCases.enumerated().map { i, c in Chapter(id: "chapter-\(i + 1)", order: i + 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: c, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
-        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+    /// Given no completed chapters, then Statistics exposes zero summary values
+    /// and zero-score competency rows for the empty-state UI.
+    @Test func emptyProgressReportsZeroSummaryAndZeroCompetencies() {
         let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
-        let viewModel = StatisticsViewModel(stories: [story], storageService: storage)
+        let viewModel = StatisticsViewModel(stories: StoryCatalog.stories, storageService: storage)
+
+        #expect(viewModel.totalStars == 0)
+        #expect(viewModel.completedChapterCount == 0)
+        #expect(viewModel.completedStoryCount == 0)
+        #expect(viewModel.competencyItems.map(\.score) == [0, 0, 0, 0, 0])
+        #expect(viewModel.competencyItems.allSatisfy { $0.maximumScore == 3 })
+    }
+
+    /// Given partial progress, then competency rows use the app's Statistics
+    /// order and map chapter best stars directly onto the 0/3, 1/3, 2/3, 3/3
+    /// row scores.
+    @Test func competencyItemsUseThreeStarScoresInStatisticsOrder() {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = StatisticsViewModel(stories: StoryCatalog.stories, storageService: storage)
 
         storage.updateUserStats { stats in
             stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
             stats.recordCompletedGame(chapterID: "chapter-2", earnedStars: 2)
+            stats.recordCompletedGame(chapterID: "chapter-3", earnedStars: 1)
+            stats.recordCompletedGame(chapterID: "chapter-4", earnedStars: 3)
         }
 
-        #expect(viewModel.totalStars == 5)
-        #expect(viewModel.completedChapterCount == 2)
-        #expect(viewModel.competencyItems.count == 5)
+        #expect(viewModel.competencyItems.map(\.competency) == [
+            .shape,
+            .labelSymbol,
+            .brightnessContrast,
+            .pattern,
+            .context
+        ])
+        #expect(viewModel.competencyItems.map(\.chapterID) == [
+            "chapter-1",
+            "chapter-2",
+            "chapter-3",
+            "chapter-4",
+            "chapter-5"
+        ])
+        #expect(viewModel.competencyItems.map(\.score) == [3, 2, 1, 3, 0])
+        #expect(viewModel.totalStars == 9)
+        #expect(viewModel.completedChapterCount == 4)
+        #expect(viewModel.completedStoryCount == 0)
+    }
+
+    /// Given all five playable chapters are completed, then Statistics reports
+    /// the playable story as completed and sums all collected stars.
+    @Test func completedStoryCountReflectsFullyCompletedPlayableStory() {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = StatisticsViewModel(stories: StoryCatalog.stories, storageService: storage)
+
+        storage.updateUserStats { stats in
+            for chapterID in ["chapter-1", "chapter-2", "chapter-3", "chapter-4", "chapter-5"] {
+                stats.recordCompletedGame(chapterID: chapterID, earnedStars: 3)
+            }
+        }
+
+        #expect(viewModel.totalStars == 15)
+        #expect(viewModel.completedChapterCount == 5)
+        #expect(viewModel.completedStoryCount == 1)
+    }
+
+    /// Every displayed competency must have static parent-facing guidance, since
+    /// the Statistics detail pane depends on that content and it is not stored in
+    /// persisted `UserStats`.
+    @Test func guidanceExistsForEveryDisplayedCompetency() throws {
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = StatisticsViewModel(stories: StoryCatalog.stories, storageService: storage)
+
+        for item in viewModel.competencyItems {
+            let guidance = try #require(viewModel.guidance(for: item.competency))
+            #expect(guidance.learningSummary.isEmpty == false)
+            #expect(guidance.masteredItems.isEmpty == false)
+            #expect(guidance.practiceItems.isEmpty == false)
+            #expect(guidance.parentTip.isEmpty == false)
+        }
     }
 }
