@@ -18,26 +18,18 @@ struct MainMenuView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
 
     @StateObject private var viewModel = MainMenuViewModel()
-    
-    /// A temporary internal view model reference used to resolve Story 1 parameters
-    /// for Training Mode navigation routing safely without static mock leaks.
-    @StateObject private var helperCatalog = StorySelectionViewModel()
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 let baseUnit = min(geometry.size.width, geometry.size.height)
 
-                ZStack {
-                    // Designated background layer: only this dims with the
-                    // "Kecerahan Latar Belakang" setting — the owl, buttons,
-                    // and text stay at full brightness (Settings model rule).
+                AppScreen {
                     Image("bgPattern")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
-                        .appBackgroundBrightness()
-
+                } content: {
                     HStack(spacing: 50) {
                         OwlMascotView()
                             .frame(
@@ -64,11 +56,6 @@ struct MainMenuView: View {
                 }
             }
             .ignoresSafeArea()
-            // Applied INSIDE the NavigationStack (per screen), never around it:
-            // the stack is UIKit-backed and the color shader can't rasterize
-            // it (yellow "no entry" placeholder). The menu itself is pure
-            // SwiftUI, so the full adjustments are safe here.
-            .appDisplayAdjustments()
             .navigationDestination(item: $viewModel.destination) { destination in
                 // Choke point: every destination automatically gets the display
                 // adjustments — screens need zero adjustment lines themselves.
@@ -92,18 +79,18 @@ struct MainMenuView: View {
             StorySelectionRouterView(mainMenuViewModel: viewModel)
                 .environmentObject(storageService)
         case .trainingMode:
-            // Directly paths to Training Mode using the catalog data instance payload, skipping book selection layout bounds
-            if let storyOne = helperCatalog.items.first?.story {
+            // Training Mode launches from the same static story catalog used by Statistics and story selection.
+            if let storyOne = StoryCatalog.stories.first(where: { $0.isAvailable }) {
                 TrainingModeRouterView(story: storyOne, storageService: storageService)
             } else {
                 Text("Error Loading Content")
                     .appDisplayAdjustments()
             }
         case .statistics:
-            // Uses the app's shared storage so real progress is shown.
+            // Combines shared persisted progress with the static story catalog for competency mapping.
             StatisticsView(
                 viewModel: StatisticsViewModel(
-                    stories: [],
+                    stories: StoryCatalog.stories,
                     storageService: storageService
                 ),
                 onBack: {

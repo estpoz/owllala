@@ -24,24 +24,22 @@ struct StorySelectionView: View {
                 // Belakang; the books and text stay full-bright.
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
-                    .appBackgroundBrightness()
+                    .appBackgroundAdjustments()
                 
                 Image("PatternBG")
                     .resizable()
                     .scaledToFill()
                     .frame(width: screenWidth, height: screenHeight)
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
                 
                 VStack(spacing: 0) {
+                    // MARK: Fixed Top Header Layer
                     ZStack {
                         HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: screenWidth * 0.035, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: screenWidth * 0.075, height: screenWidth * 0.075)
-                                    .background(Color(red: 0.0, green: 0.227, blue: 0.655))
-                                    .clipShape(Circle())
+                            // Using the production BackButton component from Buttons.swift
+                            BackButton(style: .filled) {
+                                dismiss()
                             }
                             .padding(.leading, screenWidth * 0.04)
                             Spacer()
@@ -52,32 +50,55 @@ struct StorySelectionView: View {
                             .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
                     }
                     .padding(.top, screenHeight * 0.04)
+                    .appAdaptiveColorFilter()
                     
-                    Spacer(minLength: 0)
-                    
+                    // MARK: Content Scroll Layer Area
                     if dynamicTypeSize.isAccessibilitySize {
-                        ScrollView(.vertical, showsIndicators: true) {
+                        AppFilteredScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
-                                contentGridItems(width: bookWidth, height: bookHeight)
+                                ForEach(viewModel.items) { item in
+                                    StoryBookView(
+                                        item: item,
+                                        width: bookWidth,
+                                        height: bookHeight,
+                                        titleSize: title1Size,
+                                        subtitleSize: headlineSize
+                                    ) {
+                                        viewModel.selectStory(item.story)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
                             }
-                            .padding(.vertical, screenHeight * 0.04)
-                            .frame(maxWidth: .infinity)
+                            .padding(.top, screenHeight * 0.03)
+                            .padding(.bottom, screenHeight * 0.06)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .mask(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0.0),
+                                    .init(color: .black, location: 0.08),
+                                    .init(color: .black, location: 0.88),
+                                    .init(color: .clear, location: 1.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                     } else {
+                        Spacer(minLength: 0)
+                        
                         HStack(spacing: screenWidth * 0.045) {
                             contentGridItems(width: bookWidth, height: bookHeight)
                         }
                         .padding(.horizontal, screenWidth * 0.06)
+                        
+                        Spacer(minLength: screenHeight * 0.1)
                     }
-                    
-                    Spacer(minLength: screenHeight * 0.1)
                 }
             }
         }
         .navigationBarHidden(true)
-        // Declares the ScrollView so the automatic adjustments at the
-        // navigation layer skip the color shader for this screen.
-        .screenContainsScrollingContent()
     }
     
     @ViewBuilder
@@ -120,7 +141,6 @@ struct StoryBookView: View {
                         Text(item.story.title)
                             .font(.system(size: titleSize, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                            .underline()
                             .lineLimit(1)
                             .padding(.horizontal, width * 0.08)
                             .padding(.bottom, height * 0.27)
@@ -132,7 +152,7 @@ struct StoryBookView: View {
                         Spacer()
                         Text(item.story.title)
                             .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                        Text("Coming Soon")
+                        Text("Segera")
                             .font(.system(size: subtitleSize, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(.white)

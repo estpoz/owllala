@@ -91,12 +91,12 @@ struct StoryClearedView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
 
-                ScrollView(.vertical, showsIndicators: true) {
+                AppFilteredScrollView(.vertical, showsIndicators: true) {
                     cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
                         .padding(baseUnit * 0.05)
                 }
                 .frame(width: cardWidth, height: cardHeight)
-                .background(.white)
+                .background(Color.white.appBackgroundAdjustments())
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
                     .overlay(
                         RoundedRectangle(cornerRadius: baseUnit * 0.024)
@@ -109,9 +109,6 @@ struct StoryClearedView: View {
         .ignoresSafeArea()
         .onPreferenceChange(TitleWidthPreferenceKey.self) { titleWidth = $0 }
         .onPreferenceChange(MaxHeightPreferenceKey.self) { learningCardHeight = $0 }
-        // Declares the ScrollView; the automatic adjustments at the navigation
-        // layer skip the color shader while this overlay is on screen.
-        .screenContainsScrollingContent()
     }
 
     // MARK: - Card content
