@@ -4,7 +4,7 @@ struct TrainingModeView: View {
     @ObservedObject var viewModel: TrainingModeViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var virtualIndex: Int = 1002
+    @State private var virtualIndex: Int = 1000
     
     // MARK: - Scaled Metric Layout Calibration Matrix
     @ScaledMetric(relativeTo: .largeTitle) private var largeTitleSize: CGFloat = 60
