@@ -11,6 +11,7 @@ struct TrainingModeView: View {
     // MARK: - Scaled Metric Layout Calibration Matrix
     @ScaledMetric(relativeTo: .largeTitle) private var largeTitleSize: CGFloat = 50
     @ScaledMetric(relativeTo: .title) private var babLabelSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var hintTextSize: CGFloat = 24
     
     var body: some View {
         GeometryReader { fullScreenGeo in
@@ -31,7 +32,7 @@ struct TrainingModeView: View {
                 return largeTitleSize
             }()
             
-            // Pushes the roadmap curve LOWER down on screen in AX modes (matching ChapterSelectionView)
+            // Pushes the roadmap curve lower down on screen in AX modes
             let startPointY = screenHeight * (isLargeLayout ? 0.86 : 0.79)
             let peakPointY = screenHeight * (isLargeLayout ? 0.58 : 0.55)
             let controlPointY = peakPointY - (startPointY - peakPointY)
@@ -188,7 +189,7 @@ struct TrainingModeView: View {
                         .zIndex(1)
                     }
                     
-                    // MARK: Safe Adaptive Navigation Header Layer
+                    // MARK: Safe Adaptive Navigation Header & Footer Hint Layer
                     VStack(spacing: 0) {
                         ZStack(alignment: .top) {
                             HStack {
@@ -212,6 +213,15 @@ struct TrainingModeView: View {
                         .padding(.top, screenHeight * (isLargeLayout ? 0.02 : 0.04))
                         
                         Spacer()
+                        
+                        // Bottom Swipe Hint Label (Invisible when isLargeLayout is active)
+                        if !isLargeLayout {
+                            Text("Geser untuk lihat bab selanjutnya")
+                                .font(.system(size: hintTextSize, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color.black.opacity(0.25))
+                                .multilineTextAlignment(.center)
+                                .padding(.bottom, screenHeight * 0.04)
+                        }
                     }
                     .zIndex(2)
                 }
