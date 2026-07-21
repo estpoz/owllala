@@ -5,7 +5,6 @@
 //  Created by Amanda on 15/07/26.
 //
 
-
 import SwiftUI
 
 struct StageClearedView: View {
@@ -19,15 +18,23 @@ struct StageClearedView: View {
     var onReplay: () -> Void = {}
     var onContinue: () -> Void = {}
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private let gold = Color(red: 0.95, green: 0.72, blue: 0.20)
 
-    // Custom scaled sizes — bigger than the built-in text styles,
-    // but still respects the user's Dynamic Type / accessibility settings.
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 80
     @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 33
     @ScaledMetric(relativeTo: .title2) private var summarySize: CGFloat = 30
-    
     @ScaledMetric(relativeTo: .largeTitle) private var starSize: CGFloat = 55
+
+    private var usesAccessibilityLayout: Bool {
+        switch dynamicTypeSize {
+        case .accessibility1, .accessibility2, .accessibility3, .accessibility4, .accessibility5:
+            return true
+        default:
+            return false
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -47,7 +54,14 @@ struct StageClearedView: View {
                         .clipped()
                         .appBackgroundAdjustments()
 
-                    cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
+                    AppFilteredScrollView(.vertical, showsIndicators: usesAccessibilityLayout) {
+                        cardContent(
+                            baseUnit: baseUnit,
+                            cardWidth: cardWidth,
+                            cardHeight: cardHeight
+                        )
+                    }
+                    .frame(width: cardWidth, height: cardHeight)
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
@@ -63,39 +77,63 @@ struct StageClearedView: View {
 
     // MARK: - Card content
 
-    private func cardContent(baseUnit: CGFloat, cardWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            
-            VStack(alignment: .leading, spacing: baseUnit * 0.02) {
-                VStack(alignment: .leading, spacing: baseUnit * 0.01) {
-                    Text(title)
-                        .font(.system(size: titleSize, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.black)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(subtitle)
-                        .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.black)
-                        .frame(width: baseUnit * 0.45, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private func cardContent(
+        baseUnit: CGFloat,
+        cardWidth: CGFloat,
+        cardHeight: CGFloat
+    ) -> some View {
+        VStack(alignment: .leading, spacing: contentSpacing(baseUnit: baseUnit)) {
+            headerText(baseUnit: baseUnit, cardWidth: cardWidth)
 
-                starRow(baseUnit: baseUnit)
-                    .padding(.top, baseUnit * 0.01)
+            starRow(baseUnit: baseUnit)
+                .padding(.top, baseUnit * 0.01)
 
-                Text(summaryText)
-                    .font(.system(size: summarySize, weight: .regular, design: .rounded))
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: baseUnit * 0.45, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+            Text(summaryText)
+                .font(.system(size: summarySize, weight: .regular, design: .rounded))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
 
-                actionButtons(baseUnit: baseUnit)
-                    .padding(.top, baseUnit * 0.014)
-            }
-            .frame(maxWidth: cardWidth * 0.8, alignment: .leading)
-            
+            actionButtons(baseUnit: baseUnit)
+                .padding(.top, baseUnit * 0.014)
         }
         .padding(baseUnit * 0.07)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: cardHeight, alignment: .topLeading)
+    }
+
+    private func headerText(baseUnit: CGFloat, cardWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: baseUnit * 0.01) {
+            Text(title)
+                .font(.system(size: titleSize, weight: .heavy, design: .rounded))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.leading)
+                .lineLimit(usesAccessibilityLayout ? 3 : 2)
+                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
+
+            Text(subtitle)
+                .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
+                .foregroundStyle(.black)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
+        }
+    }
+
+    private func textColumnWidth(baseUnit: CGFloat, cardWidth: CGFloat) -> CGFloat {
+        let safeImageColumnWidth = min(baseUnit * 0.45, cardWidth * 0.48)
+
+        if usesAccessibilityLayout {
+            return safeImageColumnWidth
+        }
+
+        return min(baseUnit * 0.5, cardWidth * 0.56)
+    }
+
+    private func contentSpacing(baseUnit: CGFloat) -> CGFloat {
+        usesAccessibilityLayout ? baseUnit * 0.028 : baseUnit * 0.02
     }
 
     // MARK: - Stars
@@ -104,11 +142,10 @@ struct StageClearedView: View {
         HStack(spacing: baseUnit * 0.012) {
             ForEach(0..<maxStars, id: \.self) { index in
                 Image(systemName: index < starCount ? "star.fill" : "star")
-                    // Baru: Menggunakan parameter @ScaledMetric starSize
                     .font(.system(size: starSize))
                     .foregroundStyle(gold)
-                }
             }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(starCount) dari \(maxStars) bintang")
     }
@@ -116,9 +153,16 @@ struct StageClearedView: View {
     // MARK: - Buttons
 
     private func actionButtons(baseUnit: CGFloat) -> some View {
-        HStack(spacing: baseUnit * 0.03) {
-            StageReplayButton(action: onReplay)
-            StageContinueButton(action: onContinue)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: baseUnit * 0.03) {
+                StageReplayButton(action: onReplay)
+                StageContinueButton(action: onContinue)
+            }
+
+            VStack(alignment: .leading, spacing: baseUnit * 0.02) {
+                StageReplayButton(action: onReplay)
+                StageContinueButton(action: onContinue)
+            }
         }
     }
 }
