@@ -152,7 +152,7 @@ struct StoryBookView: View {
                         Spacer()
                         Text(item.story.title)
                             .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                        Text("Coming Soon")
+                        Text("Segera")
                             .font(.system(size: subtitleSize, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(.white)
