@@ -14,7 +14,8 @@
 //  WHAT'S IN THIS FILE
 //  -------------------
 //  • `CircleIconButton`    — round icon button (back / close / gear).
-//  • `PrimaryActionButton` — filled blue "Simpan"-style confirmation button.
+//  • `PrimaryActionButton` — filled blue text confirmation button.
+//  • `SaveChangesButton`   — circular checkmark for draft-based save flows.
 //  • `SettingsButton`      — the gear entry point into Settings.
 //  • `GameplayTopBar`      — story-page exit, page count, sound, settings controls.
 //
@@ -191,6 +192,45 @@ struct PrimaryActionButton: View {
     }
 }
 
+// MARK: - Save Changes Button
+
+/// A reusable circular save control for screens that edit a draft value.
+///
+/// The checkmark remains visible in both states: grey and disabled when the
+/// draft matches its saved value, then OwlLala blue and actionable as soon as
+/// any saveable change occurs.
+struct SaveChangesButton: View {
+
+    /// Whether the edited draft differs from its saved value.
+    let hasChanges: Bool
+
+    /// Invoked only while `hasChanges` is `true`.
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 46, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 98, height: 98)
+                .background(
+                    hasChanges ? AppColor.primary : Color(white: 0.82),
+                    in: Circle()
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!hasChanges)
+        .accessibilityLabel("Simpan perubahan")
+        .accessibilityValue(hasChanges ? "Ada perubahan" : "Tidak ada perubahan")
+        .accessibilityHint(
+            hasChanges
+                ? "Simpan pengaturan yang telah diubah"
+                : "Ubah pengaturan untuk mengaktifkan tombol simpan"
+        )
+        .animation(.easeInOut(duration: 0.18), value: hasChanges)
+    }
+}
+
 // MARK: - Settings Button
 
 /// The gear button that opens Settings.
@@ -346,6 +386,11 @@ private struct GameplayTopBarButton: View {
         }
 
         PrimaryActionButton(title: "Simpan") {}
+
+        HStack(spacing: 24) {
+            SaveChangesButton(hasChanges: false) {}
+            SaveChangesButton(hasChanges: true) {}
+        }
 
         GameplayTopBar(
             currentPage: 3,
