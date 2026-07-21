@@ -191,6 +191,61 @@ struct PrimaryActionButton: View {
     }
 }
 
+// MARK: - Stage Cleared Buttons
+
+struct StageClearedIconButton: View {
+
+    let systemImageName: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 100
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 55
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImageName)
+                .font(.system(size: iconSize, weight: .bold))
+                .foregroundStyle(primaryBlue)
+                .frame(width: diameter, height: diameter)
+                .background(.white.opacity(0.001), in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(primaryBlue, lineWidth: max(6, diameter * 0.06))
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+struct StageReplayButton: View {
+
+    let action: () -> Void
+
+    var body: some View {
+        StageClearedIconButton(
+            systemImageName: "arrow.counterclockwise",
+            accessibilityLabel: "Ulangi bab",
+            action: action
+        )
+    }
+}
+
+struct StageContinueButton: View {
+
+    let action: () -> Void
+
+    var body: some View {
+        StageClearedIconButton(
+            systemImageName: "play.fill",
+            accessibilityLabel: "Lanjutkan",
+            action: action
+        )
+    }
+}
+
 // MARK: - Settings Button
 
 /// The gear button that opens Settings.
@@ -343,6 +398,8 @@ private struct GameplayTopBarButton: View {
             CloseButton(style: .outlined) {}
             SettingsButton(style: .filled) {}
             SettingsButton(style: .outlined) {}
+            StageReplayButton(){}
+            StageContinueButton(){}
         }
 
         PrimaryActionButton(title: "Simpan") {}
