@@ -358,22 +358,31 @@ struct AppFilteredScrollView<Content: View>: View {
 
     private let axes: Axis.Set
     private let showsIndicators: Bool
+    private let appliesColorFilter: Bool
     private let content: Content
 
     init(
         _ axes: Axis.Set = .vertical,
         showsIndicators: Bool = true,
+        appliesColorFilter: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.axes = axes
         self.showsIndicators = showsIndicators
+        self.appliesColorFilter = appliesColorFilter
         self.content = content()
     }
 
     var body: some View {
         ScrollView(axes, showsIndicators: showsIndicators) {
-            content
-                .appAdaptiveColorFilter()
+            Group {
+                if appliesColorFilter {
+                    content
+                        .appAdaptiveColorFilter()
+                } else {
+                    content
+                }
+            }
         }
         .screenContainsScrollingContent()
     }
@@ -386,17 +395,20 @@ struct AppScrollScreen<Background: View, Content: View>: View {
 
     private let axes: Axis.Set
     private let showsIndicators: Bool
+    private let appliesColorFilterToContent: Bool
     private let background: Background
     private let content: Content
 
     init(
         _ axes: Axis.Set = .vertical,
         showsIndicators: Bool = true,
+        appliesColorFilterToContent: Bool = true,
         @ViewBuilder background: () -> Background,
         @ViewBuilder content: () -> Content
     ) {
         self.axes = axes
         self.showsIndicators = showsIndicators
+        self.appliesColorFilterToContent = appliesColorFilterToContent
         self.background = background()
         self.content = content()
     }
@@ -406,7 +418,11 @@ struct AppScrollScreen<Background: View, Content: View>: View {
             background
                 .appBackgroundAdjustments()
 
-            AppFilteredScrollView(axes, showsIndicators: showsIndicators) {
+            AppFilteredScrollView(
+                axes,
+                showsIndicators: showsIndicators,
+                appliesColorFilter: appliesColorFilterToContent
+            ) {
                 content
             }
         }
