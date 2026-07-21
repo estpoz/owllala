@@ -68,6 +68,9 @@ struct ContentView: View {
         // settings logic without init plumbing.
         .environmentObject(storageService)
         .environmentObject(settingsViewModel)
+        .onAppear {
+            AudioService.shared.playBackgroundMusic(isVoiceOverEnabled: false)
+        }
     }
 }
 
