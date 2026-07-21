@@ -91,12 +91,12 @@ struct StoryClearedView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
 
-                ScrollView(.vertical, showsIndicators: true) {
+                AppFilteredScrollView(.vertical, showsIndicators: true) {
                     cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
                         .padding(baseUnit * 0.05)
                 }
                 .frame(width: cardWidth, height: cardHeight)
-                .background(.white)
+                .background(Color.white.appBackgroundAdjustments())
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
                     .overlay(
                         RoundedRectangle(cornerRadius: baseUnit * 0.024)
@@ -285,5 +285,9 @@ struct StoryClearedView: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    StoryClearedView()
+    let storageService = StorageService()
+
+    return StoryClearedView()
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }

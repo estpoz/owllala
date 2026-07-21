@@ -309,7 +309,7 @@ struct CompetencyProgressItem: Identifiable, Hashable {
 }
 ```
 
-Maximum competency score is five.
+Maximum competency score is three, matching the chapter star scale.
 
 ### Static Guidance
 
@@ -386,4 +386,3 @@ enum Destination: Hashable {
 ```
 
 Do not add a global coordinator for this MVP.
-

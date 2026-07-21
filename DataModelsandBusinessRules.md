@@ -52,8 +52,10 @@ storage, and navigation logic.
 ### Settings
 - Stores only:
   - background brightness;
-  - optional color-vision simulation.
-- Text size follows iPadOS Dynamic Type.
+  - optional color-vision simulation;
+  - the preferred app text size from X Small through Accessibility 5.
+- Text size uses the matching native iPadOS Dynamic Type category throughout
+  the app, including Accessibility 1–5.
 - Exit confirmation is always enabled and is not configurable.
 - Audio settings are not persisted in the MVP.
 
@@ -103,12 +105,12 @@ storage, and navigation logic.
 - Scoring logic belongs in `ChapterGameplayViewModel`, not in the model layer.
 
 ## Competency Scoring
-Competency score is derived from the chapter's best stars:
+Competency score is derived directly from the chapter's best stars:
 
-- No completed game: 0/5.
-- Best 1 star: 1/5.
-- Best 2 stars: 3/5.
-- Best 3 stars: 5/5.
+- No completed game: 0/3.
+- Best 1 star: 1/3.
+- Best 2 stars: 2/3.
+- Best 3 stars: 3/3.
 
 Each chapter maps to exactly one competency:
 

@@ -89,3 +89,58 @@ extension Font {
     /// Body — SF Pro Rounded 28pt Regular (fixed size).
     static let owlBody = owlRounded(AppFontSize.body, .regular)
 }
+
+// MARK: - Dynamic Point-Size Fonts
+
+/// Scales an intentionally sized system font with the current Dynamic Type
+/// environment. Use this instead of `.font(.system(size:))` when a design
+/// needs a precise base size; semantic fonts such as `.title` already scale
+/// automatically and do not need this modifier.
+private struct AppScaledFontModifier: ViewModifier {
+
+    @ScaledMetric private var scaledSize: CGFloat
+
+    private let weight: Font.Weight
+    private let design: Font.Design
+
+    init(
+        size: CGFloat,
+        relativeTo textStyle: Font.TextStyle,
+        weight: Font.Weight,
+        design: Font.Design
+    ) {
+        _scaledSize = ScaledMetric(
+            wrappedValue: size,
+            relativeTo: textStyle
+        )
+        self.weight = weight
+        self.design = design
+    }
+
+    func body(content: Content) -> some View {
+        content.font(
+            .system(size: scaledSize, weight: weight, design: design)
+        )
+    }
+}
+
+extension View {
+
+    /// Applies a custom base font that follows the app-wide native Dynamic
+    /// Type category injected by `ContentView`.
+    func appScaledFont(
+        size: CGFloat,
+        relativeTo textStyle: Font.TextStyle = .body,
+        weight: Font.Weight = .regular,
+        design: Font.Design = .rounded
+    ) -> some View {
+        modifier(
+            AppScaledFontModifier(
+                size: size,
+                relativeTo: textStyle,
+                weight: weight,
+                design: design
+            )
+        )
+    }
+}

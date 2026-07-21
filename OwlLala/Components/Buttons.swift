@@ -7,9 +7,9 @@
 //  OVERVIEW
 //  --------
 //  Small reusable buttons. The settings *content* does not live here: its
-//  logic is in `ViewModels/SettingsViewModel.swift` and its screens are in
-//  `Views/Settings/SettingsView.swift` (main menu) and
-//  `Views/Settings/SettingsModalView.swift` (gameplay overlay).
+//  logic is in `ViewModels/SettingsViewModel.swift` and its single screen is
+//  `Views/Settings/SettingsView.swift` (full page from the main menu, or a
+//  modal card with `isModal: true` everywhere else).
 //
 //  WHAT'S IN THIS FILE
 //  -------------------
@@ -23,8 +23,8 @@
 //  `SettingsButton` only *triggers* — the host presents the settings screen as
 //  an in-tree overlay (see `MainMenuView` for the pattern). Presentation must
 //  stay in-tree (no `fullScreenCover`): covers render in a separate layer that
-//  escapes the root `displayAdjustments(for:)` in `ContentView`, which is what
-//  applies brightness and the color filter to every view in the app.
+//  escapes the centralized screen/scroll adjustment boundaries, which apply
+//  the shared brightness and color settings throughout the app.
 //
 
 import SwiftUI
@@ -137,6 +137,23 @@ struct BackButton: View {
     }
 }
 
+// MARK: - Close Button
+
+struct CloseButton: View {
+
+    var style: CircleIconButtonStyle = .filled
+    let action: () -> Void
+
+    var body: some View {
+        CircleIconButton(
+            systemImageName: "xmark",
+            accessibilityLabel: "Tutup",
+            style: style,
+            action: action
+        )
+    }
+}
+
 // MARK: - Primary Action Button
 
 /// The filled, rounded-rectangle blue button used for the main confirmation
@@ -188,7 +205,7 @@ struct PrimaryActionButton: View {
 ///
 ///     // In the screen's ZStack:
 ///     if isShowingSettings {
-///         SettingsModalView(viewModel: settingsViewModel) {
+///         SettingsView(viewModel: settingsViewModel, isModal: true) {
 ///             isShowingSettings = false
 ///         }
 ///     }
@@ -278,7 +295,11 @@ struct GameplayTopBar: View {
                 .accessibilityHidden(true)
 
             Text("\(displayedCurrentPage) / \(displayedTotalPages)")
-                .font(.system(size: indicatorTextSize, weight: .medium, design: .rounded))
+                .appScaledFont(
+                    size: indicatorTextSize,
+                    relativeTo: .title,
+                    weight: .medium
+                )
                 .foregroundStyle(primaryBlue)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -318,6 +339,8 @@ private struct GameplayTopBarButton: View {
         HStack(spacing: 24) {
             BackButton(style: .filled) {}
             BackButton(style: .outlined) {}
+            CloseButton(style: .filled) {}
+            CloseButton(style: .outlined) {}
             SettingsButton(style: .filled) {}
             SettingsButton(style: .outlined) {}
         }
