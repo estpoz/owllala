@@ -77,32 +77,6 @@ struct ChapterGamePlayView: View {
                 )
                 .zIndex(2)
             }
-
-            // MARK: - Success overlay, layered on top of gameplay
-            if isShowingSuccessOverlay {
-                StageClearedView(
-                    title: "Hebat Sekali!",
-                    subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
-                    starCount: viewModel.earnedStars ?? Chapter.maximumStars,
-                    maxStars: 3,
-                    summaryText: viewModel.chapter.learningSummary.explanation,
-                    onReplay: {
-                        stopStoryVoiceOver()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isShowingSuccessOverlay = false
-                        }
-                        viewModel.resetForReplay()
-                        hasStartedChapter = viewModel.source == .training
-                    },
-                    onContinue: {
-                        stopStoryVoiceOver()
-                        viewModel.finishStageCleared()
-                        dismiss()
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(1)
-            }
         }
         .navigationBarHidden(true)
         // A separate transparent presentation keeps the modal's AX ScrollView
@@ -117,6 +91,11 @@ struct ChapterGamePlayView: View {
             }
             .appIndependentColorFilterScope()
             .presentationBackground(.clear)
+        }
+        .fullScreenCover(isPresented: $isShowingSuccessOverlay) {
+            stageClearedOverlay
+                .appIndependentColorFilterScope()
+                .presentationBackground(.clear)
         }
         .correctAnswerCelebration(
             isActive: viewModel.isCorrectFeedbackPresented,
@@ -152,6 +131,30 @@ struct ChapterGamePlayView: View {
         .onDisappear {
             stopStoryVoiceOver()
         }
+    }
+
+    private var stageClearedOverlay: some View {
+        StageClearedView(
+            title: "Hebat Sekali!",
+            subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
+            starCount: viewModel.earnedStars ?? Chapter.maximumStars,
+            maxStars: 3,
+            summaryText: viewModel.chapter.learningSummary.explanation,
+            onReplay: {
+                stopStoryVoiceOver()
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isShowingSuccessOverlay = false
+                }
+                viewModel.resetForReplay()
+                hasStartedChapter = viewModel.source == .training
+            },
+            onContinue: {
+                stopStoryVoiceOver()
+                viewModel.finishStageCleared()
+                isShowingSuccessOverlay = false
+                dismiss()
+            }
+        )
     }
 
     private var startChapterContent: some View {
