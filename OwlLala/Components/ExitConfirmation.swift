@@ -89,59 +89,66 @@ struct ExitConfirmation: View {
                     .opacity(0.36)
                     .ignoresSafeArea()
 
-                // The centralized scroll container keeps the content reachable
-                // while applying the saved color filter inside the scroll view.
-                AppFilteredScrollView {
-                    VStack(spacing: 0) {
-                        // Question / title.
-                        Text("Apa kamu yakin mau\nkehilangan progress\nbelajarmu?")
-                            .font(.system(size: layout.titleFontSize, weight: .bold))
-                            .foregroundStyle(.black)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(layout.titleFontSize * 0.18)
-                            .padding(.horizontal, layout.horizontalPadding)
-                            .padding(.top, layout.verticalPadding)
-
-                        VStack(spacing: layout.buttonSpacing) {
-                            // Primary action: stay and keep learning (filled).
-                            Button(action: onContinueLearning) {
-                                Text("Kembali Belajar")
-                                    .font(.system(size: layout.buttonFontSize, weight: .regular))
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, layout.buttonHorizontalPadding)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(minHeight: layout.primaryButtonHeight)
-                                    .background(primaryBlue)
-                                    .clipShape(RoundedRectangle(cornerRadius: layout.buttonCornerRadius, style: .continuous))
-                            }
-
-                            // Destructive action: leave and lose progress
-                            // (outlined, to read as the less-preferred option).
-                            Button(action: onDiscardProgress) {
-                                Text("Hilangkan progress")
-                                    .font(.system(size: layout.buttonFontSize, weight: .regular))
-                                    .foregroundStyle(primaryBlue)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, layout.buttonHorizontalPadding)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(minHeight: layout.secondaryButtonHeight)
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: layout.buttonCornerRadius, style: .continuous)
-                                            .stroke(primaryBlue, lineWidth: 3)
-                                    }
-                            }
-                        }
-                        .frame(maxWidth: layout.buttonMaxWidth)
-                        .padding(.top, layout.contentSpacing)
+                // A plain pure-SwiftUI card: no ScrollView and no color-filter
+                // modifiers. A `colorEffect` shader can't rasterize a ScrollView's
+                // content (it renders blank), and a confirmation dialog is UI
+                // chrome — not learning content — so it stays a simple white card
+                // that always renders, in every context.
+                VStack(spacing: 0) {
+                    // Question / title — SF Pro Rounded Bold, black, centered.
+                    Text("Apa kamu yakin mau\nkehilangan progress\nbelajarmu?")
+                        .font(.owlRounded(layout.titleFontSize, .bold))
+                        .foregroundStyle(.black)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(layout.titleFontSize * 0.18)
                         .padding(.horizontal, layout.horizontalPadding)
-                        .padding(.bottom, layout.verticalPadding)
+                        .padding(.top, layout.verticalPadding)
 
-                        Spacer(minLength: 0)
+                    VStack(spacing: layout.buttonSpacing) {
+                        // Primary action: stay and keep learning (filled blue,
+                        // white bold label).
+                        Button(action: onContinueLearning) {
+                            Text("Kembali Belajar")
+                                .font(.owlRounded(layout.buttonFontSize, .bold))
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, layout.buttonHorizontalPadding)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: layout.primaryButtonHeight)
+                                .background(primaryBlue)
+                                .clipShape(RoundedRectangle(cornerRadius: layout.buttonCornerRadius, style: .continuous))
+                        }
+
+                        // Destructive action: leave and lose progress
+                        // (outlined blue, blue bold label — the less-preferred
+                        // option).
+                        Button(action: onDiscardProgress) {
+                            Text("Hilangkan Progres")
+                                .font(.owlRounded(layout.buttonFontSize, .bold))
+                                .foregroundStyle(primaryBlue)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, layout.buttonHorizontalPadding)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: layout.secondaryButtonHeight)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: layout.buttonCornerRadius, style: .continuous)
+                                        .stroke(primaryBlue, lineWidth: 3)
+                                }
+                        }
                     }
+                    .frame(maxWidth: layout.buttonMaxWidth)
+                    .padding(.top, layout.contentSpacing)
+                    .padding(.horizontal, layout.horizontalPadding)
+                    .padding(.bottom, layout.verticalPadding)
+
+                    Spacer(minLength: 0)
                 }
                 .frame(width: layout.panelWidth, height: layout.panelHeight)
-                .background(Color.white.appBackgroundAdjustments())
+                .background(
+                    Image("bgPattern")
+                        .resizable()
+                        .scaledToFill()
+                )
                 .clipShape(RoundedRectangle(cornerRadius: layout.panelCornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
             }
@@ -176,13 +183,13 @@ struct ExitConfirmation: View {
         return ModalLayout(
             panelWidth: panelWidth,
             panelHeight: panelHeight,
-            panelCornerRadius: (panelWidth * 0.032).clamped(to: 18...28),
+            panelCornerRadius: (panelWidth * 0.05).clamped(to: 28...44),
             titleFontSize: titleBaseSize * titleScale,
             buttonFontSize: buttonBaseSize * buttonScale,
             buttonMaxWidth: buttonMaxWidth,
             primaryButtonHeight: max(panelHeight * 0.13, 52 * buttonScale),
             secondaryButtonHeight: max(panelHeight * 0.12, 48 * buttonScale),
-            buttonCornerRadius: (panelWidth * 0.024).clamped(to: 14...20),
+            buttonCornerRadius: (panelWidth * 0.030).clamped(to: 16...26),
             horizontalPadding: (panelWidth * 0.08).clamped(to: 20...64),
             verticalPadding: (panelHeight * 0.10).clamped(to: 28...72),
             contentSpacing: (panelHeight * 0.09).clamped(to: 26...64),
@@ -249,8 +256,17 @@ private extension CGFloat {
 // MARK: - Preview
 
 #Preview {
-    ExitConfirmation(
-        onContinueLearning: {},
-        onDiscardProgress: {}
-    )
+    let storageService = StorageService()
+
+    return ZStack {
+        Color(white: 0.6)
+            .ignoresSafeArea()
+
+        ExitConfirmation(
+            onContinueLearning: {},
+            onDiscardProgress: {}
+        )
+    }
+    .environmentObject(storageService)
+    .environmentObject(SettingsViewModel(storageService: storageService))
 }
