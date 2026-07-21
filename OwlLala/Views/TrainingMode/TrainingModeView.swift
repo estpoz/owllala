@@ -5,7 +5,7 @@ struct TrainingModeView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
-    @State private var virtualIndex: Int = 1002
+    @State private var virtualIndex: Int = 1000
     @State private var pulseScale: CGFloat = 1.0
     
     // MARK: - Scaled Metric Layout Calibration Matrix
