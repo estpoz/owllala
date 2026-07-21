@@ -164,7 +164,7 @@ final class StatisticsViewModel: ObservableObject {
                 return CompetencyProgressItem(
                     competency: chapter.competency,
                     score: storageService.userStats.competencyScore(for: chapter),
-                    maximumScore: 5,
+                    maximumScore: Chapter.maximumStars,
                     chapterID: chapter.id
                 )
             }
@@ -172,7 +172,7 @@ final class StatisticsViewModel: ObservableObject {
             return CompetencyProgressItem(
                 competency: competency,
                 score: 0,
-                maximumScore: 5,
+                maximumScore: Chapter.maximumStars,
                 chapterID: ""
             )
         }

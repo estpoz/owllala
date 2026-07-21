@@ -17,29 +17,26 @@ struct StatisticsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var selectedItem: CompetencyProgressItem?
+    @State private var selectedCompetency: Competency?
+    @State private var pairedBulletPanelHeight: CGFloat = 0
 
     // MARK: Styling
 
-    private let accentColor = Color(red: 0.12, green: 0.40, blue: 0.88)
-    private let darkBlue = Color(red: 0.02, green: 0.16, blue: 0.45)
-    private let borderColor = Color(red: 0.82, green: 0.87, blue: 1.0)
-    private let panelColor = Color(red: 0.97, green: 0.98, blue: 1.0)
+    private let selectedCardColor = AppColor.primary
 
     // MARK: Dynamic Type Metrics
 
     @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 68
     @ScaledMetric(relativeTo: .title2) private var rowTitleFontSize: CGFloat = 26
-    @ScaledMetric(relativeTo: .body) private var rowIconFontSize: CGFloat = 32
-    @ScaledMetric(relativeTo: .body) private var rowIconSize: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var rowStarFontSize: CGFloat = 25
     @ScaledMetric(relativeTo: .body) private var rowScoreFontSize: CGFloat = 25
-    @ScaledMetric(relativeTo: .body) private var rowChevronFontSize: CGFloat = 30
     @ScaledMetric(relativeTo: .body) private var rowMinHeight: CGFloat = 88
-    @ScaledMetric(relativeTo: .title3) private var summaryTitleFontSize: CGFloat = 23
-    @ScaledMetric(relativeTo: .title) private var summaryValueFontSize: CGFloat = 38
-    @ScaledMetric(relativeTo: .body) private var summaryIconFontSize: CGFloat = 28
-    @ScaledMetric(relativeTo: .body) private var summaryValueSize: CGFloat = 64
+    @ScaledMetric(relativeTo: .title3) private var summaryTitleFontSize: CGFloat = 28
+    @ScaledMetric(relativeTo: .title) private var summaryValueFontSize: CGFloat = 42
+    @ScaledMetric(relativeTo: .body) private var summaryValueSize: CGFloat = 72
+    @ScaledMetric(relativeTo: .title3) private var detailTitleFontSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var detailBodyFontSize: CGFloat = 15
+    @ScaledMetric(relativeTo: .body) private var detailPanelPadding: CGFloat = 8
 
     // MARK: Body
 
@@ -60,45 +57,30 @@ struct StatisticsView: View {
                 360
             )
 
-            ZStack {
-                if shouldStackMainContent {
-                    stackedContent(
-                        size: size,
-                        horizontalPadding: horizontalPadding,
-                        verticalPadding: verticalPadding,
-                        contentSpacing: contentSpacing,
-                        headerHeight: headerHeight
-                    )
-                } else {
-                    sideBySideContent(
-                        size: size,
-                        horizontalPadding: horizontalPadding,
-                        verticalPadding: verticalPadding,
-                        contentSpacing: contentSpacing,
-                        headerHeight: headerHeight,
-                        middleHeight: middleHeight,
-                        summaryHeight: summaryHeight
-                    )
-                    // When a scrolling detail overlay is presented, the
-                    // navigation-level shader steps aside. This pure content
-                    // island then keeps the underlying statistics filtered.
-                    .appAdaptiveColorFilter()
-                }
-
-                if let selectedItem, let guidance = viewModel.guidance(for: selectedItem.competency) {
-                    detailOverlay(item: selectedItem, guidance: guidance)
-                }
-            }
+            content(
+                size: size,
+                horizontalPadding: horizontalPadding,
+                verticalPadding: verticalPadding,
+                contentSpacing: contentSpacing,
+                headerHeight: headerHeight,
+                middleHeight: middleHeight,
+                summaryHeight: summaryHeight
+            )
         }
-        
         .navigationBarBackButtonHidden(true)
         .background(StatisticsBackground())
+        .onAppear {
+            selectDefaultCompetencyIfNeeded()
+        }
+        .onChange(of: viewModel.competencyItems) { _, _ in
+            selectDefaultCompetencyIfNeeded()
+        }
     }
 
     // MARK: Responsive Layout
 
     private var shouldStackMainContent: Bool {
-        // Large Dynamic Type needs vertical flow so the graph and cards do not overlap.
+        // Large Dynamic Type needs vertical flow so cards and detail text remain readable.
         switch dynamicTypeSize {
         case .xxLarge,
              .xxxLarge,
@@ -114,6 +96,59 @@ struct StatisticsView: View {
         }
     }
 
+    private var hasCompletedProgress: Bool {
+        viewModel.completedChapterCount > 0
+    }
+
+    private var selectedItem: CompetencyProgressItem? {
+        if let selectedCompetency,
+           let item = viewModel.competencyItem(for: selectedCompetency) {
+            return item
+        }
+
+        return viewModel.competencyItems.first
+    }
+
+    private func selectDefaultCompetencyIfNeeded() {
+        if let selectedCompetency,
+           viewModel.competencyItem(for: selectedCompetency) != nil {
+            return
+        }
+
+        selectedCompetency = viewModel.competencyItems.first?.competency
+    }
+
+    @ViewBuilder
+    private func content(
+        size: CGSize,
+        horizontalPadding: CGFloat,
+        verticalPadding: CGFloat,
+        contentSpacing: CGFloat,
+        headerHeight: CGFloat,
+        middleHeight: CGFloat,
+        summaryHeight: CGFloat
+    ) -> some View {
+        if shouldStackMainContent {
+            stackedContent(
+                size: size,
+                horizontalPadding: horizontalPadding,
+                verticalPadding: verticalPadding,
+                contentSpacing: contentSpacing,
+                headerHeight: headerHeight
+            )
+        } else {
+            sideBySideContent(
+                size: size,
+                horizontalPadding: horizontalPadding,
+                verticalPadding: verticalPadding,
+                contentSpacing: contentSpacing,
+                headerHeight: headerHeight,
+                middleHeight: middleHeight,
+                summaryHeight: summaryHeight
+            )
+        }
+    }
+
     private func sideBySideContent(
         size: CGSize,
         horizontalPadding: CGFloat,
@@ -126,27 +161,25 @@ struct StatisticsView: View {
         VStack(spacing: contentSpacing) {
             header(width: size.width)
                 .frame(height: headerHeight)
+                .appAdaptiveColorFilter()
 
             HStack(alignment: .top, spacing: contentSpacing) {
-                CompetencyGraph(items: viewModel.competencyItems)
-                    .frame(
-                        minWidth: 420,
-                        idealWidth: size.width * 0.52,
-                        maxWidth: size.width * 0.56
-                    )
-
                 competencyList
-                    .frame(
-                        minWidth: 340,
-                        maxWidth: .infinity,
-                        maxHeight: .infinity,
-                        alignment: .top
-                    )
+                    .frame(width: size.width * 0.44, height: middleHeight, alignment: .top)
+                    .appAdaptiveColorFilter()
+
+                Divider()
+                    .frame(height: middleHeight)
+
+                selectedDetailScrollPanel
+                    .frame(maxWidth: .infinity, minHeight: middleHeight, maxHeight: middleHeight, alignment: .top)
+                    .clipped()
             }
             .frame(height: middleHeight)
 
             summaryPanel
                 .frame(height: summaryHeight)
+                .appAdaptiveColorFilter()
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
@@ -166,13 +199,10 @@ struct StatisticsView: View {
                 header(width: size.width)
                     .frame(height: headerHeight)
 
-                CompetencyGraph(items: viewModel.competencyItems)
-                    .frame(
-                        maxWidth: min(size.width - (horizontalPadding * 2), 680),
-                        minHeight: 420
-                    )
-
                 competencyList
+                    .frame(maxWidth: .infinity)
+
+                selectedDetailPanel
                     .frame(maxWidth: .infinity)
 
                 summaryPanel
@@ -219,30 +249,26 @@ struct StatisticsView: View {
         VStack(spacing: 12) {
             ForEach(viewModel.competencyItems) { item in
                 Button {
-                    selectedItem = item
+                    selectedCompetency = item.competency
                 } label: {
-                    competencyRow(item)
+                    competencyRow(
+                        item,
+                        isSelected: hasCompletedProgress && item.competency == selectedItem?.competency
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(item.competency.displayName), \(item.score) dari \(item.maximumScore)")
-                .accessibilityHint("Buka detail kemampuan")
+                .accessibilityHint("Tampilkan detail kemampuan")
             }
         }
     }
 
-    private func competencyRow(_ item: CompetencyProgressItem) -> some View {
+    private func competencyRow(_ item: CompetencyProgressItem, isSelected: Bool) -> some View {
         HStack(spacing: 16) {
-            Image(systemName: item.competency.statisticsIconName)
-                .font(.system(size: rowIconFontSize, weight: .bold))
-                .foregroundStyle(item.competency.statisticsIconForeground)
-                .frame(width: rowIconSize, height: rowIconSize)
-                .background(Circle().fill(item.competency.statisticsIconBackground))
-                .accessibilityHidden(true)
-
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.competency.displayName)
                     .font(.system(size: rowTitleFontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(isSelected ? Color.white : Color.black)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
 
@@ -250,7 +276,7 @@ struct StatisticsView: View {
                     ForEach(1...item.maximumScore, id: \.self) { index in
                         Image(systemName: "star.fill")
                             .font(.system(size: rowStarFontSize, weight: .bold, design: .rounded))
-                            .foregroundStyle(index <= item.score ? accentColor : Color.gray.opacity(0.35))
+                            .foregroundStyle(index <= item.score ? Color.yellow : inactiveStarColor(isSelected: isSelected))
                             .accessibilityHidden(true)
                     }
                 }
@@ -260,131 +286,266 @@ struct StatisticsView: View {
 
             Text("(\(item.score)/\(item.maximumScore))")
                 .font(.system(size: rowScoreFontSize, weight: .bold, design: .rounded))
-                .foregroundStyle(.black)
+                .foregroundStyle(isSelected ? Color.white : Color.gray)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: rowChevronFontSize, weight: .bold, design: .rounded))
-                .foregroundStyle(accentColor)
-                .accessibilityHidden(true)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: rowMinHeight)
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(panelColor)
+                .fill(isSelected ? selectedCardColor : Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(borderColor, lineWidth: 3)
+                        .stroke(isSelected ? selectedCardColor : AppColor.primary, lineWidth: 3)
                 )
         )
+    }
+
+    private func inactiveStarColor(isSelected: Bool) -> Color {
+        isSelected ? Color.white.opacity(0.35) : Color.gray.opacity(0.30)
     }
 
     // MARK: Summary
 
     private var summaryPanel: some View {
-        HStack(spacing: 22) {
+        HStack(spacing: 0) {
             summaryItem(
                 title: "Bintang Terkumpul",
-                value: viewModel.totalStars,
-                symbolName: "star.fill"
+                value: viewModel.totalStars
             )
 
-            Divider()
-                .frame(height: 54)
+            summaryDivider
 
             summaryItem(
                 title: "Bab Diselesaikan",
-                value: viewModel.completedChapterCount,
-                symbolName: "checkmark.seal.fill"
+                value: viewModel.completedChapterCount
             )
 
-            Divider()
-                .frame(height: 54)
+            summaryDivider
 
             summaryItem(
                 title: "Cerita Ditamatkan",
-                value: viewModel.completedStoryCount,
-                symbolName: "book.closed.fill"
+                value: viewModel.completedStoryCount
             )
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(panelColor)
+                .fill(Color.white.opacity(0.92))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
-                        .stroke(borderColor, lineWidth: 3)
+                        .stroke(Color.black, lineWidth: 3)
                 )
         )
     }
 
+    private var summaryDivider: some View {
+        Rectangle()
+            .fill(Color.gray.opacity(0.45))
+            .frame(width: 1)
+    }
+
     private func summaryItem(
         title: String,
-        value: Int,
-        symbolName: String
+        value: Int
     ) -> some View {
-        HStack(spacing: 16) {
-            Image(systemName: symbolName)
-                .font(.system(size: summaryIconFontSize, weight: .bold))
-                .foregroundStyle(accentColor)
-                .accessibilityHidden(true)
-
+        HStack(spacing: 18) {
             Text(title)
-                .font(.system(size: summaryTitleFontSize, weight: .bold, design: .rounded))
+                .font(.system(size: summaryTitleFontSize, weight: .regular, design: .rounded))
                 .foregroundStyle(.black)
                 .lineLimit(1)
-                .minimumScaleFactor(0.62)
+                .minimumScaleFactor(0.7)
 
             Spacer(minLength: 8)
 
             Text("\(value)")
                 .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
-                .foregroundStyle(darkBlue)
+                .foregroundStyle(AppColor.primary)
                 .frame(width: summaryValueSize, height: summaryValueSize)
-                .background(Circle().fill(Color(red: 0.86, green: 0.90, blue: 1.0)))
-                .overlay(Circle().stroke(borderColor, lineWidth: 2))
+                .background(Circle().fill(Color.white.opacity(0.96)))
+                .overlay(Circle().stroke(AppColor.primary, lineWidth: 3))
                 .accessibilityLabel("\(value)")
         }
+        .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: Detail Presentation
+    // MARK: Inline Detail
 
-    private func detailOverlay(
-        item: CompetencyProgressItem,
-        guidance: CompetencyGuidance
-    ) -> some View {
-        GeometryReader { proxy in
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    selectedItem = nil
-                }
-
-            CompetencyDetailView(
-                item: item,
-                guidance: guidance,
-                onClose: {
-                    selectedItem = nil
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 28))
-            .frame(
-                width: proxy.size.width * 0.92,
-                height: proxy.size.height * 0.88
-            )
-            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
-            .shadow(color: .black.opacity(0.22), radius: 18, x: 0, y: 8)
+    @ViewBuilder
+    private var selectedDetailScrollPanel: some View {
+        if hasCompletedProgress {
+            AppFilteredScrollView(.vertical, showsIndicators: false) {
+                selectedDetailPanel
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 8)
+            }
+        } else {
+            emptyStatisticsState
         }
-        .transition(.opacity)
     }
 
+    @ViewBuilder
+    private var selectedDetailPanel: some View {
+        if hasCompletedProgress,
+           let selectedItem,
+           let guidance = viewModel.guidance(for: selectedItem.competency) {
+            VStack(alignment: .leading, spacing: 10) {
+                detailSection(title: "Ringkasan Pembelajaran") {
+                    detailTextPanel(guidance.learningSummary)
+                }
+
+                progressDetailSections(guidance)
+
+                detailSection(title: "Saran untuk orang tua") {
+                    detailTextPanel(guidance.parentTip)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .accessibilityElement(children: .contain)
+        } else {
+            emptyStatisticsState
+        }
+    }
+
+    private var emptyStatisticsState: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+            Image("statsEmptyState")
+                .resizable()
+                .scaledToFit()
+                .frame(width: min(width * 0.78, height * 0.90))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Belum ada bintang terkumpul")
+        }
+        .frame(minHeight: 360)
+    }
+
+    @ViewBuilder
+    private func progressDetailSections(_ guidance: CompetencyGuidance) -> some View {
+        if shouldStackMainContent {
+            VStack(alignment: .leading, spacing: 10) {
+                masteredDetailSection(guidance)
+                practiceDetailSection(guidance)
+            }
+        } else {
+            HStack(alignment: .top, spacing: 8) {
+                masteredDetailSection(guidance, matchesPairedPanelHeight: true)
+                practiceDetailSection(guidance, matchesPairedPanelHeight: true)
+            }
+            .onPreferenceChange(DetailBulletPanelHeightPreferenceKey.self) { height in
+                pairedBulletPanelHeight = height
+            }
+        }
+    }
+
+    private func masteredDetailSection(
+        _ guidance: CompetencyGuidance,
+        matchesPairedPanelHeight: Bool = false
+    ) -> some View {
+        detailSection(title: "Yang Sudah Dikuasai") {
+            bulletPanel(
+                guidance.masteredItems,
+                matchesPairedPanelHeight: matchesPairedPanelHeight
+            )
+        }
+    }
+
+    private func practiceDetailSection(
+        _ guidance: CompetencyGuidance,
+        matchesPairedPanelHeight: Bool = false
+    ) -> some View {
+        detailSection(title: "Yang Masih Perlu Dilatih") {
+            bulletPanel(
+                guidance.practiceItems,
+                matchesPairedPanelHeight: matchesPairedPanelHeight
+            )
+        }
+    }
+
+    private func detailSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.system(size: detailTitleFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.primary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.9)
+
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func detailTextPanel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: detailBodyFontSize, weight: .regular, design: .rounded))
+            .foregroundStyle(.black)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(detailPanelPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(detailPanelBackground)
+    }
+
+    private func bulletPanel(
+        _ items: [String],
+        matchesPairedPanelHeight: Bool = false
+    ) -> some View {
+        let matchedHeight = matchesPairedPanelHeight && pairedBulletPanelHeight > 0
+            ? pairedBulletPanelHeight
+            : nil
+
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(items, id: \.self) { text in
+                Text("- \(text)")
+                    .font(.system(size: detailBodyFontSize, weight: .regular, design: .rounded))
+                    .foregroundStyle(.black)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(detailPanelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background {
+            if matchesPairedPanelHeight {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: DetailBulletPanelHeightPreferenceKey.self,
+                        value: proxy.size.height
+                    )
+                }
+            }
+        }
+        .frame(minHeight: matchedHeight, alignment: .topLeading)
+        .background(detailPanelBackground)
+    }
+
+    private var detailPanelBackground: some View {
+        RoundedRectangle(cornerRadius: 18)
+            .fill(Color.white.opacity(0.90))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(AppColor.primary, lineWidth: 3)
+            )
+    }
+
+}
+
+// MARK: - Detail Panel Height Preference
+
+private struct DetailBulletPanelHeightPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
 }
 
 // MARK: - Statistics Background
@@ -426,63 +587,6 @@ extension Competency {
         }
     }
 
-    /// Temporary SF Symbol used until final competency artwork is available.
-    var statisticsIconName: String {
-        switch self {
-        case .labelSymbol:
-            return "textformat"
-
-        case .pattern:
-            return "square.grid.3x3.fill"
-
-        case .context:
-            return "star.fill"
-
-        case .shape:
-            return "cube.fill"
-
-        case .brightnessContrast:
-            return "sun.max.fill"
-        }
-    }
-
-    var statisticsIconForeground: Color {
-        switch self {
-        case .labelSymbol:
-            return Color(red: 0.12, green: 0.40, blue: 0.88)
-
-        case .pattern:
-            return Color(red: 0.95, green: 0.68, blue: 0.0)
-
-        case .context:
-            return Color(red: 0.1, green: 0.70, blue: 0.28)
-
-        case .shape:
-            return Color(red: 0.44, green: 0.25, blue: 0.90)
-
-        case .brightnessContrast:
-            return Color(red: 0.98, green: 0.43, blue: 0.08)
-        }
-    }
-
-    var statisticsIconBackground: Color {
-        switch self {
-        case .labelSymbol:
-            return Color(red: 0.86, green: 0.93, blue: 1.0)
-
-        case .pattern:
-            return Color(red: 1.0, green: 0.93, blue: 0.62)
-
-        case .context:
-            return Color(red: 0.80, green: 0.96, blue: 0.84)
-
-        case .shape:
-            return Color(red: 0.88, green: 0.80, blue: 1.0)
-
-        case .brightnessContrast:
-            return Color(red: 1.0, green: 0.88, blue: 0.70)
-        }
-    }
 }
 
 #if DEBUG
@@ -514,6 +618,26 @@ extension Competency {
         onBack: {}
     )
     // Required by the background-brightness modifier on the screen backdrop.
+    .environmentObject(SettingsViewModel(storageService: storageService))
+}
+
+#Preview(
+    "Statistics - Empty State",
+    traits: .fixedLayout(width: 1366, height: 1024)
+) {
+    let storageService = StorageService(
+        userDefaults: UserDefaults(suiteName: "OwlLala.StatisticsViewEmptyPreview") ?? .standard
+    )
+
+    storageService.resetToDefaults()
+
+    return StatisticsView(
+        viewModel: StatisticsViewModel(
+            stories: StoryCatalog.stories,
+            storageService: storageService
+        ),
+        onBack: {}
+    )
     .environmentObject(SettingsViewModel(storageService: storageService))
 }
 #endif
