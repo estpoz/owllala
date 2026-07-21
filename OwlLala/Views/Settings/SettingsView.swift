@@ -67,6 +67,10 @@ struct SettingsView: View {
                 SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
             }
         }
+        // Apply the draft category directly so both presentations and isolated
+        // previews grow identically from X Small through AX5. Reapplying the
+        // same environment value at the app root is idempotent, not additive.
+        .textSizeAdjustment(for: viewModel.activeDisplaySettings)
         .onAppear {
             viewModel.beginEditing()
         }
@@ -257,6 +261,7 @@ struct SettingsPanelContent: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 110)
                 .padding(.top, min(titleTopPadding, 44))
+                .colorVisionFilter(accessibilityContentSimulation)
 
             if dynamicTypeSize.isAccessibilitySize {
                 accessibilityLayout
@@ -265,6 +270,7 @@ struct SettingsPanelContent: View {
             }
 
             PrimaryActionButton(title: "Simpan", action: onSave)
+                .colorVisionFilter(accessibilityContentSimulation)
                 .padding(.bottom, saveBottomPadding)
                 .padding(.top, min(saveTopSpacing, 96))
                 .padding(.horizontal, 32)
@@ -300,6 +306,7 @@ struct SettingsPanelContent: View {
                     maxWidth: PanelLayout.accessibilityContentMaxWidth,
                     alignment: .leading
                 )
+                .colorVisionFilter(accessibilityContentSimulation)
 
             previewImage
                 .frame(
@@ -308,6 +315,7 @@ struct SettingsPanelContent: View {
                         PanelLayout.accessibilityPreviewMaxWidth
                     )
                 )
+                .colorVisionFilter(accessibilityContentSimulation)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, min(horizontalPadding * 0.65, 48))
@@ -317,6 +325,21 @@ struct SettingsPanelContent: View {
     /// The left column: brightness slider, text-size slider, filter switch,
     /// and filter options — grouped with the Hi-Fi's label→control rhythm.
     /// Each control calls straight into the view model.
+    ///
+    /// AX1–AX5 uses a ScrollView whose complete content cannot be wrapped in
+    /// the color shader. Its pure SwiftUI foreground sections safely preview
+    /// the selected simulation as separate islands instead. Standard sizes
+    /// remain filtered once by the surrounding `AppScreen`.
+    private var accessibilityContentSimulation: ColorVisionSimulation? {
+        guard dynamicTypeSize.isAccessibilitySize,
+              viewModel.isFilterEnabled
+        else {
+            return nil
+        }
+
+        return viewModel.draftSettings.colorVisionSimulation
+    }
+
     private var controls: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Kecerahan Latar Belakang")
