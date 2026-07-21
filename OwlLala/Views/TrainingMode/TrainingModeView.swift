@@ -32,7 +32,7 @@ struct TrainingModeView: View {
                 return largeTitleSize
             }()
             
-            // Pushes the roadmap curve lower down on screen in AX modes
+            // Curve anchor coordinates for node calculations
             let startPointY = screenHeight * (isLargeLayout ? 0.86 : 0.79)
             let peakPointY = screenHeight * (isLargeLayout ? 0.58 : 0.55)
             let controlPointY = peakPointY - (startPointY - peakPointY)
@@ -53,14 +53,13 @@ struct TrainingModeView: View {
                     // MARK: Endless Circular Roadmap Track Framework
                     if !viewModel.items.isEmpty {
                         ZStack {
-                            Path { path in
-                                path.move(to: CGPoint(x: 0, y: startPointY))
-                                path.addQuadCurve(
-                                    to: CGPoint(x: screenWidth, y: startPointY),
-                                    control: CGPoint(x: screenWidth * 0.5, y: controlPointY)
-                                )
-                            }
-                            .stroke(Color(red: 0.15, green: 0.15, blue: 0.15), style: StrokeStyle(lineWidth: 6, lineCap: .round, dash: [14, 14]))
+                            // Using lineStroke Image Asset directly for the curve
+                            Image("lineStroke")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: screenWidth)
+                                .ignoresSafeArea(edges: .horizontal)
+                                .position(x: screenWidth * 0.5, y: peakPointY + (nodeDiameter * 0.25))
                             
                             ForEach(-1...1, id: \.self) { offset in
                                 let targetVirtualIndex = virtualIndex + offset
@@ -144,7 +143,7 @@ struct TrainingModeView: View {
                                         }
                                     }
                                     
-                                    // Original Full Label Typography Sizing
+                                    // Two-line Label Typography
                                     VStack(spacing: -2) {
                                         Text(storyTitleText)
                                             .font(.system(size: babLabelSize * 0.85, weight: .bold, design: .rounded))
