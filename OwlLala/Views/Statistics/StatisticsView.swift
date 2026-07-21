@@ -400,7 +400,7 @@ struct StatisticsView: View {
 
                 progressDetailSections(guidance)
 
-                detailSection(title: "Saran untuk orang tua") {
+                detailSection(title: "Saran untuk Orang Tua") {
                     detailTextPanel(guidance.parentTip)
                 }
             }
