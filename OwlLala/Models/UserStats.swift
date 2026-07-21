@@ -225,28 +225,16 @@ extension UserStats {
     /// Each chapter teaches exactly one competency, so the competency score is
     /// derived from that chapter's highest star result.
     ///
-    /// Score mapping:
-    /// - Not completed: 0 out of 5.
-    /// - Best result of 1 star: 1 out of 5.
-    /// - Best result of 2 stars: 3 out of 5.
-    /// - Best result of 3 stars: 5 out of 5.
+    /// Score mapping follows the chapter star result:
+    /// - Not completed: 0 out of 3.
+    /// - Best result of 1 star: 1 out of 3.
+    /// - Best result of 2 stars: 2 out of 3.
+    /// - Best result of 3 stars: 3 out of 3.
     ///
     /// - Parameter chapter: The chapter associated with the competency.
-    /// - Returns: A competency score between zero and five.
+    /// - Returns: A competency score between zero and `Chapter.maximumStars`.
     func competencyScore(for chapter: Chapter) -> Int {
-        switch bestStars(for: chapter.id) {
-        case 1:
-            return 1
-
-        case 2:
-            return 3
-
-        case 3:
-            return 5
-
-        default:
-            return 0
-        }
+        bestStars(for: chapter.id)
     }
 
     /// Returns the competency score for a specific competency.
@@ -257,8 +245,8 @@ extension UserStats {
     /// - Parameters:
     ///   - competency: The competency whose score should be returned.
     ///   - chapters: The chapters available in the story.
-    /// - Returns: A score between zero and five, or zero when no matching
-    ///   chapter exists.
+    /// - Returns: A score between zero and `Chapter.maximumStars`, or zero when
+    ///   no matching chapter exists.
     func competencyScore(
         for competency: Competency,
         in chapters: [Chapter]
