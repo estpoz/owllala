@@ -9,8 +9,10 @@
 //  Plays the short feedback sounds used by the gameplay components in
 //  `ImmediateFeedback.swift`:
 //
-//    • Clap        — with the confetti when the child answers correctly.
-//    • Wrong buzz  — when the child picks a wrong answer.
+//    • Background music — loops while a mini-game is active.
+//    • Correct answer   — when the child selects the correct option.
+//    • Yay and applause — with the correct-answer celebration.
+//    • Wrong buzz       — when the child picks a wrong answer.
 //
 //  SOUND FILES
 //  -----------
@@ -18,9 +20,11 @@
 //  The service looks up each sound by candidate names, in every known
 //  subdirectory, with mp3/wav/m4a; lookups are case-sensitive:
 //
-//    "Confetti Sound"  → playConfettiSound()
-//    "Clap"            → playClapSound()
-//    "Oooo Owwww"      → playWrongAnswerSound()
+//    "backgroundMusic"          → playBackgroundMusic(...)
+//    "correctAnswerSoundEffect" → playCorrectAnswerSound()
+//    "yaySoundEffect"           → playYaySound()
+//    "applauseSoundEffect"      → playApplauseSound()
+//    "Oooo Owwww"               → playWrongAnswerSound()
 //
 //  Missing files are a safe no-op (DEBUG-only console note), so the UI
 //  features work before their audio assets are imported.
@@ -44,6 +48,12 @@ final class AudioService {
     /// Cached players, keyed by sound name.
     private var players: [String: AVAudioPlayer] = [:]
     private var voiceOverPlayer: AVAudioPlayer?
+    private var backgroundMusicPlayer: AVAudioPlayer?
+
+    private enum BackgroundMusicVolume {
+        static let voiceOverEnabled: Float = 0.12
+        static let voiceOverDisabled: Float = 0.40
+    }
 
     /// File extensions to try, in order, when locating a sound in the bundle.
     private let supportedExtensions = ["mp3", "wav", "m4a"]
@@ -76,20 +86,60 @@ final class AudioService {
 
     // MARK: Gameplay Sounds
 
-    /// Plays the confetti sound of the correct-answer celebration.
-    ///
-    /// Called by `CorrectAnswerCelebration.startConfetti()` as the confetti
-    /// starts falling. Wired to the imported "Confetti Sound" asset.
-    func playConfettiSound() {
-        play(candidates: ["Confetti Sound", "confetti"])
+    /// Starts or resumes looping gameplay music at the appropriate voice-over volume.
+    func playBackgroundMusic(isVoiceOverEnabled: Bool) {
+        let volume = backgroundMusicVolume(isVoiceOverEnabled: isVoiceOverEnabled)
+
+        if let backgroundMusicPlayer {
+            backgroundMusicPlayer.volume = volume
+            guard !backgroundMusicPlayer.isPlaying else {
+                return
+            }
+
+            backgroundMusicPlayer.play()
+            return
+        }
+
+        guard let player = makePlayer(candidates: ["backgroundMusic"]) else {
+            #if DEBUG
+            print("AudioService: backgroundMusic not found in bundle — skipping playback.")
+            #endif
+            return
+        }
+
+        player.numberOfLoops = -1
+        player.volume = volume
+        backgroundMusicPlayer = player
+        player.play()
     }
 
-    /// Plays the clap sound of the correct-answer celebration.
-    ///
-    /// Called by `CorrectAnswerCelebration.playClapSound()` together with the
-    /// confetti. Wired to the imported "Clap" asset.
-    func playClapSound() {
-        play(candidates: ["Clap", "clap"])
+    /// Smoothly updates gameplay-music volume after the voice-over toggle changes.
+    func updateBackgroundMusicVolume(isVoiceOverEnabled: Bool) {
+        backgroundMusicPlayer?.setVolume(
+            backgroundMusicVolume(isVoiceOverEnabled: isVoiceOverEnabled),
+            fadeDuration: 0.25
+        )
+    }
+
+    /// Stops gameplay music and resets it for the next session.
+    func stopBackgroundMusic() {
+        backgroundMusicPlayer?.stop()
+        backgroundMusicPlayer?.currentTime = 0
+    }
+
+    /// Plays the correct-answer sound when the correct option is selected.
+    func playCorrectAnswerSound() {
+        play(candidates: ["correctAnswerSoundEffect"])
+    }
+
+    /// Plays the yay sound during the correct-answer celebration.
+    func playYaySound() {
+        play(candidates: ["yaySoundEffect"])
+    }
+
+    /// Plays the applause sound during the correct-answer celebration.
+    func playApplauseSound() {
+        play(candidates: ["applauseSoundEffect"])
     }
 
     /// Plays the wrong-answer sound.
@@ -121,6 +171,12 @@ final class AudioService {
     func stopVoiceOver() {
         voiceOverPlayer?.stop()
         voiceOverPlayer = nil
+    }
+
+    private func backgroundMusicVolume(isVoiceOverEnabled: Bool) -> Float {
+        isVoiceOverEnabled
+            ? BackgroundMusicVolume.voiceOverEnabled
+            : BackgroundMusicVolume.voiceOverDisabled
     }
 
     // MARK: Playback

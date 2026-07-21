@@ -9,8 +9,8 @@
 //  The reusable immediate-feedback pieces for the chapter mini-games:
 //
 //  1. `CorrectAnswerCelebration` — 3 seconds of confetti (reusing
-//     `ConfettiOverlay` from StageCleared.swift) + the clap sound, started by
-//     ONE call that fans out into its two feature functions.
+//     `ConfettiOverlay` from StageCleared.swift), a correct-answer sound, yay,
+//     and applause, started by one call.
 //  2. `wrongAnswerFeedback(...)` — view modifier for a wrong option: red
 //     outline, shake, vibration, and the wrong-answer sound.
 //  3. `HintOverlay` + `ChapterHints` — after the SECOND wrong answer, the owl
@@ -47,21 +47,20 @@ import SwiftUI
 import UIKit
 #endif
 
-// MARK: - 1. Correct Answer Celebration (Confetti + Clap)
+// MARK: - 1. Correct Answer Celebration
 
 /// Fullscreen celebration for a correct answer: confetti rains for 3 seconds
-/// while the clap sound plays, then `onFinished` fires so the host can move on
-/// (e.g. call `ChapterGameplayViewModel.finishCorrectFeedback()`).
+/// while correct-answer, yay, and applause sounds play, then `onFinished`
+/// fires so the host can move on (e.g. call
+/// `ChapterGameplayViewModel.finishCorrectFeedback()`).
 ///
-/// One call starts everything: `startCelebration()` runs on appear and fans
-/// out into the two feature functions — `startConfetti()` and
-/// `playClapSound()`.
+/// One call starts the confetti and all supplied congratulatory sounds.
 struct CorrectAnswerCelebration: View {
 
     /// How long the celebration runs before `onFinished` is called.
     static let duration: TimeInterval = 3.0
 
-    /// Invoked once, after the confetti and clap finish.
+    /// Invoked once after the three-second feedback presentation.
     let onFinished: () -> Void
 
     /// Fades the confetti out at the end of the celebration.
@@ -77,11 +76,13 @@ struct CorrectAnswerCelebration: View {
             }
     }
 
-    /// THE one entry point: starts both celebration features together and
+    /// The one entry point: starts all celebration features together and
     /// schedules the finish after `Self.duration` (3 seconds).
     private func startCelebration() {
-        startConfetti()
-        playClapSound()
+        isFadingOut = false
+        AudioService.shared.playCorrectAnswerSound()
+        AudioService.shared.playYaySound()
+        AudioService.shared.playApplauseSound()
 
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(Self.duration - 0.3))
@@ -92,18 +93,6 @@ struct CorrectAnswerCelebration: View {
             try? await Task.sleep(for: .seconds(0.3))
             onFinished()
         }
-    }
-
-    /// Feature 1: the falling confetti with its sound. `ConfettiOverlay`
-    /// spawns its pieces on appear, so showing it is what starts the rain.
-    private func startConfetti() {
-        isFadingOut = false
-        AudioService.shared.playConfettiSound()
-    }
-
-    /// Feature 2: the clap sound.
-    private func playClapSound() {
-        AudioService.shared.playClapSound()
     }
 }
 

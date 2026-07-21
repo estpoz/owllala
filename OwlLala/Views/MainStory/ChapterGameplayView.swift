@@ -71,7 +71,7 @@ struct ChapterGamePlayView: View {
                         resumeStoryVoiceOverIfNeeded()
                     },
                     onDiscardProgress: {
-                        stopStoryVoiceOver()
+                        stopGameplayAudio()
                         dismiss()
                     }
                 )
@@ -87,15 +87,19 @@ struct ChapterGamePlayView: View {
                     maxStars: 3,
                     summaryText: viewModel.chapter.learningSummary.explanation,
                     onReplay: {
-                        stopStoryVoiceOver()
+                        stopGameplayAudio()
                         withAnimation(.easeInOut(duration: 0.3)) {
                             isShowingSuccessOverlay = false
                         }
                         viewModel.resetForReplay()
                         hasStartedChapter = viewModel.source == .training
+
+                        if viewModel.source == .training {
+                            startBackgroundMusic()
+                        }
                     },
                     onContinue: {
-                        stopStoryVoiceOver()
+                        stopGameplayAudio()
                         viewModel.finishStageCleared()
                         dismiss()
                     }
@@ -134,7 +138,7 @@ struct ChapterGamePlayView: View {
                 return
             }
 
-            stopStoryVoiceOver()
+            stopGameplayAudio()
             withAnimation(.easeInOut(duration: 0.3)) {
                 isShowingSuccessOverlay = true
             }
@@ -149,8 +153,13 @@ struct ChapterGamePlayView: View {
                 playCurrentStoryVoiceOverIfNeeded()
             }
         }
+        .onAppear {
+            if viewModel.source == .training {
+                startBackgroundMusic()
+            }
+        }
         .onDisappear {
-            stopStoryVoiceOver()
+            stopGameplayAudio()
         }
     }
 
@@ -467,6 +476,9 @@ struct ChapterGamePlayView: View {
                         usesHorizontalContent: true,
                         appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
                         isWrong: viewModel.incorrectAnswerID == option.id,
+                        isCorrect: isCorrectOption(option),
+                        isBlurred: shouldBlurAfterCorrectAnswer(option),
+                        isInteractionLocked: viewModel.isCorrectFeedbackPresented,
                         shakeTrigger: viewModel.shakeTrigger,
                         action: {
                             viewModel.selectAnswer(option)
@@ -490,6 +502,9 @@ struct ChapterGamePlayView: View {
                         usesHorizontalContent: false,
                         appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
                         isWrong: viewModel.incorrectAnswerID == option.id,
+                        isCorrect: isCorrectOption(option),
+                        isBlurred: shouldBlurAfterCorrectAnswer(option),
+                        isInteractionLocked: viewModel.isCorrectFeedbackPresented,
                         shakeTrigger: viewModel.shakeTrigger,
                         action: {
                             viewModel.selectAnswer(option)
@@ -504,8 +519,17 @@ struct ChapterGamePlayView: View {
         viewModel.chapter.order == 3 && option.id != viewModel.question.correctAnswerID
     }
 
+    private func isCorrectOption(_ option: AnswerOption) -> Bool {
+        viewModel.isCorrectFeedbackPresented && option.id == viewModel.question.correctAnswerID
+    }
+
+    private func shouldBlurAfterCorrectAnswer(_ option: AnswerOption) -> Bool {
+        viewModel.isCorrectFeedbackPresented && option.id != viewModel.question.correctAnswerID
+    }
+
     private func startChapter() {
         hasStartedChapter = true
+        startBackgroundMusic()
 
         guard isVoiceOverEnabled,
               viewModel.source == .mainStory,
@@ -519,6 +543,9 @@ struct ChapterGamePlayView: View {
 
     private func toggleVoiceOver() {
         isVoiceOverEnabled.toggle()
+        AudioService.shared.updateBackgroundMusicVolume(
+            isVoiceOverEnabled: isVoiceOverEnabled
+        )
 
         if isVoiceOverEnabled {
             playCurrentStoryVoiceOverIfNeeded()
@@ -538,6 +565,7 @@ struct ChapterGamePlayView: View {
     }
 
     private func resumeStoryVoiceOverIfNeeded() {
+        resumeBackgroundMusicIfNeeded()
         playCurrentStoryVoiceOverIfNeeded()
     }
 
@@ -560,6 +588,27 @@ struct ChapterGamePlayView: View {
         AudioService.shared.stopVoiceOver()
     }
 
+    private func startBackgroundMusic() {
+        AudioService.shared.playBackgroundMusic(
+            isVoiceOverEnabled: isVoiceOverEnabled
+        )
+    }
+
+    private func resumeBackgroundMusicIfNeeded() {
+        guard !isShowingSuccessOverlay,
+              viewModel.source == .training || hasStartedChapter
+        else {
+            return
+        }
+
+        startBackgroundMusic()
+    }
+
+    private func stopGameplayAudio() {
+        stopStoryVoiceOver()
+        AudioService.shared.stopBackgroundMusic()
+    }
+
 }
 
 private struct AnswerOptionButton: View {
@@ -570,38 +619,75 @@ private struct AnswerOptionButton: View {
     let usesHorizontalContent: Bool
     let appliesLowContrastOverlay: Bool
     let isWrong: Bool
+    let isCorrect: Bool
+    let isBlurred: Bool
+    let isInteractionLocked: Bool
     let shakeTrigger: Int
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(primaryBlue, lineWidth: 5)
-                    )
-
-                optionContent
-                    .padding(usesHorizontalContent ? 16 : 12)
-
-                if appliesLowContrastOverlay {
+            ZStack(alignment: .bottomTrailing) {
+                ZStack {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.white.opacity(0.65))
-                        .padding(4)
-                        .allowsHitTesting(false)
+                        .fill(.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(primaryBlue, lineWidth: 5)
+                        )
+
+                    optionContent
+                        .padding(usesHorizontalContent ? 16 : 12)
+
+                    if appliesLowContrastOverlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.white.opacity(0.65))
+                            .padding(4)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .frame(width: size.width, height: size.height)
+                .blur(radius: isBlurred ? 2 : 0)
+                .opacity(isBlurred ? 0.35 : 1)
+
+                if isCorrect {
+                    correctAnswerBadge
+                        .offset(
+                            x: correctAnswerBadgeDiameter * 0.22,
+                            y: correctAnswerBadgeDiameter * 0.22
+                        )
                 }
             }
             .frame(width: size.width, height: size.height)
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(!isInteractionLocked)
         .wrongAnswerFeedback(
             isWrong: isWrong,
             shakeTrigger: shakeTrigger,
             cornerRadius: 18
         )
-        .accessibilityLabel(option.text ?? "Pilihan jawaban")
+        .accessibilityLabel(
+            isCorrect
+                ? "\(option.text ?? "Pilihan jawaban"), jawaban benar"
+                : option.text ?? "Pilihan jawaban"
+        )
+    }
+
+    private var correctAnswerBadgeDiameter: CGFloat {
+        max(28, min(size.width, size.height) * 0.32)
+    }
+
+    private var correctAnswerBadge: some View {
+        Circle()
+            .fill(primaryBlue)
+            .frame(width: correctAnswerBadgeDiameter, height: correctAnswerBadgeDiameter)
+            .overlay {
+                Image(systemName: "checkmark")
+                    .font(.system(size: correctAnswerBadgeDiameter * 0.52, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
