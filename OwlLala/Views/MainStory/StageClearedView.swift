@@ -19,7 +19,6 @@ struct StageClearedView: View {
     var onReplay: () -> Void = {}
     var onContinue: () -> Void = {}
 
-    private let navy = Color(red: 0.02, green: 0.31, blue: 0.70)
     private let gold = Color(red: 0.95, green: 0.72, blue: 0.20)
 
     // Custom scaled sizes — bigger than the built-in text styles,
@@ -28,9 +27,7 @@ struct StageClearedView: View {
     @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 33
     @ScaledMetric(relativeTo: .title2) private var summarySize: CGFloat = 30
     
-    // Baru: Scaled metrics untuk ikon bintang dan tombol agar ikut membesar
     @ScaledMetric(relativeTo: .largeTitle) private var starSize: CGFloat = 55
-    @ScaledMetric(relativeTo: .largeTitle) private var buttonIconSize: CGFloat = 70
 
     var body: some View {
         GeometryReader { geometry in
@@ -42,26 +39,22 @@ struct StageClearedView: View {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
 
-                // Centralized scroll container keeps accessibility scrolling
-                // compatible with the saved color-vision filter.
-                AppFilteredScrollView(.vertical, showsIndicators: true) {
-                    cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
-                }
-                .frame(width: cardWidth, height: cardHeight)
-                .background(
-                    Image("1-4")
+                ZStack(alignment: .topLeading) {
+                    Image("page1-4")
                         .resizable()
                         .scaledToFill()
                         .frame(width: cardWidth, height: cardHeight)
                         .clipped()
                         .appBackgroundAdjustments()
-                )
+
+                    cardContent(baseUnit: baseUnit, cardWidth: cardWidth)
+                }
+                .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.024))
                 .overlay(
                     RoundedRectangle(cornerRadius: baseUnit * 0.024)
                         .stroke(.white.opacity(0.6), lineWidth: 3)
                 )
-                .shadow(color: .black.opacity(0.3), radius: 24, x: 0, y: 12)
                 .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
             }
         }
@@ -79,19 +72,11 @@ struct StageClearedView: View {
                         .font(.system(size: titleSize, weight: .heavy, design: .rounded))
                         .foregroundStyle(.black)
                         .fixedSize(horizontal: false, vertical: true)
-                        // ↓ shadow berlapis → glow tipis mengikuti liku huruf
-                        .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 0)
-                        .shadow(color: .white.opacity(0.90), radius: 6,  x: 2, y: 0)
-                        .shadow(color: .white.opacity(0.90), radius: 12, x: 2, y: 2)
-
                     Text(subtitle)
                         .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
                         .foregroundStyle(.black)
                         .frame(width: baseUnit * 0.45, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
-                        .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 0)
-                        .shadow(color: .white.opacity(0.90), radius: 6,  x: 2, y: 0)
-                        .shadow(color: .white.opacity(0.90), radius: 12, x: 2, y: 2)
                 }
 
                 starRow(baseUnit: baseUnit)
@@ -102,9 +87,6 @@ struct StageClearedView: View {
                     .foregroundStyle(.black)
                     .frame(maxWidth: baseUnit * 0.45, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .shadow(color: .white.opacity(0.95), radius: 2,  x: 2, y: 2)
-                    .shadow(color: .white.opacity(0.95), radius: 6,  x: 2, y: 2)
-                    .shadow(color: .white.opacity(0.95), radius: 12, x: 2, y: 2)
 
                 actionButtons(baseUnit: baseUnit)
                     .padding(.top, baseUnit * 0.014)
@@ -134,24 +116,9 @@ struct StageClearedView: View {
     // MARK: - Buttons
 
     private func actionButtons(baseUnit: CGFloat) -> some View {
-            HStack(spacing: baseUnit * 0.02) {
-                Button(action: onReplay) {
-                    Image(systemName: "arrow.counterclockwise")
-                        // Baru: Menggunakan parameter @ScaledMetric buttonIconSize
-                        .font(.system(size: buttonIconSize, weight: .semibold))
-                        .foregroundStyle(navy)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Ulangi bab")
-
-            Button(action: onContinue) {
-                Image(systemName: "play.circle")
-                    // Baru: Menggunakan parameter @ScaledMetric buttonIconSize (+ 5 agar play circle sedikit lebih besar)
-                    .font(.system(size: buttonIconSize + 5, weight: .semibold))
-                    .foregroundStyle(navy)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Lanjutkan")
+        HStack(spacing: baseUnit * 0.03) {
+            StageReplayButton(action: onReplay)
+            StageContinueButton(action: onContinue)
         }
     }
 }
