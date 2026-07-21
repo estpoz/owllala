@@ -40,7 +40,7 @@ struct StageClearedView: View {
                     .ignoresSafeArea()
 
                 ZStack(alignment: .topLeading) {
-                    Image("1-4")
+                    Image("page1-4")
                         .resizable()
                         .scaledToFill()
                         .frame(width: cardWidth, height: cardHeight)
