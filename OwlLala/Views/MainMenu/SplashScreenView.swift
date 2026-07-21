@@ -31,11 +31,11 @@ struct SplashScreenView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
+            let mascotSize = geometry.size.width * 0.7
+
+            AppScreen {
                 SplashBackground()
-
-                let mascotSize = geometry.size.width * 0.7
-
+            } content: {
                 ZStack {
                     ForEach(sparkles) { sparkle in
                         SparkleView(sparkle: sparkle, isActive: sparklesActive)
@@ -131,5 +131,9 @@ private struct SplashBackground: View {
 }
 
 #Preview(traits: .landscapeRight) {
-    SplashScreenView()
+    let storageService = StorageService()
+
+    return SplashScreenView()
+        .environmentObject(storageService)
+        .environmentObject(SettingsViewModel(storageService: storageService))
 }

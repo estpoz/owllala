@@ -4,7 +4,7 @@ struct TrainingModeView: View {
     @ObservedObject var viewModel: TrainingModeViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var virtualIndex: Int = 1002
+    @State private var virtualIndex: Int = 1000
     
     // MARK: - Scaled Metric Layout Calibration Matrix
     @ScaledMetric(relativeTo: .largeTitle) private var largeTitleSize: CGFloat = 60
@@ -22,16 +22,19 @@ struct TrainingModeView: View {
             let peakPointY = screenHeight * 0.55
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
-            ZStack {
-                Color(red: 0.937, green: 0.953, blue: 0.957)
-                    .ignoresSafeArea()
-                
-                Image("PatternBG")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: screenWidth, height: screenHeight)
-                    .ignoresSafeArea()
-                
+            AppScreen {
+                ZStack {
+                    Color(red: 0.937, green: 0.953, blue: 0.957)
+                        .ignoresSafeArea()
+
+                    Image("PatternBG")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: screenWidth, height: screenHeight)
+                        .ignoresSafeArea()
+                }
+            } content: {
+                ZStack {
                 // MARK: Endless Circular Roadmap Track Framework
                 if !viewModel.items.isEmpty {
                     ZStack {
@@ -174,6 +177,7 @@ struct TrainingModeView: View {
                     Spacer()
                 }
                 .zIndex(2) // Layer 2: Elevated to resolve complete hit-testing interaction bugs
+                }
             }
         }
         .navigationBarHidden(true)
@@ -187,8 +191,12 @@ struct TrainingModeView: View {
 
 #Preview {
     let selectionVM = StorySelectionViewModel()
+    let storageService = StorageService()
+
     if let realStory = selectionVM.items.first?.story {
         TrainingModeView(viewModel: TrainingModeViewModel(story: realStory))
             .previewInterfaceOrientation(.landscapeLeft)
+            .environmentObject(storageService)
+            .environmentObject(SettingsViewModel(storageService: storageService))
     }
 }

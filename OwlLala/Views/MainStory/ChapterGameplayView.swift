@@ -22,21 +22,73 @@ struct ChapterGamePlayView: View {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
-    private var displayedPageCount: Int {
-        max(viewModel.chapter.storyPages.count + 1, 5)
+    private var totalGameplayPages: Int {
+        switch viewModel.source {
+        case .mainStory:
+            return max(viewModel.chapter.storyPages.count + 1, 1)
+
+        case .training:
+            return 1
+        }
+    }
+
+    private var currentGameplayPage: Int {
+        guard viewModel.source == .mainStory else {
+            return 1
+        }
+
+        if viewModel.isQuestionPresented {
+            return totalGameplayPages
+        }
+
+        return viewModel.currentStoryPageIndex + 1
     }
 
     var body: some View {
         ZStack {
-            Color(red: 0.937, green: 0.953, blue: 0.957)
-                .ignoresSafeArea()
+            // The gameplay layer remains independently filterable when the
+            // scrolling Stage Cleared overlay asks the navigation wrapper to
+            // step aside. `AppScreen` centralizes both settings boundaries.
+            AppScreen {
+                Color(red: 0.937, green: 0.953, blue: 0.957)
+                    .ignoresSafeArea()
+            } content: {
+                ZStack {
+                    if viewModel.source == .mainStory && !hasStartedChapter {
+                        startChapterContent
+                    } else if viewModel.isQuestionPresented {
+                        questionContent
+                    } else if let storyPage = viewModel.currentStoryPage {
+                        storyPageContent(storyPage)
+                    }
+                }
+            }
 
-            if viewModel.source == .mainStory && !hasStartedChapter {
-                startChapterContent
-            } else if viewModel.isQuestionPresented {
-                questionContent
-            } else if let storyPage = viewModel.currentStoryPage {
-                storyPageContent(storyPage)
+            // Keep the Settings modal outside gameplay's shader boundary.
+            // Its UIKit-backed scroll view owns an independent filtering layer;
+            // nesting it inside `AppScreen` makes the shader render its content
+            // as blank. The shared view model still provides live draft previews
+            // to both the gameplay behind the modal and the modal itself.
+            if isShowingSettings {
+                SettingsView(viewModel: settingsViewModel, isModal: true) {
+                    isShowingSettings = false
+                    resumeStoryVoiceOverIfNeeded()
+                }
+                .zIndex(3)
+            }
+
+            if isShowingExitConfirmation {
+                ExitConfirmation(
+                    onContinueLearning: {
+                        isShowingExitConfirmation = false
+                        resumeStoryVoiceOverIfNeeded()
+                    },
+                    onDiscardProgress: {
+                        stopStoryVoiceOver()
+                        dismiss()
+                    }
+                )
+                .zIndex(2)
             }
 
             // MARK: - Success overlay, layered on top of gameplay
@@ -48,6 +100,7 @@ struct ChapterGamePlayView: View {
                     maxStars: 3,
                     summaryText: viewModel.chapter.learningSummary.explanation,
                     onReplay: {
+                        stopStoryVoiceOver()
                         withAnimation(.easeInOut(duration: 0.3)) {
                             isShowingSuccessOverlay = false
                         }
@@ -55,31 +108,13 @@ struct ChapterGamePlayView: View {
                         hasStartedChapter = viewModel.source == .training
                     },
                     onContinue: {
+                        stopStoryVoiceOver()
                         viewModel.finishStageCleared()
                         dismiss()
                     }
                 )
                 .transition(.opacity)
                 .zIndex(1)
-            }
-
-            if isShowingExitConfirmation {
-                ExitConfirmation(
-                    onContinueLearning: {
-                        isShowingExitConfirmation = false
-                    },
-                    onDiscardProgress: {
-                        dismiss()
-                    }
-                )
-                .zIndex(2)
-            }
-
-            if isShowingSettings {
-                SettingsModalView(viewModel: settingsViewModel) {
-                    isShowingSettings = false
-                }
-                .zIndex(3)
             }
         }
         .navigationBarHidden(true)
@@ -99,9 +134,23 @@ struct ChapterGamePlayView: View {
                 return
             }
 
+            stopStoryVoiceOver()
             withAnimation(.easeInOut(duration: 0.3)) {
                 isShowingSuccessOverlay = true
             }
+        }
+        .onChange(of: viewModel.currentStoryPageIndex) { _, _ in
+            playCurrentStoryVoiceOverIfNeeded()
+        }
+        .onChange(of: viewModel.isQuestionPresented) { _, isQuestionPresented in
+            if isQuestionPresented {
+                stopStoryVoiceOver()
+            } else {
+                playCurrentStoryVoiceOverIfNeeded()
+            }
+        }
+        .onDisappear {
+            stopStoryVoiceOver()
         }
     }
 
@@ -116,25 +165,34 @@ struct ChapterGamePlayView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                     .ignoresSafeArea()
+                    .appBackgroundAdjustments()
 
                 VStack(spacing: baseUnit * 0.035) {
                     Text("Bab \(viewModel.chapter.order)")
-                        .font(.owlLargeTitle)
+                        .appScaledFont(
+                            size: AppFontSize.largeTitle,
+                            relativeTo: .largeTitle,
+                            weight: .bold
+                        )
                         .foregroundStyle(.black)
 
                     Text(viewModel.chapter.title)
-                        .font(.owlHeadline)
+                        .appScaledFont(
+                            size: AppFontSize.headline,
+                            relativeTo: .headline,
+                            weight: .medium
+                        )
                         .foregroundStyle(.black)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
 
-                    Text("\(displayedPageCount) Halaman")
-                        .font(.owlBody)
+                    Text("\(totalGameplayPages) Halaman")
+                        .appScaledFont(size: AppFontSize.body)
                         .foregroundStyle(primaryBlue)
 
                     PrimaryActionButton(title: "Mulai") {
-                        hasStartedChapter = true
+                        startChapter()
                     }
                     .accessibilityLabel("Mulai Bab \(viewModel.chapter.order)")
                 }
@@ -149,13 +207,14 @@ struct ChapterGamePlayView: View {
                 VStack {
                     HStack {
                         BackButton(style: .outlined) {
+                            stopStoryVoiceOver()
                             dismiss()
                         }
 
                         Spacer()
 
                         SettingsButton(style: .outlined) {
-                            isShowingSettings = true
+                            showSettings()
                         }
                     }
                     .padding(.horizontal, geometry.size.width * 0.045)
@@ -182,17 +241,17 @@ struct ChapterGamePlayView: View {
 
                 VStack(spacing: 0) {
                     GameplayTopBar(
-                        currentPage: viewModel.currentStoryPageIndex + 1,
-                        totalPages: displayedPageCount,
+                        currentPage: currentGameplayPage,
+                        totalPages: totalGameplayPages,
                         isVoiceOverEnabled: isVoiceOverEnabled,
                         onShowExitConfirmation: {
-                            isShowingExitConfirmation = true
+                            showExitConfirmation()
                         },
                         onToggleVoiceOver: {
-                            isVoiceOverEnabled.toggle()
+                            toggleVoiceOver()
                         },
                         onShowSettings: {
-                            isShowingSettings = true
+                            showSettings()
                         }
                     )
                     .padding(.horizontal, geometry.size.width * 0.045)
@@ -220,91 +279,285 @@ struct ChapterGamePlayView: View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 GameplayTopBar(
-                    currentPage: viewModel.chapter.storyPages.count + 1,
-                    totalPages: displayedPageCount,
+                    currentPage: currentGameplayPage,
+                    totalPages: totalGameplayPages,
                     isVoiceOverEnabled: isVoiceOverEnabled,
                     onShowExitConfirmation: {
-                        isShowingExitConfirmation = true
+                        showExitConfirmation()
                     },
                     onToggleVoiceOver: {
-                        isVoiceOverEnabled.toggle()
+                        toggleVoiceOver()
                     },
                     onShowSettings: {
-                        isShowingSettings = true
+                        showSettings()
                     }
                 )
                 .padding(.horizontal, geometry.size.width * 0.045)
                 .padding(.top, geometry.size.height * 0.045)
 
-                Spacer(minLength: geometry.size.height * 0.035)
+                Spacer(minLength: geometry.size.height * topQuestionSpacing)
 
-                HStack(alignment: .center, spacing: geometry.size.width * 0.05) {
-                    Text(viewModel.question.prompt)
-                        .font(.owlHeadline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.black)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.72)
-                        .frame(width: geometry.size.width * 0.24, alignment: .leading)
+                questionPromptArea(in: geometry)
+                    .padding(.horizontal, geometry.size.width * 0.12)
 
-                    if let promptImageAssetName = viewModel.question.promptImageAssetName {
-                        Image(promptImageAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(
-                                width: geometry.size.width * 0.16,
-                                height: geometry.size.height * 0.3
-                            )
-                            .accessibilityLabel("Bayangan benda")
-                    }
-
-                    Image("ingameOwl")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(
-                            width: geometry.size.width * 0.25,
-                            height: geometry.size.height * 0.33
-                        )
-                        .accessibilityHidden(true)
-                }
-
-                Spacer(minLength: geometry.size.height * 0.035)
+                Spacer(minLength: geometry.size.height * answerTopSpacing)
 
                 answerOptionsGrid(in: geometry)
 
-                Text("Tekan objek yang sesuai")
-                    .font(.owlBody)
-                    .fontWeight(.semibold)
+                Text(questionInstructionText)
+                    .appScaledFont(
+                        size: AppFontSize.body,
+                        weight: .semibold
+                    )
                     .foregroundStyle(primaryBlue)
-                    .padding(.top, geometry.size.height * 0.018)
+                    .padding(.top, geometry.size.height * 0.028)
                     .padding(.bottom, geometry.size.height * 0.035)
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 
-    private func answerOptionsGrid(in geometry: GeometryProxy) -> some View {
-        HStack(spacing: geometry.size.width * 0.018) {
-            ForEach(viewModel.question.answerOptions) { option in
-                AnswerOptionButton(
-                    option: option,
-                    size: CGSize(
-                        width: geometry.size.width * 0.2,
-                        height: geometry.size.height * 0.25
-                    ),
-                    maxImageSize: CGSize(
+    private var usesTwoColumnAnswerLayout: Bool {
+        viewModel.chapter.order == 2
+    }
+
+    private var usesCompactPromptImageLayout: Bool {
+        viewModel.chapter.order == 4
+    }
+
+    private var usesChapterFivePromptLayout: Bool {
+        viewModel.chapter.order == 5
+    }
+
+    private var topQuestionSpacing: CGFloat {
+        usesTwoColumnAnswerLayout ? 0.12 : 0.055
+    }
+
+    private var answerTopSpacing: CGFloat {
+        usesTwoColumnAnswerLayout ? 0.075 : 0.035
+    }
+
+    private var questionInstructionText: String {
+        usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
+    }
+
+    @ViewBuilder
+    private func questionPromptArea(in geometry: GeometryProxy) -> some View {
+        if usesChapterFivePromptLayout {
+            chapterFivePromptArea(in: geometry)
+        } else if let promptImageAssetName = viewModel.question.promptImageAssetName {
+            VStack(spacing: geometry.size.height * 0.02) {
+                Text(viewModel.question.prompt)
+                    .appScaledFont(
+                        size: AppFontSize.headline,
+                        relativeTo: .headline,
+                        weight: .bold
+                    )
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.72)
+
+                HStack(alignment: .center, spacing: geometry.size.width * 0.055) {
+                    Image(promptImageAssetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: geometry.size.width * (usesCompactPromptImageLayout ? 0.15 : 0.18),
+                            height: geometry.size.height * (usesCompactPromptImageLayout ? 0.17 : 0.24)
+                        )
+                        .accessibilityLabel("Gambar petunjuk")
+
+                    Image("ingameOwl")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: geometry.size.width * 0.12,
+                            height: geometry.size.height * 0.16
+                        )
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        } else {
+            HStack(alignment: .center, spacing: geometry.size.width * 0.025) {
+                Text(viewModel.question.prompt)
+                    .appScaledFont(
+                        size: AppFontSize.headline,
+                        relativeTo: .headline,
+                        weight: .bold
+                    )
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.72)
+                    .frame(width: geometry.size.width * 0.42, alignment: .trailing)
+
+                Image("ingameOwl")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(
                         width: geometry.size.width * 0.12,
-                        height: geometry.size.height * 0.18
-                    ),
-                    isWrong: viewModel.incorrectAnswerID == option.id,
-                    shakeTrigger: viewModel.shakeTrigger,
-                    action: {
-                        viewModel.selectAnswer(option)
-                    }
+                        height: geometry.size.height * 0.16
+                    )
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func chapterFivePromptArea(in geometry: GeometryProxy) -> some View {
+        HStack(alignment: .center, spacing: geometry.size.width * 0.03) {
+            VStack(spacing: geometry.size.height * 0.018) {
+                Text(viewModel.question.prompt)
+                    .font(.owlHeadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.68)
+
+                VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
+                    Text("Bentuk : Kotak")
+                    Text("Warna : Biru")
+                    Text("Pola : Bergaris")
+                }
+                .font(.owlBody)
+                .fontWeight(.bold)
+                .foregroundStyle(primaryBlue)
+                .multilineTextAlignment(.leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            }
+            .frame(width: geometry.size.width * 0.36)
+
+            Image("ingameOwl")
+                .resizable()
+                .scaledToFit()
+                .frame(
+                    width: geometry.size.width * 0.12,
+                    height: geometry.size.height * 0.16
                 )
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func answerOptionsGrid(in geometry: GeometryProxy) -> some View {
+        if usesTwoColumnAnswerLayout {
+            LazyVGrid(
+                columns: [
+                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035),
+                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035)
+                ],
+                spacing: geometry.size.height * 0.035
+            ) {
+                ForEach(viewModel.question.answerOptions) { option in
+                    AnswerOptionButton(
+                        option: option,
+                        size: CGSize(
+                            width: geometry.size.width * 0.32,
+                            height: geometry.size.height * 0.12
+                        ),
+                        maxImageSize: CGSize(
+                            width: geometry.size.width * 0.08,
+                            height: geometry.size.height * 0.075
+                        ),
+                        usesHorizontalContent: true,
+                        appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
+                        isWrong: viewModel.incorrectAnswerID == option.id,
+                        shakeTrigger: viewModel.shakeTrigger,
+                        action: {
+                            viewModel.selectAnswer(option)
+                        }
+                    )
+                }
+            }
+        } else {
+            HStack(spacing: geometry.size.width * 0.018) {
+                ForEach(viewModel.question.answerOptions) { option in
+                    AnswerOptionButton(
+                        option: option,
+                        size: CGSize(
+                            width: geometry.size.width * 0.18,
+                            height: geometry.size.height * 0.19
+                        ),
+                        maxImageSize: CGSize(
+                            width: geometry.size.width * 0.12,
+                            height: geometry.size.height * 0.14
+                        ),
+                        usesHorizontalContent: false,
+                        appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
+                        isWrong: viewModel.incorrectAnswerID == option.id,
+                        shakeTrigger: viewModel.shakeTrigger,
+                        action: {
+                            viewModel.selectAnswer(option)
+                        }
+                    )
+                }
             }
         }
+    }
+
+    private func shouldDimIncorrectChapterThreeOption(_ option: AnswerOption) -> Bool {
+        viewModel.chapter.order == 3 && option.id != viewModel.question.correctAnswerID
+    }
+
+    private func startChapter() {
+        hasStartedChapter = true
+
+        guard isVoiceOverEnabled,
+              viewModel.source == .mainStory,
+              let assetName = viewModel.currentStoryPage?.voiceOverAssetName
+        else {
+            return
+        }
+
+        AudioService.shared.playVoiceOver(named: assetName)
+    }
+
+    private func toggleVoiceOver() {
+        isVoiceOverEnabled.toggle()
+
+        if isVoiceOverEnabled {
+            playCurrentStoryVoiceOverIfNeeded()
+        } else {
+            stopStoryVoiceOver()
+        }
+    }
+
+    private func showExitConfirmation() {
+        stopStoryVoiceOver()
+        isShowingExitConfirmation = true
+    }
+
+    private func showSettings() {
+        stopStoryVoiceOver()
+        isShowingSettings = true
+    }
+
+    private func resumeStoryVoiceOverIfNeeded() {
+        playCurrentStoryVoiceOverIfNeeded()
+    }
+
+    private func playCurrentStoryVoiceOverIfNeeded() {
+        guard isVoiceOverEnabled,
+              viewModel.source == .mainStory,
+              hasStartedChapter,
+              !viewModel.isQuestionPresented,
+              !isShowingExitConfirmation,
+              !isShowingSettings,
+              let assetName = viewModel.currentStoryPage?.voiceOverAssetName
+        else {
+            return
+        }
+
+        AudioService.shared.playVoiceOver(named: assetName)
+    }
+
+    private func stopStoryVoiceOver() {
+        AudioService.shared.stopVoiceOver()
     }
 
 }
@@ -314,6 +567,8 @@ private struct AnswerOptionButton: View {
     let option: AnswerOption
     let size: CGSize
     let maxImageSize: CGSize
+    let usesHorizontalContent: Bool
+    let appliesLowContrastOverlay: Bool
     let isWrong: Bool
     let shakeTrigger: Int
     let action: () -> Void
@@ -328,23 +583,15 @@ private struct AnswerOptionButton: View {
                             .stroke(primaryBlue, lineWidth: 5)
                     )
 
-                VStack(spacing: 8) {
-                    if let imageAssetName = option.imageAssetName {
-                        Image(imageAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: maxImageSize.width, maxHeight: maxImageSize.height)
-                    }
+                optionContent
+                    .padding(usesHorizontalContent ? 16 : 12)
 
-                    if let text = option.text {
-                        Text(text)
-                            .font(.owlBody)
-                            .foregroundStyle(.black)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
+                if appliesLowContrastOverlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.white.opacity(0.65))
+                        .padding(4)
+                        .allowsHitTesting(false)
                 }
-                .padding(12)
             }
             .frame(width: size.width, height: size.height)
         }
@@ -355,6 +602,48 @@ private struct AnswerOptionButton: View {
             cornerRadius: 18
         )
         .accessibilityLabel(option.text ?? "Pilihan jawaban")
+    }
+
+    @ViewBuilder
+    private var optionContent: some View {
+        if usesHorizontalContent {
+            HStack(spacing: 18) {
+                optionImage
+
+                optionText
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            VStack(spacing: 8) {
+                optionImage
+                optionText
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var optionImage: some View {
+        if let imageAssetName = option.imageAssetName {
+            Image(imageAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: maxImageSize.width, maxHeight: maxImageSize.height)
+        }
+    }
+
+    @ViewBuilder
+    private var optionText: some View {
+        if let text = option.text {
+            Text(text)
+                .appScaledFont(
+                    size: AppFontSize.body,
+                    weight: .bold
+                )
+                .foregroundStyle(primaryBlue)
+                .multilineTextAlignment(usesHorizontalContent ? .leading : .center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.65)
+        }
     }
 }
 
@@ -382,7 +671,7 @@ private struct AnswerOptionButton: View {
                             id: "chapter-1-page-2",
                             order: 2,
                             illustrationAssetName: "page1-2",
-                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan bentuk, bukan warna.",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari lokasi benda berdasarkan bentuk, bukan warna.",
                             voiceOverAssetName: "chapter1-2"
                         ),
                         StoryPage(

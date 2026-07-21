@@ -62,7 +62,7 @@ struct StoryNarrationBlock: View {
 
     private var narrationText: some View {
         Text(narration)
-            .font(.system(size: 28, weight: .regular, design: .rounded))
+            .appScaledFont(size: 28)
             .foregroundStyle(.black)
             .multilineTextAlignment(.center)
             .lineLimit(3)

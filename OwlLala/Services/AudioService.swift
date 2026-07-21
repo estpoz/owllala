@@ -31,7 +31,7 @@ import Foundation
 
 // MARK: - Audio Service
 
-/// Plays short, fire-and-forget gameplay sounds.
+/// Plays short gameplay sounds and story voice-over narration.
 ///
 /// A shared instance keeps one `AVAudioPlayer` cached per sound so repeated
 /// plays (e.g. several wrong answers) don't re-read the file from disk.
@@ -43,6 +43,7 @@ final class AudioService {
 
     /// Cached players, keyed by sound name.
     private var players: [String: AVAudioPlayer] = [:]
+    private var voiceOverPlayer: AVAudioPlayer?
 
     /// File extensions to try, in order, when locating a sound in the bundle.
     private let supportedExtensions = ["mp3", "wav", "m4a"]
@@ -59,8 +60,18 @@ final class AudioService {
     private let searchSubdirectories = [
         "",
         "Audios/Immediate Feedback",
+        "Audios/Chapter 1",
+        "Audios/Chapter 2",
+        "Audios/Chapter 3",
+        "Audios/Chapter 4",
+        "Audios/Chapter 5",
         "Audios",
-        "Immediate Feedback"
+        "Immediate Feedback",
+        "Chapter 1",
+        "Chapter 2",
+        "Chapter 3",
+        "Chapter 4",
+        "Chapter 5"
     ]
 
     // MARK: Gameplay Sounds
@@ -87,6 +98,29 @@ final class AudioService {
     /// vibration. Wired to the imported "Oooo Owwww" asset.
     func playWrongAnswerSound() {
         play(candidates: ["Oooo Owwww", "Wrong Sound", "wrong"])
+    }
+
+    /// Plays one story-page voice-over, replacing any narration currently
+    /// playing. Feedback sounds use their own cached players and continue to
+    /// work independently.
+    func playVoiceOver(named name: String) {
+        stopVoiceOver()
+
+        guard let player = makePlayer(candidates: [name]) else {
+            #if DEBUG
+            print("AudioService: voice-over \(name) not found in bundle — skipping playback.")
+            #endif
+            return
+        }
+
+        voiceOverPlayer = player
+        player.currentTime = 0
+        player.play()
+    }
+
+    func stopVoiceOver() {
+        voiceOverPlayer?.stop()
+        voiceOverPlayer = nil
     }
 
     // MARK: Playback

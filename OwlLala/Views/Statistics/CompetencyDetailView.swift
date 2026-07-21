@@ -31,7 +31,6 @@ struct CompetencyDetailView: View {
     @ScaledMetric(relativeTo: .body) private var bulletFontSize: CGFloat = 17
     @ScaledMetric(relativeTo: .body) private var scoreFontSize: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var starFontSize: CGFloat = 18
-    @ScaledMetric(relativeTo: .body) private var iconFontSize: CGFloat = 32
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var closeIconSize: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var panelPadding: CGFloat = 16
@@ -45,7 +44,7 @@ struct CompetencyDetailView: View {
             let horizontalPadding = max(proxy.size.width * 0.06, 32)
             let verticalPadding = max(proxy.size.height * 0.045, 24)
 
-            ScrollView {
+            AppFilteredScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
@@ -103,8 +102,6 @@ struct CompetencyDetailView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
-            competencyIcon
-
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.competency.statisticsDetailName)
                     .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
@@ -137,14 +134,6 @@ struct CompetencyDetailView: View {
         }
     }
 
-    private var competencyIcon: some View {
-        Image(systemName: item.competency.statisticsIconName)
-            .font(.system(size: iconFontSize, weight: .bold))
-            .foregroundStyle(item.competency.statisticsIconForeground)
-            .frame(width: iconSize, height: iconSize)
-            .background(Circle().fill(item.competency.statisticsIconBackground))
-            .accessibilityHidden(true)
-    }
 
     // MARK: Score
 

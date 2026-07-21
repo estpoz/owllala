@@ -18,26 +18,18 @@ struct MainMenuView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
 
     @StateObject private var viewModel = MainMenuViewModel()
-    
-    /// A temporary internal view model reference used to resolve Story 1 parameters
-    /// for Training Mode navigation routing safely without static mock leaks.
-    @StateObject private var helperCatalog = StorySelectionViewModel()
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 let baseUnit = min(geometry.size.width, geometry.size.height)
 
-                ZStack {
-                    // Designated background layer: only this dims with the
-                    // "Kecerahan Latar Belakang" setting — the owl, buttons,
-                    // and text stay at full brightness (Settings model rule).
+                AppScreen {
                     Image("bgPattern")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geometry.size.width, height: geometry.size.height)
-                        .appBackgroundBrightness()
-
+                } content: {
                     HStack(spacing: 50) {
                         OwlMascotView()
                             .frame(
@@ -64,58 +56,54 @@ struct MainMenuView: View {
                 }
             }
             .ignoresSafeArea()
-            // Applied INSIDE the NavigationStack (per screen), never around it:
-            // the stack is UIKit-backed and the color shader can't rasterize
-            // it (yellow "no entry" placeholder). The menu itself is pure
-            // SwiftUI, so the full adjustments are safe here.
-            .appDisplayAdjustments()
             .navigationDestination(item: $viewModel.destination) { destination in
+                // Choke point: every destination automatically gets the display
+                // adjustments — screens need zero adjustment lines themselves.
                 destinationView(for: destination)
+                    .autoDisplayAdjustments()
             }
             .navigationBarBackButtonHidden(true)
         }
     }
 
     @ViewBuilder
+    // NOTE: destinations are NOT wrapped in appDisplayAdjustments here — every
+    // screen applies its own adjustments at its root (see DisplayFilters.swift).
+    // Wrapping here too would run the color matrix twice, and pushed screens
+    // (chapter selection → gameplay → stage cleared) would escape a wrapper on
+    // the router anyway.
     private func destinationView(for destination: MainMenuViewModel.Destination) -> some View {
         switch destination {
         case .mainStory:
             // Custom structural wrapper that handles clean navigation state routing for the main book catalog selection
             StorySelectionRouterView(mainMenuViewModel: viewModel)
                 .environmentObject(storageService)
-                .appDisplayAdjustments()
         case .trainingMode:
-            // Directly paths to Training Mode using the catalog data instance payload, skipping book selection layout bounds
-            if let storyOne = helperCatalog.items.first?.story {
+            // Training Mode launches from the same static story catalog used by Statistics and story selection.
+            if let storyOne = StoryCatalog.stories.first(where: { $0.isAvailable }) {
                 TrainingModeRouterView(story: storyOne, storageService: storageService)
-                    .appDisplayAdjustments()
             } else {
                 Text("Error Loading Content")
                     .appDisplayAdjustments()
             }
         case .statistics:
-            // Uses the app's shared storage so real progress is shown.
-            // Color filter skipped: StatisticsView contains a ScrollView
-            // (UIKit-backed), which the shader can't rasterize — it still
-            // gets brightness and text size.
+            // Combines shared persisted progress with the static story catalog for competency mapping.
             StatisticsView(
                 viewModel: StatisticsViewModel(
-                    stories: [],
+                    stories: StoryCatalog.stories,
                     storageService: storageService
                 ),
                 onBack: {
                     viewModel.clearDestination()
                 }
             )
-            .appDisplayAdjustments(includeColorFilter: false)
         case .settings:
             // Uses the SHARED settings view model (not a new store), so edits
             // preview and persist app-wide; back/Simpan pops by clearing the
-            // destination. Pure SwiftUI, so the full adjustments are safe.
+            // destination.
             SettingsView(viewModel: settingsViewModel) {
                 viewModel.clearDestination()
             }
-            .appDisplayAdjustments()
         }
     }
 
@@ -143,7 +131,9 @@ private struct StorySelectionRouterView: View {
     var body: some View {
         StorySelectionView(viewModel: storySelectionVM)
             .navigationDestination(item: $storySelectionVM.selectedStory) { story in
+                // Choke point: pushed screens inherit adjustments automatically.
                 ChapterSelectionRouterView(story: story, storageService: storageService)
+                    .autoDisplayAdjustments()
             }
     }
 }
@@ -167,6 +157,7 @@ private struct ChapterSelectionRouterView: View {
     var body: some View {
         ChapterSelectionView(viewModel: chapterSelectionVM)
             .navigationDestination(item: $chapterSelectionVM.selectedChapter) { chapter in
+                // Choke point: pushed screens inherit adjustments automatically.
                 ChapterGamePlayView(
                     viewModel: ChapterGameplayViewModel(
                         chapter: chapter,
@@ -175,6 +166,7 @@ private struct ChapterSelectionRouterView: View {
                         storageService: storageService
                     )
                 )
+                .autoDisplayAdjustments()
             }
     }
 
@@ -209,6 +201,7 @@ private struct TrainingModeRouterView: View {
     var body: some View {
         TrainingModeView(viewModel: trainingModeVM)
             .navigationDestination(item: $trainingModeVM.selectedChapter) { chapter in
+                // Choke point: pushed screens inherit adjustments automatically.
                 ChapterGamePlayView(
                     viewModel: ChapterGameplayViewModel(
                         chapter: chapter,
@@ -216,6 +209,7 @@ private struct TrainingModeRouterView: View {
                         storageService: storageService
                     )
                 )
+                .autoDisplayAdjustments()
             }
     }
 }
