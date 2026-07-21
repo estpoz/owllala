@@ -130,7 +130,7 @@ struct ChapterGamePlayView: View {
             }
         }
         .onAppear {
-            if viewModel.source == .training {
+            if viewModel.destination == nil {
                 startBackgroundMusic()
             }
         }
@@ -153,10 +153,7 @@ struct ChapterGamePlayView: View {
                 }
                 viewModel.resetForReplay()
                 hasStartedChapter = viewModel.source == .training
-
-                if viewModel.source == .training {
-                    startBackgroundMusic()
-                }
+                startBackgroundMusic()
             },
             onContinue: {
                 stopGameplayAudio()
@@ -600,7 +597,7 @@ struct ChapterGamePlayView: View {
 
     private func resumeBackgroundMusicIfNeeded() {
         guard !isShowingSuccessOverlay,
-              viewModel.source == .training || hasStartedChapter
+              viewModel.destination == nil
         else {
             return
         }
@@ -610,7 +607,7 @@ struct ChapterGamePlayView: View {
 
     private func stopGameplayAudio() {
         stopStoryVoiceOver()
-        AudioService.shared.stopBackgroundMusic()
+        AudioService.shared.restoreBackgroundMusicForApp()
     }
 
 }
