@@ -37,6 +37,8 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .title3) private var detailTitleFontSize: CGFloat = 20
     @ScaledMetric(relativeTo: .body) private var detailBodyFontSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var detailPanelPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
+    @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
 
     // MARK: Body
 
@@ -194,27 +196,42 @@ struct StatisticsView: View {
         contentSpacing: CGFloat,
         headerHeight: CGFloat
     ) -> some View {
-        AppFilteredScrollView {
-            VStack(spacing: contentSpacing) {
-                header(width: size.width)
-                    .frame(height: headerHeight)
+        ZStack(alignment: .topLeading) {
+            AppFilteredScrollView {
+                VStack(spacing: contentSpacing) {
+                    scrollingTitle(width: size.width)
+                        .frame(height: headerHeight)
 
-                competencyList
-                    .frame(maxWidth: .infinity)
+                    competencyList
+                        .frame(maxWidth: .infinity)
 
-                selectedDetailPanel
-                    .frame(maxWidth: .infinity)
+                    selectedDetailPanel
+                        .frame(maxWidth: .infinity)
 
-                summaryPanel
+                    summaryPanel
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .frame(maxWidth: .infinity)
+
+            stickyBackButton
+                .padding(min(navigationPadding, 28))
+                .appAdaptiveColorFilter()
         }
         .background(StatisticsBackground())
     }
 
     // MARK: Header
+
+    private var stickyBackButton: some View {
+        CircleIconButton(
+            systemImageName: "arrow.left",
+            accessibilityLabel: "Kembali",
+            action: goBack
+        )
+        .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
+    }
 
     private func header(width: CGFloat) -> some View {
         HStack(spacing: 28) {
@@ -236,6 +253,16 @@ struct StatisticsView: View {
                 .frame(width: 112, height: 112)
                 .accessibilityHidden(true)
         }
+    }
+
+    private func scrollingTitle(width: CGFloat) -> some View {
+        Text("Hasil Perkembangan")
+            .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold, design: .rounded))
+            .foregroundStyle(.black)
+            .lineLimit(1)
+            .minimumScaleFactor(0.62)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func goBack() {
