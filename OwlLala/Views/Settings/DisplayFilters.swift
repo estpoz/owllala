@@ -16,9 +16,10 @@
 //
 //  WHERE IT IS USED
 //  ----------------
-//  `ContentView` applies `.displayAdjustments(for:)` to the WHOLE screen, so
-//  both the brightness dim and the color filter cover everything the child
-//  sees. Future screens should do the same at their root.
+//  `ContentView` injects one shared settings source. Navigation destinations
+//  are adjusted at centralized choke points, standalone screens use
+//  `AppScreen`, and scrolling screens use `AppScrollScreen` or
+//  `AppFilteredScrollView`. Backgrounds use `appBackgroundAdjustments()`.
 //
 //  IMPORTANT LIMITATION (and how this app satisfies it)
 //  -----------------------------------------------------
@@ -38,6 +39,22 @@
 //
 
 import SwiftUI
+
+// MARK: - Display Filter Scope
+
+/// Tracks whether an ancestor already owns the screen-level color filter.
+/// Descendant backgrounds and scroll content use this to avoid applying the
+/// simulation matrix twice.
+private struct AppColorFilterIsAppliedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private extension EnvironmentValues {
+    var appColorFilterIsApplied: Bool {
+        get { self[AppColorFilterIsAppliedKey.self] }
+        set { self[AppColorFilterIsAppliedKey.self] = newValue }
+    }
+}
 
 // MARK: - View Modifiers
 
@@ -115,9 +132,8 @@ extension View {
     /// Scales the app's text according to the "Ukuran Teks" setting by raising
     /// the subtree's Dynamic Type size.
     ///
-    /// `textScale == 1.0` leaves the system size untouched; larger values map
-    /// to progressively larger Dynamic Type sizes, which all text using
-    /// `@ScaledMetric`/text styles follows automatically.
+    /// Every saved choice maps directly to an iPadOS Dynamic Type category,
+    /// which all text using `@ScaledMetric` or text styles follows.
     ///
     /// - Parameter settings: The settings whose text scale to apply.
     /// - Returns: The view with the adjusted type size.
@@ -128,9 +144,7 @@ extension View {
     /// Teks slider snap back while dragging).
     func textSizeAdjustment(for settings: Settings) -> some View {
         transformEnvironment(\.dynamicTypeSize) { dynamicTypeSize in
-            if let preferred = settings.preferredDynamicTypeSize {
-                dynamicTypeSize = preferred
-            }
+            dynamicTypeSize = settings.preferredDynamicTypeSize
         }
     }
 }
@@ -139,24 +153,36 @@ extension View {
 
 extension Settings {
 
-    /// The Dynamic Type size the app should render at for the current
-    /// `textScale`, or `nil` when the system size should be left untouched
-    /// (`textScale` ≈ 1.0).
+    /// The native Dynamic Type size matching the saved app preference.
     ///
     /// Lives here rather than in the model because `DynamicTypeSize` is a
     /// SwiftUI type and the Models layer stays UI-framework-free.
-    var preferredDynamicTypeSize: DynamicTypeSize? {
-        switch textScale {
-        case ..<1.05:
-            return nil
-        case ..<1.15:
+    var preferredDynamicTypeSize: DynamicTypeSize {
+        switch textSize {
+        case .extraSmall:
+            return .xSmall
+        case .small:
+            return .small
+        case .medium:
+            return .medium
+        case .large:
+            return .large
+        case .extraLarge:
             return .xLarge
-        case ..<1.25:
+        case .extraExtraLarge:
             return .xxLarge
-        case ..<1.35:
+        case .extraExtraExtraLarge:
             return .xxxLarge
-        default:
+        case .accessibility1:
             return .accessibility1
+        case .accessibility2:
+            return .accessibility2
+        case .accessibility3:
+            return .accessibility3
+        case .accessibility4:
+            return .accessibility4
+        case .accessibility5:
+            return .accessibility5
         }
     }
 }
@@ -195,12 +221,33 @@ private struct AppDisplayAdjustments: ViewModifier {
             content
                 .colorVisionFilter(settings.colorVisionSimulation)
                 .textSizeAdjustment(for: settings)
+                .environment(\.appColorFilterIsApplied, true)
         } else {
             // Text size is environment based, so it is always safe — only the
             // shader needs rasterizable content.
             content
                 .textSizeAdjustment(for: settings)
+                .environment(\.appColorFilterIsApplied, false)
         }
+    }
+}
+
+/// Applies the current color filter only when no ancestor already owns it.
+/// This is used for pure-SwiftUI islands inside screens whose `ScrollView`
+/// prevents a shader from being attached at the screen root.
+private struct AppAdaptiveColorFilter: ViewModifier {
+
+    @Environment(\.appColorFilterIsApplied) private var isAppliedByAncestor
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .colorVisionFilter(
+                isAppliedByAncestor
+                    ? nil
+                    : settingsViewModel.activeDisplaySettings.colorVisionSimulation
+            )
+            .environment(\.appColorFilterIsApplied, true)
     }
 }
 
@@ -210,11 +257,11 @@ private struct AppDisplayAdjustments: ViewModifier {
 /// for DESIGNATED BACKGROUND layers only, per the `Settings` model rule:
 /// brightness must not darken foreground objects, controls, or text.
 ///
-/// Attach it to each screen's background view (and the settings preview
-/// image, which exists to demonstrate the effect):
+/// Used internally by `appBackgroundAdjustments()` so feature screens cannot
+/// accidentally apply brightness without also participating in color filtering.
 ///
 ///     MainMenuBackground()
-///         .appBackgroundBrightness()
+///         .appBackgroundAdjustments()
 private struct AppBackgroundBrightness: ViewModifier {
 
     /// The shared settings logic, injected via `environmentObject`.
@@ -229,24 +276,36 @@ private struct AppBackgroundBrightness: ViewModifier {
 
 extension View {
 
-    /// Dims this view per the "Kecerahan Latar Belakang" setting, reading the
-    /// shared `SettingsViewModel` from the environment.
-    ///
-    /// Apply to designated BACKGROUND views only — foreground content
-    /// (controls, text, illustrations) must stay at full brightness, per the
-    /// `Settings` model rule.
-    ///
-    /// - Returns: The dimmed background view.
-    func appBackgroundBrightness() -> some View {
+    /// Applies every setting that belongs to a screen background: background
+    /// brightness plus the active color-vision simulation. The adaptive color
+    /// filter guarantees the matrix runs exactly once even when the screen is
+    /// already wrapped by the navigation-level filter.
+    func appBackgroundAdjustments() -> some View {
         modifier(AppBackgroundBrightness())
+            .modifier(AppAdaptiveColorFilter())
+    }
+
+    /// Applies the active color simulation to a pure-SwiftUI subtree only when
+    /// an ancestor has not already applied it. Use this for fixed content next
+    /// to an `AppFilteredScrollView`.
+    func appAdaptiveColorFilter() -> some View {
+        modifier(AppAdaptiveColorFilter())
+    }
+
+    /// Starts a new color-filter ownership boundary for content presented by
+    /// UIKit outside the source screen's render layer, such as a transparent
+    /// `fullScreenCover`. The presented Settings surface can then apply its
+    /// own standard or accessibility-safe filtering exactly once.
+    func appIndependentColorFilterScope() -> some View {
+        environment(\.appColorFilterIsApplied, false)
     }
 }
 
 extension View {
 
-    /// Applies the app's current display settings (brightness, color filter,
-    /// text size) to this view, using the `SettingsViewModel` from the
-    /// environment.
+    /// Applies the app's current color filter and text size to this view, using
+    /// the `SettingsViewModel` from the environment. Background brightness is
+    /// centralized separately by `AppScreen` / `appBackgroundAdjustments()`.
     ///
     /// Apply this at EACH SCREEN'S root, inside any `NavigationStack` — never
     /// around one. Navigation containers are UIKit-backed, and wrapping them in
@@ -266,6 +325,115 @@ extension View {
     /// - Returns: The view with the app-wide adjustments applied.
     func appDisplayAdjustments(includeColorFilter: Bool = true) -> some View {
         modifier(AppDisplayAdjustments(includesColorFilter: includeColorFilter))
+    }
+}
+
+// MARK: - Standard Screen Containers
+
+/// The standard root for a new non-scrolling screen. It centralizes background
+/// brightness and color filtering so feature views contain no settings logic.
+/// Screens routed through an already-adjusted navigation destination remain
+/// safe because the adaptive filter prevents double application.
+struct AppScreen<Background: View, Content: View>: View {
+
+    private let background: Background
+    private let content: Content
+
+    init(
+        @ViewBuilder background: () -> Background,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.background = background()
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack {
+            background
+                .appBackgroundAdjustments()
+
+            content
+        }
+        .appAdaptiveColorFilter()
+    }
+}
+
+/// A centralized scroll container for screens that participate in the app's
+/// display settings. The UIKit-backed `ScrollView` stays outside the shader;
+/// its pure SwiftUI content is filtered inside, and the navigation layer is
+/// notified not to wrap the scroll view itself.
+struct AppFilteredScrollView<Content: View>: View {
+
+    private let axes: Axis.Set
+    private let showsIndicators: Bool
+    private let appliesColorFilter: Bool
+    private let content: Content
+
+    init(
+        _ axes: Axis.Set = .vertical,
+        showsIndicators: Bool = true,
+        appliesColorFilter: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.axes = axes
+        self.showsIndicators = showsIndicators
+        self.appliesColorFilter = appliesColorFilter
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView(axes, showsIndicators: showsIndicators) {
+            Group {
+                if appliesColorFilter {
+                    content
+                        .appAdaptiveColorFilter()
+                } else {
+                    content
+                }
+            }
+        }
+        .screenContainsScrollingContent()
+    }
+}
+
+/// The standard root for a new scrolling screen. Future scrolling screens use
+/// this container instead of composing a raw `ScrollView`, which guarantees
+/// their background and scroll content inherit the shared saved settings.
+struct AppScrollScreen<Background: View, Content: View>: View {
+
+    private let axes: Axis.Set
+    private let showsIndicators: Bool
+    private let appliesColorFilterToContent: Bool
+    private let background: Background
+    private let content: Content
+
+    init(
+        _ axes: Axis.Set = .vertical,
+        showsIndicators: Bool = true,
+        appliesColorFilterToContent: Bool = true,
+        @ViewBuilder background: () -> Background,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.axes = axes
+        self.showsIndicators = showsIndicators
+        self.appliesColorFilterToContent = appliesColorFilterToContent
+        self.background = background()
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack {
+            background
+                .appBackgroundAdjustments()
+
+            AppFilteredScrollView(
+                axes,
+                showsIndicators: showsIndicators,
+                appliesColorFilter: appliesColorFilterToContent
+            ) {
+                content
+            }
+        }
     }
 }
 
@@ -309,9 +477,9 @@ extension View {
     ///             .autoDisplayAdjustments()
     ///     }
     ///
-    /// Screens containing a `ScrollView` (or other UIKit-backed views) declare
-    /// it once with `screenContainsScrollingContent()` and the shader is
-    /// skipped for them automatically — brightness and text size still apply.
+    /// `AppFilteredScrollView` declares UIKit-backed scrolling automatically,
+    /// so the outer shader steps aside while its inner SwiftUI content and
+    /// adjusted background continue to receive every saved setting.
     ///
     /// Do NOT also apply `appDisplayAdjustments()` inside a screen presented
     /// through a wrapped choke point — the color matrix would run twice.
@@ -321,17 +489,10 @@ extension View {
         modifier(AutoDisplayAdjustments())
     }
 
-    /// Declares that this screen contains scrolling (UIKit-backed) content, so
-    /// the automatic adjustments at the navigation layer skip the color shader
-    /// for it. One line, on the screen's root:
-    ///
-    ///     var body: some View {
-    ///         ScrollView { ... }
-    ///             .screenContainsScrollingContent()
-    ///     }
-    ///
-    /// - Returns: The view carrying the declaration.
-    func screenContainsScrollingContent() -> some View {
+    /// Internal declaration used by `AppFilteredScrollView`. Feature screens
+    /// should use the centralized scroll container instead of calling this
+    /// method or constructing a raw `ScrollView`.
+    fileprivate func screenContainsScrollingContent() -> some View {
         preference(key: SkipColorFilterPreferenceKey.self, value: true)
     }
 
@@ -360,9 +521,9 @@ private struct AppTextSizeAdjustment: ViewModifier {
 
 // MARK: - Standard Backgrounds (Self-Dimming)
 
-/// The app's standard screen backgrounds, with the Kecerahan Latar Belakang
-/// dim BUILT IN — a new screen that uses `AppBackground` never has to remember
-/// `appBackgroundBrightness()`:
+/// The app's standard screen backgrounds, with brightness and adaptive color
+/// filtering built in. A new screen that uses `AppBackground` never has to
+/// wire settings modifiers itself:
 ///
 ///     ZStack {
 ///         AppBackground(style: .pattern)   // dims automatically
@@ -394,7 +555,7 @@ struct AppBackground: View {
             }
         }
         .ignoresSafeArea()
-        .appBackgroundBrightness()
+        .appBackgroundAdjustments()
     }
 }
 

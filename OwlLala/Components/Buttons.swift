@@ -7,14 +7,15 @@
 //  OVERVIEW
 //  --------
 //  Small reusable buttons. The settings *content* does not live here: its
-//  logic is in `ViewModels/SettingsViewModel.swift` and its screens are in
-//  `Views/Settings/SettingsView.swift` (main menu) and
-//  `Views/Settings/SettingsModalView.swift` (gameplay overlay).
+//  logic is in `ViewModels/SettingsViewModel.swift` and its single screen is
+//  `Views/Settings/SettingsView.swift` (full page from the main menu, or a
+//  modal card with `isModal: true` everywhere else).
 //
 //  WHAT'S IN THIS FILE
 //  -------------------
 //  • `CircleIconButton`    — round icon button (back / close / gear).
-//  • `PrimaryActionButton` — filled blue "Simpan"-style confirmation button.
+//  • `PrimaryActionButton` — filled blue text confirmation button.
+//  • `SaveChangesButton`   — circular checkmark for draft-based save flows.
 //  • `SettingsButton`      — the gear entry point into Settings.
 //  • `GameplayTopBar`      — story-page exit, page count, sound, settings controls.
 //
@@ -23,8 +24,8 @@
 //  `SettingsButton` only *triggers* — the host presents the settings screen as
 //  an in-tree overlay (see `MainMenuView` for the pattern). Presentation must
 //  stay in-tree (no `fullScreenCover`): covers render in a separate layer that
-//  escapes the root `displayAdjustments(for:)` in `ContentView`, which is what
-//  applies brightness and the color filter to every view in the app.
+//  escapes the centralized screen/scroll adjustment boundaries, which apply
+//  the shared brightness and color settings throughout the app.
 //
 
 import SwiftUI
@@ -137,6 +138,23 @@ struct BackButton: View {
     }
 }
 
+// MARK: - Close Button
+
+struct CloseButton: View {
+
+    var style: CircleIconButtonStyle = .filled
+    let action: () -> Void
+
+    var body: some View {
+        CircleIconButton(
+            systemImageName: "xmark",
+            accessibilityLabel: "Tutup",
+            style: style,
+            action: action
+        )
+    }
+}
+
 // MARK: - Primary Action Button
 
 /// The filled, rounded-rectangle blue button used for the main confirmation
@@ -174,6 +192,97 @@ struct PrimaryActionButton: View {
     }
 }
 
+// MARK: - Save Changes Button
+
+/// A reusable circular save control for screens that edit a draft value.
+///
+/// The checkmark remains visible in both states: grey and disabled when the
+/// draft matches its saved value, then OwlLala blue and actionable as soon as
+/// any saveable change occurs.
+struct SaveChangesButton: View {
+
+    /// Whether the edited draft differs from its saved value.
+    let hasChanges: Bool
+
+    /// Invoked only while `hasChanges` is `true`.
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 46, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 98, height: 98)
+                .background(
+                    hasChanges ? AppColor.primary : Color(white: 0.82),
+                    in: Circle()
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!hasChanges)
+        .accessibilityLabel("Simpan perubahan")
+        .accessibilityValue(hasChanges ? "Ada perubahan" : "Tidak ada perubahan")
+        .accessibilityHint(
+            hasChanges
+                ? "Simpan pengaturan yang telah diubah"
+                : "Ubah pengaturan untuk mengaktifkan tombol simpan"
+        )
+        .animation(.easeInOut(duration: 0.18), value: hasChanges)
+// MARK: - Stage Cleared Buttons
+
+struct StageClearedIconButton: View {
+
+    let systemImageName: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 100
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 55
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImageName)
+                .font(.system(size: iconSize, weight: .bold))
+                .foregroundStyle(primaryBlue)
+                .frame(width: diameter, height: diameter)
+                .background(.white.opacity(0.001), in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(primaryBlue, lineWidth: max(6, diameter * 0.06))
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+struct StageReplayButton: View {
+
+    let action: () -> Void
+
+    var body: some View {
+        StageClearedIconButton(
+            systemImageName: "arrow.counterclockwise",
+            accessibilityLabel: "Ulangi bab",
+            action: action
+        )
+    }
+}
+
+struct StageContinueButton: View {
+
+    let action: () -> Void
+
+    var body: some View {
+        StageClearedIconButton(
+            systemImageName: "play.fill",
+            accessibilityLabel: "Lanjutkan",
+            action: action
+        )
+    }
+}
+
 // MARK: - Settings Button
 
 /// The gear button that opens Settings.
@@ -188,7 +297,7 @@ struct PrimaryActionButton: View {
 ///
 ///     // In the screen's ZStack:
 ///     if isShowingSettings {
-///         SettingsModalView(viewModel: settingsViewModel) {
+///         SettingsView(viewModel: settingsViewModel, isModal: true) {
 ///             isShowingSettings = false
 ///         }
 ///     }
@@ -278,7 +387,11 @@ struct GameplayTopBar: View {
                 .accessibilityHidden(true)
 
             Text("\(displayedCurrentPage) / \(displayedTotalPages)")
-                .font(.system(size: indicatorTextSize, weight: .medium, design: .rounded))
+                .appScaledFont(
+                    size: indicatorTextSize,
+                    relativeTo: .title,
+                    weight: .medium
+                )
                 .foregroundStyle(primaryBlue)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -318,11 +431,20 @@ private struct GameplayTopBarButton: View {
         HStack(spacing: 24) {
             BackButton(style: .filled) {}
             BackButton(style: .outlined) {}
+            CloseButton(style: .filled) {}
+            CloseButton(style: .outlined) {}
             SettingsButton(style: .filled) {}
             SettingsButton(style: .outlined) {}
+            StageReplayButton(){}
+            StageContinueButton(){}
         }
 
         PrimaryActionButton(title: "Simpan") {}
+
+        HStack(spacing: 24) {
+            SaveChangesButton(hasChanges: false) {}
+            SaveChangesButton(hasChanges: true) {}
+        }
 
         GameplayTopBar(
             currentPage: 3,

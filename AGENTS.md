@@ -211,10 +211,10 @@ It must expose:
 
 Competency mapping:
 
-- No completed game: 0/5.
-- Best one star: 1/5.
-- Best two stars: 3/5.
-- Best three stars: 5/5.
+- No completed game: 0/3.
+- Best one star: 1/3.
+- Best two stars: 2/3.
+- Best three stars: 3/3.
 
 Static competency guidance content must not be stored in `UserStats`.
 

@@ -10,117 +10,165 @@ import SwiftUI
 struct SplashScreenView: View {
 
     /// Called automatically after the splash animation has had time to play.
-    /// Hook this up to your navigation (e.g. flip a state var to show MainMenuView).
     var onFinished: () -> Void = {}
 
-    @State private var hasAppeared = false
-    @State private var isFloating = false
-    @State private var sparklesActive = false
+    @State private var visibleCharacterCount = 0
+    @State private var isOwlVisible = false
+    @State private var isOwlWinking = false
+    @State private var didFinish = false
 
-    private let autoDismissDelay: Double = 2.4
-
-    private let sparkles: [Sparkle] = [
-        Sparkle(x: 0.20, y: 0.22, size: 22, symbol: "sparkle", delay: 0.0, duration: 1.1),
-        Sparkle(x: 0.80, y: 0.18, size: 16, symbol: "star.fill", delay: 0.3, duration: 1.4),
-        Sparkle(x: 0.72, y: 0.62, size: 20, symbol: "sparkle", delay: 0.6, duration: 1.2),
-        Sparkle(x: 0.14, y: 0.68, size: 14, symbol: "star.fill", delay: 0.9, duration: 1.5),
-        Sparkle(x: 0.30, y: 0.80, size: 18, symbol: "sparkle", delay: 0.45, duration: 1.3),
-        Sparkle(x: 0.86, y: 0.42, size: 24, symbol: "sparkle", delay: 0.15, duration: 1.6),
-        Sparkle(x: 0.08, y: 0.42, size: 16, symbol: "star.fill", delay: 0.75, duration: 1.25),
-    ]
+    private let splashLetters = SplashLetter.owllala
+    private let letterInterval: UInt64 = 220_000_000
+    private let owlHoldDuration: UInt64 = 1_350_000_000
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                // Designated background layer: dims with Kecerahan Latar
-                // Belakang while the mascot and sparkles stay full-bright.
+            let baseUnit = min(geometry.size.width, geometry.size.height)
+
+            AppScreen {
                 SplashBackground()
-                    .appBackgroundBrightness()
+            } content: {
+                ZStack{
+                    AnimatedSplashTitle(
+                        letters: splashLetters,
+                        visibleCharacterCount: visibleCharacterCount,
+                        letterHeight: baseUnit * 0.16
+                    )
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.34)
 
-                let mascotSize = geometry.size.width * 0.7
-
-                ZStack {
-                    ForEach(sparkles) { sparkle in
-                        SparkleView(sparkle: sparkle, isActive: sparklesActive)
-                    }
-
-                    Image("splashScreen")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: mascotSize)
-                        .shadow(color: Color(red: 0.02, green: 0.31, blue: 0.70).opacity(0.22), radius: 28, x: 0, y: 18)
-                        .scaleEffect(hasAppeared ? 1.0 : 0.75)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                        .offset(y: (hasAppeared && isFloating) ? -10 : 0)
+                    SplashOwlView(
+                        isVisible: isOwlVisible,
+                        isWinking: isOwlWinking,
+                        size: CGSize(
+                            width: geometry.size.width * 0.28,
+                            height: geometry.size.height * 0.32
+                        )
+                    )
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.60)
+                    .accessibilityHidden(true)
                 }
-                .frame(width: mascotSize * 1.9, height: mascotSize * 1.9)
-                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
         }
         .ignoresSafeArea()
-        .onAppear {
-            withAnimation(.spring(response: 0.75, dampingFraction: 0.62)) {
-                hasAppeared = true
-            }
-
-            withAnimation(
-                .easeInOut(duration: 1.6)
-                    .repeatForever(autoreverses: true)
-                    .delay(0.75)
-            ) {
-                isFloating = true
-            }
-
-            sparklesActive = true
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + autoDismissDelay) {
-                onFinished()
-            }
+        .task {
+            await playSplashSequence()
         }
-        // Screen applies its own display adjustments (pure SwiftUI content).
-        .appDisplayAdjustments()
+    }
+
+    @MainActor
+    private func playSplashSequence() async {
+        guard visibleCharacterCount == 0, !didFinish else {
+            return
+        }
+
+        for index in 1...splashLetters.count {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.68)) {
+                visibleCharacterCount = index
+            }
+            try? await Task.sleep(nanoseconds: letterInterval)
+        }
+
+        withAnimation(.spring(response: 0.48, dampingFraction: 0.68)) {
+            isOwlVisible = true
+        }
+
+        try? await Task.sleep(nanoseconds: 420_000_000)
+
+        withAnimation(.easeInOut(duration: 0.12)) {
+            isOwlWinking = true
+        }
+
+        try? await Task.sleep(nanoseconds: 260_000_000)
+
+        withAnimation(.easeOut(duration: 0.12)) {
+            isOwlWinking = false
+        }
+
+        try? await Task.sleep(nanoseconds: owlHoldDuration)
+        finishIfNeeded()
+    }
+
+    @MainActor
+    private func finishIfNeeded() {
+        guard !didFinish else {
+            return
+        }
+
+        didFinish = true
+        onFinished()
     }
 }
 
-private struct Sparkle: Identifiable {
-    let id = UUID()
-    let x: CGFloat
-    let y: CGFloat
-    let size: CGFloat
-    let symbol: String
-    let delay: Double
-    let duration: Double
+private struct SplashLetter: Identifiable {
+    let id: Int
+    let imageName: String
+    let widthScale: CGFloat
+    let xNudgeScale: CGFloat
+    let yOffsetScale: CGFloat
+    let rotationDegrees: Double
+
+    static let owllala: [SplashLetter] = [
+        SplashLetter(id: 0, imageName: "O", widthScale: 0.80, xNudgeScale: 0.06, yOffsetScale: 0.18, rotationDegrees: -1.5),
+        SplashLetter(id: 1, imageName: "W", widthScale: 1.18, xNudgeScale: -0.08, yOffsetScale: 0.00, rotationDegrees: -0.8),
+        SplashLetter(id: 2, imageName: "LBiru", widthScale: 0.58, xNudgeScale: -0.10, yOffsetScale: -0.04, rotationDegrees: -0.2),
+        SplashLetter(id: 3, imageName: "LHitam", widthScale: 0.58, xNudgeScale: -0.10, yOffsetScale: -0.05, rotationDegrees: 0.2),
+        SplashLetter(id: 4, imageName: "A1", widthScale: 0.82, xNudgeScale: -0.12, yOffsetScale: -0.02, rotationDegrees: 0.8),
+        SplashLetter(id: 5, imageName: "L2Hitam", widthScale: 0.58, xNudgeScale: -0.12, yOffsetScale: 0.02, rotationDegrees: 1.2),
+        SplashLetter(id: 6, imageName: "A2", widthScale: 0.82, xNudgeScale: -0.14, yOffsetScale: 0.16, rotationDegrees: 2.0)
+    ]
 }
 
-private struct SparkleView: View {
+private struct AnimatedSplashTitle: View {
 
-    let sparkle: Sparkle
-    let isActive: Bool
-
-    @State private var isTwinkling = false
+    let letters: [SplashLetter]
+    let visibleCharacterCount: Int
+    let letterHeight: CGFloat
 
     var body: some View {
-        GeometryReader { proxy in
-            Image(systemName: sparkle.symbol)
-                .font(.system(size: sparkle.size, weight: .bold))
-                .foregroundStyle(Color(red: 1.0, green: 0.78, blue: 0.16))
-                .shadow(color: Color(red: 1.0, green: 0.78, blue: 0.16).opacity(0.7), radius: 4)
-                .scaleEffect(isTwinkling ? 1.0 : 0.4)
-                .opacity(isTwinkling ? 1.0 : 0.0)
-                .rotationEffect(.degrees(isTwinkling ? 14 : -14))
-                .position(x: proxy.size.width * sparkle.x, y: proxy.size.height * sparkle.y)
-        }
-        .allowsHitTesting(false)
-        .onChange(of: isActive) { _, active in
-            guard active else { return }
-            withAnimation(
-                .easeInOut(duration: sparkle.duration)
-                    .repeatForever(autoreverses: true)
-                    .delay(sparkle.delay)
-            ) {
-                isTwinkling = true
+        HStack(alignment: .center, spacing: letterHeight * 0.12) {
+            ForEach(Array(letters.enumerated()), id: \.element.id) { index, letter in
+                Image(letter.imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: letterHeight * letter.widthScale, height: letterHeight)
+                    .rotationEffect(.degrees(letter.rotationDegrees))
+                    .offset(
+                        x: letterHeight * letter.xNudgeScale,
+                        y: letterHeight * letter.yOffsetScale
+                    )
+                    .opacity(index < visibleCharacterCount ? 1 : 0)
+                    .scaleEffect(index < visibleCharacterCount ? 1 : 0.72)
             }
         }
+        .accessibilityLabel("OWLLALA")
+    }
+}
+
+private struct SplashOwlView: View {
+
+    let isVisible: Bool
+    let isWinking: Bool
+    let size: CGSize
+
+    var body: some View {
+        ZStack {
+            splashOwlImage("owlSplash")
+                .opacity(isWinking ? 0.0 : 1.0)
+
+            splashOwlImage("owlWinkSplash")
+                .opacity(isWinking ? 1.0 : 0.0)
+        }
+        .frame(width: size.width, height: size.height)
+        .scaleEffect(isVisible ? 1.0 : 0.72)
+        .opacity(isVisible ? 1.0 : 0.0)
+    }
+
+    private func splashOwlImage(_ name: String) -> some View {
+        Image(name)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size.width, height: size.height)
     }
 }
 
@@ -130,7 +178,10 @@ private struct SplashBackground: View {
         GeometryReader { geometry in
             Image("bgPattern")
                 .resizable()
-//                .frame(width: geometry.size.width, height: geometry.size.height)
+                .scaledToFill()
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+                .ignoresSafeArea()
         }
     }
 }
