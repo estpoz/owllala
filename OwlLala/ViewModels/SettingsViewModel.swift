@@ -64,6 +64,14 @@ final class SettingsViewModel: ObservableObject {
         isEditing ? draftSettings : savedSettings
     }
 
+    /// Whether the current draft contains a value that can be persisted.
+    ///
+    /// `Settings` is `Hashable`, so this comparison covers brightness, text
+    /// size, and the optional color-vision simulation in one centralized rule.
+    var hasUnsavedChanges: Bool {
+        draftSettings != savedSettings
+    }
+
     private let storageService: StorageService
     private var cancellables: Set<AnyCancellable> = []
 
@@ -176,7 +184,13 @@ final class SettingsViewModel: ObservableObject {
     func setFilterEnabled(_ isEnabled: Bool) {
         isFilterEnabled = isEnabled
 
-        if !isEnabled {
+        if isEnabled {
+            // A switch-on state must represent a real, persistable setting.
+            // Use the first displayed option when no simulation is selected.
+            if draftSettings.colorVisionSimulation == nil {
+                draftSettings.enableColorVisionSimulation(.protanopia)
+            }
+        } else {
             draftSettings.disableColorVisionSimulation()
         }
     }

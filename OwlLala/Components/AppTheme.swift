@@ -35,6 +35,11 @@ enum AppColor {
 
     /// Primary brand blue (#0042AA) — buttons, selected states, accents.
     static let primary = Color(red: 0 / 255, green: 66 / 255, blue: 170 / 255)
+
+    /// High-contrast grey (#4D4D4D) for unavailable labels on adjustable
+    /// light backgrounds. It remains readable across the full brightness range
+    /// without competing visually with enabled black labels.
+    static let disabledText = Color(red: 77 / 255, green: 77 / 255, blue: 77 / 255)
 }
 
 // MARK: - Font Sizes

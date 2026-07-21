@@ -29,6 +29,9 @@ struct ContentView: View {
     /// environment.
     @StateObject private var settingsViewModel: SettingsViewModel
 
+    /// Shows the splash screen on every app launch before entering the menu.
+    @State private var isShowingSplash = true
+
     /// Builds the shared storage and the settings view model on top of it.
     init() {
         let storageService = StorageService()
@@ -43,16 +46,28 @@ struct ContentView: View {
         // The NavigationStack is UIKit-backed, so the Metal shader cannot wrap
         // this root. Screen and scroll containers inside the stack own the
         // centralized filtering boundaries instead.
-        MainMenuView()
-            // Text size is environment-based, so applying it ONCE here covers
-            // every screen automatically — the environment flows through
-            // NavigationStack into all pushed screens.
-            .appTextSizeAdjustment()
-            // Make the shared objects available to every view in the tree, so
-            // any screen can use the display-adjustment modifiers or reach the
-            // settings logic without init plumbing.
-            .environmentObject(storageService)
-            .environmentObject(settingsViewModel)
+        ZStack {
+            if isShowingSplash {
+                SplashScreenView {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        isShowingSplash = false
+                    }
+                }
+                .transition(.opacity)
+            } else {
+                MainMenuView()
+                    .transition(.opacity)
+            }
+        }
+        // Text size is environment-based, so applying it ONCE here covers
+        // every screen automatically — the environment flows through
+        // NavigationStack into all pushed screens.
+        .appTextSizeAdjustment()
+        // Make the shared objects available to every view in the tree, so
+        // any screen can use the display-adjustment modifiers or reach the
+        // settings logic without init plumbing.
+        .environmentObject(storageService)
+        .environmentObject(settingsViewModel)
     }
 }
 
