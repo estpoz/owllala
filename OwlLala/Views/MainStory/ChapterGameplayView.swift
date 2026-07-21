@@ -64,19 +64,6 @@ struct ChapterGamePlayView: View {
                 }
             }
 
-            // Keep the Settings modal outside gameplay's shader boundary.
-            // Its UIKit-backed scroll view owns an independent filtering layer;
-            // nesting it inside `AppScreen` makes the shader render its content
-            // as blank. The shared view model still provides live draft previews
-            // to both the gameplay behind the modal and the modal itself.
-            if isShowingSettings {
-                SettingsView(viewModel: settingsViewModel, isModal: true) {
-                    isShowingSettings = false
-                    resumeStoryVoiceOverIfNeeded()
-                }
-                .zIndex(3)
-            }
-
             if isShowingExitConfirmation {
                 ExitConfirmation(
                     onContinueLearning: {
@@ -118,6 +105,19 @@ struct ChapterGamePlayView: View {
             }
         }
         .navigationBarHidden(true)
+        // A separate transparent presentation keeps the modal's AX ScrollView
+        // outside gameplay's shader while preserving the same centered card
+        // and live preview over the game beneath it.
+        .fullScreenCover(
+            isPresented: $isShowingSettings,
+            onDismiss: resumeStoryVoiceOverIfNeeded
+        ) {
+            SettingsView(viewModel: settingsViewModel, isModal: true) {
+                isShowingSettings = false
+            }
+            .appIndependentColorFilterScope()
+            .presentationBackground(.clear)
+        }
         .correctAnswerCelebration(
             isActive: viewModel.isCorrectFeedbackPresented,
             onFinished: {
