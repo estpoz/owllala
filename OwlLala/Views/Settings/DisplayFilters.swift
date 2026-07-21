@@ -291,6 +291,14 @@ extension View {
     func appAdaptiveColorFilter() -> some View {
         modifier(AppAdaptiveColorFilter())
     }
+
+    /// Starts a new color-filter ownership boundary for content presented by
+    /// UIKit outside the source screen's render layer, such as a transparent
+    /// `fullScreenCover`. The presented Settings surface can then apply its
+    /// own standard or accessibility-safe filtering exactly once.
+    func appIndependentColorFilterScope() -> some View {
+        environment(\.appColorFilterIsApplied, false)
+    }
 }
 
 extension View {

@@ -26,7 +26,7 @@
 //      button) both presentations render, so the modal is always exactly
 //      this page in a modal frame.
 //    • `SettingsPanelContent` — the panel body (title, sliders, filter,
-//      image, save).
+//      and preview image).
 //    • `SettingsSlider` / `SettingsToggle` — pure-SwiftUI controls. The system
 //      `Slider`/`Toggle` are UIKit-backed and vanish under the whole-screen
 //      color filter (see `DisplayFilters.swift`), so these are drawn with
@@ -67,6 +67,10 @@ struct SettingsView: View {
                 SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
             }
         }
+        // Apply the draft category directly so both presentations and isolated
+        // previews grow identically from X Small through AX5. Reapplying the
+        // same environment value at the app root is idempotent, not additive.
+        .textSizeAdjustment(for: viewModel.activeDisplaySettings)
         .onAppear {
             viewModel.beginEditing()
         }
@@ -89,7 +93,6 @@ struct SettingsView: View {
 
                 SettingsSurface(
                     viewModel: viewModel,
-                    saveBottomPadding: 40,
                     navigationSystemImageName: "xmark",
                     navigationAccessibilityLabel: "Tutup",
                     onDismiss: onDismiss
@@ -118,10 +121,6 @@ struct SettingsSurface: View {
 
     /// The app-wide settings logic driving the panel.
     @ObservedObject var viewModel: SettingsViewModel
-
-    /// Bottom inset of the "Simpan" button. The full-screen page uses the
-    /// default; the modal passes a larger value so its button sits higher.
-    var saveBottomPadding: CGFloat = 44
 
     /// The full page navigates back; the modal presents an explicit close icon.
     var navigationSystemImageName: String = "arrow.left"
@@ -167,27 +166,31 @@ struct SettingsSurface: View {
                 }
             }
 
-            CircleIconButton(
-                systemImageName: navigationSystemImageName,
-                accessibilityLabel: navigationAccessibilityLabel
-            ) {
-                viewModel.cancel()
-                onDismiss()
+            HStack {
+                CircleIconButton(
+                    systemImageName: navigationSystemImageName,
+                    accessibilityLabel: navigationAccessibilityLabel
+                ) {
+                    viewModel.cancel()
+                    onDismiss()
+                }
+                .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
+
+                Spacer()
+
+                SaveChangesButton(hasChanges: viewModel.hasUnsavedChanges) {
+                    viewModel.save()
+                    onDismiss()
+                }
+                .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
             }
-            .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
             .padding(min(navigationPadding, 28))
             .appAdaptiveColorFilter()
         }
     }
 
     private var panelContent: some View {
-        SettingsPanelContent(
-            viewModel: viewModel,
-            saveBottomPadding: saveBottomPadding
-        ) {
-            viewModel.save()
-            onDismiss()
-        }
+        SettingsPanelContent(viewModel: viewModel)
         .frame(maxWidth: .infinity)
     }
 }
@@ -195,8 +198,9 @@ struct SettingsSurface: View {
 // MARK: - Shared Panel Content
 
 /// The settings panel body: "Pengaturan" title, brightness slider, text-size
-/// slider ("Ukuran Teks"), color filter switch + options, preview image, and
-/// the "Simpan" button — laid out per the Hi-Fi mockup.
+/// slider ("Ukuran Teks"), color filter switch + options, and preview image —
+/// laid out per the Hi-Fi mockup. Save is a reusable top-right action owned by
+/// `SettingsSurface`.
 ///
 /// Purely declarative — every interaction is forwarded to `SettingsViewModel`.
 struct SettingsPanelContent: View {
@@ -206,13 +210,6 @@ struct SettingsPanelContent: View {
 
     /// Asset-catalog name of the preview image.
     var previewImageAssetName: String = "settingReference"
-
-    /// Bottom inset of the "Simpan" button; overrides the Hi-Fi default so the
-    /// modal can place its button higher than the full-screen page.
-    var saveBottomPadding: CGFloat = PanelLayout.saveBottomPadding
-
-    /// Invoked when the child taps "Simpan"; the host saves and dismisses.
-    let onSave: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -233,19 +230,25 @@ struct SettingsPanelContent: View {
     @ScaledMetric(relativeTo: .body) private var horizontalPadding: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var columnSpacing: CGFloat = 36
     @ScaledMetric(relativeTo: .body) private var groupSpacing: CGFloat = 16
-    @ScaledMetric(relativeTo: .body) private var saveTopSpacing: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var contentBottomPadding: CGFloat = 44
     @ScaledMetric(relativeTo: .body) private var labelToControlSpacing: CGFloat = 6
     @ScaledMetric(relativeTo: .body) private var previewWidth: CGFloat = 340
     @ScaledMetric(relativeTo: .body) private var previewCornerRadius: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var radioOuterSize: CGFloat = 17
     @ScaledMetric(relativeTo: .body) private var radioInnerSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var scaledSliderAccessoryWidth: CGFloat = 40
+
+    /// Both slider rows reserve identical columns for their endpoint content,
+    /// so their visible tracks always begin and end at the same positions.
+    private var sliderAccessoryWidth: CGFloat {
+        min(scaledSliderAccessoryWidth, 84)
+    }
 
     private enum PanelLayout {
         static let controlsMaxWidth: CGFloat = 690
         static let accessibilityContentMaxWidth: CGFloat = 760
         static let regularPreviewMaxWidth: CGFloat = 420
         static let accessibilityPreviewMaxWidth: CGFloat = 720
-        static let saveBottomPadding: CGFloat = 44
     }
 
     var body: some View {
@@ -257,17 +260,16 @@ struct SettingsPanelContent: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 110)
                 .padding(.top, min(titleTopPadding, 44))
+                .colorVisionFilter(accessibilityContentSimulation)
 
-            if dynamicTypeSize.isAccessibilitySize {
-                accessibilityLayout
-            } else {
-                regularLayout
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    accessibilityLayout
+                } else {
+                    regularLayout
+                }
             }
-
-            PrimaryActionButton(title: "Simpan", action: onSave)
-                .padding(.bottom, saveBottomPadding)
-                .padding(.top, min(saveTopSpacing, 96))
-                .padding(.horizontal, 32)
+            .padding(.bottom, min(contentBottomPadding, 72))
         }
         .frame(maxWidth: .infinity)
     }
@@ -300,6 +302,7 @@ struct SettingsPanelContent: View {
                     maxWidth: PanelLayout.accessibilityContentMaxWidth,
                     alignment: .leading
                 )
+                .colorVisionFilter(accessibilityContentSimulation)
 
             previewImage
                 .frame(
@@ -308,6 +311,7 @@ struct SettingsPanelContent: View {
                         PanelLayout.accessibilityPreviewMaxWidth
                     )
                 )
+                .colorVisionFilter(accessibilityContentSimulation)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, min(horizontalPadding * 0.65, 48))
@@ -317,6 +321,21 @@ struct SettingsPanelContent: View {
     /// The left column: brightness slider, text-size slider, filter switch,
     /// and filter options — grouped with the Hi-Fi's label→control rhythm.
     /// Each control calls straight into the view model.
+    ///
+    /// AX1–AX5 uses a ScrollView whose complete content cannot be wrapped in
+    /// the color shader. Its pure SwiftUI foreground sections safely preview
+    /// the selected simulation as separate islands instead. Standard sizes
+    /// remain filtered once by the surrounding `AppScreen`.
+    private var accessibilityContentSimulation: ColorVisionSimulation? {
+        guard dynamicTypeSize.isAccessibilitySize,
+              viewModel.isFilterEnabled
+        else {
+            return nil
+        }
+
+        return viewModel.draftSettings.colorVisionSimulation
+    }
+
     private var controls: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Kecerahan Latar Belakang")
@@ -327,6 +346,7 @@ struct SettingsPanelContent: View {
                 Image(systemName: "sun.min")
                     .font(.system(size: smallIconSize, weight: .semibold))
                     .foregroundStyle(.black)
+                    .frame(width: sliderAccessoryWidth)
 
                 SettingsSlider(
                     value: Binding(
@@ -340,6 +360,7 @@ struct SettingsPanelContent: View {
                 Image(systemName: "sun.max")
                     .font(.system(size: largeIconSize, weight: .semibold))
                     .foregroundStyle(.black)
+                    .frame(width: sliderAccessoryWidth)
             }
             .padding(.top, min(labelToControlSpacing, 14))
 
@@ -441,7 +462,7 @@ struct SettingsPanelContent: View {
                 .font(.owlRounded(endpointFontSize, .medium))
                 .foregroundStyle(.secondary)
         }
-        .frame(minWidth: 36)
+        .frame(width: sliderAccessoryWidth)
         .accessibilityHidden(true)
     }
 
@@ -489,12 +510,13 @@ struct SettingsPanelContent: View {
 
                 Text(simulation.displayName)
                     .font(.owlRounded(optionFontSize, .regular))
-                    .foregroundStyle(isEnabled ? .black : Color(white: 0.72))
+                    .foregroundStyle(isEnabled ? .black : AppColor.disabledText)
                     .multilineTextAlignment(.leading)
             }
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .disabled(!isEnabled)
         .accessibilityLabel(simulation.displayName)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
