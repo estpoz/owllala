@@ -21,7 +21,7 @@ struct TrainingModeView: View {
             let innerCoreDiameter = nodeDiameter * 0.93
             
             // MARK: Adaptive Layout & Font Size Hard Caps
-            let isLargeLayout = dynamicTypeSize >= .accessibility1
+            let isLargeLayout = dynamicTypeSize >= .accessibility2
             
             // Hard-stops font metric growth past AX3 scale factor to prevent vertical overflow
             let effectiveTitleSize: CGFloat = {
@@ -31,8 +31,9 @@ struct TrainingModeView: View {
                 return largeTitleSize
             }()
             
+            // Pushes the roadmap curve LOWER down on screen in AX modes (matching ChapterSelectionView)
             let startPointY = screenHeight * (isLargeLayout ? 0.86 : 0.79)
-            let peakPointY = screenHeight * (isLargeLayout ? 0.65 : 0.55)
+            let peakPointY = screenHeight * (isLargeLayout ? 0.58 : 0.55)
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             AppScreen {
@@ -74,11 +75,10 @@ struct TrainingModeView: View {
                                 
                                 let rawOrder = selectionItem.chapter.order
                                 let isComingSoon = rawOrder > 5
-                                let labelTitleText = isComingSoon
-                                    ? "Cerita 2 : Bab \(rawOrder - 5)"
-                                    : "Cerita 1 : Bab \(rawOrder)"
+                                let storyTitleText = isComingSoon ? "Cerita 2" : "Cerita 1"
+                                let chapterTitleText = isComingSoon ? "Bab \(rawOrder - 5)" : "Bab \(rawOrder)"
                                 
-                                VStack(spacing: screenHeight * 0.01) {
+                                VStack(spacing: screenHeight * 0.005) {
                                     ZStack {
                                         // 1. The Pulsing Circle Component
                                         ZStack(alignment: .center) {
@@ -116,10 +116,9 @@ struct TrainingModeView: View {
                                             }
                                         }
                                         .scaleEffect(offset == 0 ? pulseScale : 1.0)
-                                        // Scope animation strictly to pulseScale state changes to avoid screen bounce
                                         .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulseScale)
                                         
-                                        // 2. The Stationary Top Stars Component (Standard Mode)
+                                        // 2. Stationary Top Stars (Standard Non-AX Mode)
                                         if !isLargeLayout {
                                             HStack(spacing: 6) {
                                                 ForEach(0..<3) { starIndex in
@@ -144,20 +143,28 @@ struct TrainingModeView: View {
                                         }
                                     }
                                     
-                                    Text(labelTitleText)
-                                        .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
-                                        .foregroundColor(isComingSoon ? .gray : .black)
+                                    // Original Full Label Typography Sizing
+                                    VStack(spacing: -2) {
+                                        Text(storyTitleText)
+                                            .font(.system(size: babLabelSize * 0.85, weight: .bold, design: .rounded))
+                                            .foregroundColor(isComingSoon ? .gray : .black)
+                                        
+                                        Text(chapterTitleText)
+                                            .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
+                                            .foregroundColor(isComingSoon ? .gray : .black)
+                                    }
+                                    .multilineTextAlignment(.center)
                                     
-                                    // Large Text Mode: Display stars safely below the label text
+                                    // Large Text Mode: Display stars safely below label text
                                     if isLargeLayout && selectionItem.isUnlocked && !isComingSoon {
                                         HStack(spacing: 6) {
                                             ForEach(0..<3) { starIndex in
                                                 Image(systemName: starIndex < selectionItem.bestStars ? "star.fill" : "star")
-                                                    .font(.system(size: babLabelSize * 0.8, weight: .bold, design: .rounded))
+                                                    .font(.system(size: babLabelSize * 0.75, weight: .bold, design: .rounded))
                                                     .foregroundColor(Color(red: 0.0, green: 0.227, blue: 0.655))
                                             }
                                         }
-                                        .padding(.top, 2)
+                                        .padding(.top, 0)
                                     }
                                 }
                                 .scaleEffect(offset == 0 ? 1.15 : 0.86)
@@ -184,7 +191,6 @@ struct TrainingModeView: View {
                     // MARK: Safe Adaptive Navigation Header Layer
                     VStack(spacing: 0) {
                         ZStack(alignment: .top) {
-                            // Background Layer: Pinned reusable component back button framework
                             HStack {
                                 BackButton(style: .filled) {
                                     viewModel.clearSelection()
@@ -195,7 +201,6 @@ struct TrainingModeView: View {
                                 Spacer()
                             }
                             
-                            // Foreground Layer: Center-aligned multi-line header title
                             Text("Mode Berlatih")
                                 .font(.system(size: effectiveTitleSize, weight: .bold, design: .rounded))
                                 .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
