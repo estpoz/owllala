@@ -94,12 +94,12 @@ struct CompetencyGraph: View {
     // MARK: Graph Data
 
     private var graphItems: [CompetencyProgressItem] {
-        // Missing progress still renders as the real empty state: 0 out of 5.
+        // Missing progress still renders as the real empty state: 0 out of 3.
         StatisticsViewModel.competencyOrder.map { competency in
             items.first { $0.competency == competency } ?? CompetencyProgressItem(
                 competency: competency,
                 score: 0,
-                maximumScore: 5,
+                maximumScore: Chapter.maximumStars,
                 chapterID: ""
             )
         }
