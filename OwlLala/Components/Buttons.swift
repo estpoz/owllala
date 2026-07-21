@@ -137,6 +137,23 @@ struct BackButton: View {
     }
 }
 
+// MARK: - Close Button
+
+struct CloseButton: View {
+
+    var style: CircleIconButtonStyle = .filled
+    let action: () -> Void
+
+    var body: some View {
+        CircleIconButton(
+            systemImageName: "xmark",
+            accessibilityLabel: "Tutup",
+            style: style,
+            action: action
+        )
+    }
+}
+
 // MARK: - Primary Action Button
 
 /// The filled, rounded-rectangle blue button used for the main confirmation
@@ -322,6 +339,8 @@ private struct GameplayTopBarButton: View {
         HStack(spacing: 24) {
             BackButton(style: .filled) {}
             BackButton(style: .outlined) {}
+            CloseButton(style: .filled) {}
+            CloseButton(style: .outlined) {}
             SettingsButton(style: .filled) {}
             SettingsButton(style: .outlined) {}
         }
