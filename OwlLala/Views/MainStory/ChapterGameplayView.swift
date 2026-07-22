@@ -78,35 +78,6 @@ struct ChapterGamePlayView: View {
                 .zIndex(2)
             }
 
-            // MARK: - Success overlay, layered on top of gameplay
-            if isShowingSuccessOverlay {
-                StageClearedView(
-                    title: "Hebat Sekali!",
-                    subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
-                    starCount: viewModel.earnedStars ?? Chapter.maximumStars,
-                    maxStars: 3,
-                    summaryText: viewModel.chapter.learningSummary.explanation,
-                    onReplay: {
-                        stopGameplayAudio()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isShowingSuccessOverlay = false
-                        }
-                        viewModel.resetForReplay()
-                        hasStartedChapter = viewModel.source == .training
-
-                        if viewModel.source == .training {
-                            startBackgroundMusic()
-                        }
-                    },
-                    onContinue: {
-                        stopGameplayAudio()
-                        viewModel.finishStageCleared()
-                        dismiss()
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(1)
-            }
         }
         .navigationBarHidden(true)
         // A separate transparent presentation keeps the modal's AX ScrollView
@@ -159,7 +130,7 @@ struct ChapterGamePlayView: View {
             }
         }
         .onAppear {
-            if viewModel.source == .training {
+            if viewModel.destination == nil {
                 startBackgroundMusic()
             }
         }
@@ -176,15 +147,16 @@ struct ChapterGamePlayView: View {
             maxStars: 3,
             summaryText: viewModel.chapter.learningSummary.explanation,
             onReplay: {
-                stopStoryVoiceOver()
+                stopGameplayAudio()
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isShowingSuccessOverlay = false
                 }
                 viewModel.resetForReplay()
                 hasStartedChapter = viewModel.source == .training
+                startBackgroundMusic()
             },
             onContinue: {
-                stopStoryVoiceOver()
+                stopGameplayAudio()
                 viewModel.finishStageCleared()
                 isShowingSuccessOverlay = false
                 dismiss()
@@ -625,7 +597,7 @@ struct ChapterGamePlayView: View {
 
     private func resumeBackgroundMusicIfNeeded() {
         guard !isShowingSuccessOverlay,
-              viewModel.source == .training || hasStartedChapter
+              viewModel.destination == nil
         else {
             return
         }
@@ -635,7 +607,7 @@ struct ChapterGamePlayView: View {
 
     private func stopGameplayAudio() {
         stopStoryVoiceOver()
-        AudioService.shared.stopBackgroundMusic()
+        AudioService.shared.restoreBackgroundMusicForApp()
     }
 
 }
