@@ -279,7 +279,6 @@ struct TrainingModeView: View {
 
     if let realStory = selectionVM.items.first?.story {
         TrainingModeView(viewModel: TrainingModeViewModel(story: realStory))
-            .previewInterfaceOrientation(.landscapeLeft)
             .environmentObject(storageService)
             .environmentObject(SettingsViewModel(storageService: storageService))
     }

@@ -201,7 +201,7 @@ struct StoryBookView: View {
     let storageService = StorageService()
 
     return StorySelectionView(viewModel: StorySelectionViewModel())
-        .previewInterfaceOrientation(.landscapeLeft)
+
         .environmentObject(storageService)
         .environmentObject(SettingsViewModel(storageService: storageService))
 }
