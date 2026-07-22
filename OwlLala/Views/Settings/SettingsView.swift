@@ -138,58 +138,72 @@ struct SettingsSurface: View {
     /// Navigation geometry grows with the selected text size, but is capped so
     /// it remains a compact corner control beside the centered title.
     @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
-    @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var navigationHorizontalMargin: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var navigationTopMargin: CGFloat = 24
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if dynamicTypeSize.isAccessibilitySize {
-                // The UIKit-backed scroll surface must stay outside a shader.
-                // Live filter previews still update the gameplay behind this
-                // modal, while the controls remain visible and reachable.
-                AppScrollScreen(
-                    showsIndicators: false,
-                    appliesColorFilterToContent: false
-                ) {
-                    Image("bgPattern")
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                } content: {
-                    panelContent
+        GeometryReader { geometry in
+            ZStack(alignment: .topLeading) {
+                if dynamicTypeSize.isAccessibilitySize {
+                    // The UIKit-backed scroll surface must stay outside a shader.
+                    // Live filter previews still update the gameplay behind this
+                    // modal, while the controls remain visible and reachable.
+                    AppScrollScreen(
+                        showsIndicators: false,
+                        appliesColorFilterToContent: false
+                    ) {
+                        Image("bgPattern")
+                            .resizable()
+                            .scaledToFill()
+                            .ignoresSafeArea()
+                    } content: {
+                        panelContent
+                    }
+                } else {
+                    // X Small through XXX Large fit without scrolling, allowing the
+                    // complete pure-SwiftUI panel to retain its live color preview.
+                    AppScreen {
+                        Image("bgPattern")
+                            .resizable()
+                            .scaledToFill()
+                            .ignoresSafeArea()
+                    } content: {
+                        panelContent
+                    }
                 }
-            } else {
-                // X Small through XXX Large fit without scrolling, allowing the
-                // complete pure-SwiftUI panel to retain its live color preview.
-                AppScreen {
-                    Image("bgPattern")
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                } content: {
-                    panelContent
+
+                HStack {
+                    CircleIconButton(
+                        systemImageName: navigationSystemImageName,
+                        accessibilityLabel: navigationAccessibilityLabel
+                    ) {
+                        viewModel.cancel()
+                        onDismiss()
+                    }
+                    .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
+
+                    Spacer()
+
+                    SaveChangesButton(hasChanges: viewModel.hasUnsavedChanges) {
+                        viewModel.save()
+                        onDismiss()
+                    }
+                    .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
                 }
+                // Use the actual presentation inset rather than a fixed guess.
+                // Full-screen Settings clears the clock/battery area, while the
+                // gameplay card naturally reports zero and keeps the same roomy
+                // top margin inside its rounded surface.
+                .padding(
+                    .horizontal,
+                    min(navigationHorizontalMargin, 48)
+                )
+                .padding(
+                    .top,
+                    geometry.safeAreaInsets.top + min(navigationTopMargin, 36)
+                )
+                .appAdaptiveColorFilter()
             }
-
-            HStack {
-                CircleIconButton(
-                    systemImageName: navigationSystemImageName,
-                    accessibilityLabel: navigationAccessibilityLabel
-                ) {
-                    viewModel.cancel()
-                    onDismiss()
-                }
-                .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
-
-                Spacer()
-
-                SaveChangesButton(hasChanges: viewModel.hasUnsavedChanges) {
-                    viewModel.save()
-                    onDismiss()
-                }
-                .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
-            }
-            .padding(min(navigationPadding, 28))
-            .appAdaptiveColorFilter()
         }
     }
 
