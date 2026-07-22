@@ -64,25 +64,32 @@ struct ChapterGamePlayView: View {
                 }
             }
 
-            if isShowingExitConfirmation {
-                ExitConfirmation(
-                    onContinueLearning: {
-                        isShowingExitConfirmation = false
-                        resumeStoryVoiceOverIfNeeded()
-                    },
-                    onDiscardProgress: {
-                        stopGameplayAudio()
-                        dismiss()
-                    }
-                )
-                .zIndex(2)
-            }
-
         }
         .navigationBarHidden(true)
-        // A separate transparent presentation keeps the modal's AX ScrollView
-        // outside gameplay's shader while preserving the same centered card
-        // and live preview over the game beneath it.
+        // A separate transparent presentation keeps the dialog's accessible
+        // ScrollView outside gameplay's shader while preserving the centered
+        // card and the visible game beneath it.
+        .fullScreenCover(isPresented: $isShowingExitConfirmation) {
+            ExitConfirmation(
+                onContinueLearning: {
+                    isShowingExitConfirmation = false
+                    resumeStoryVoiceOverIfNeeded()
+                },
+                onDiscardProgress: {
+                    stopGameplayAudio()
+                    isShowingExitConfirmation = false
+                    dismiss()
+                }
+            )
+            // A fullScreenCover is a separate presentation that does NOT inherit
+            // the root's app-wide text sizing, so re-apply it here — the dialog
+            // now follows the "Ukuran Teks" setting like the rest of the app.
+            // (Brightness and color filter are applied inside ExitConfirmation
+            // from the shared settings.)
+            .appTextSizeAdjustment()
+            .presentationBackground(.clear)
+            .interactiveDismissDisabled()
+        }
         .fullScreenCover(
             isPresented: $isShowingSettings,
             onDismiss: resumeStoryVoiceOverIfNeeded
@@ -90,6 +97,7 @@ struct ChapterGamePlayView: View {
             SettingsView(viewModel: settingsViewModel, isModal: true) {
                 isShowingSettings = false
             }
+            .appTextSizeAdjustment()
             .appIndependentColorFilterScope()
             .presentationBackground(.clear)
         }
