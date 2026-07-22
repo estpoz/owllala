@@ -29,7 +29,6 @@ final class ChapterSelectionViewModel: ObservableObject {
         }
     }
 
-    // Handles live app instances and accommodates clean default values for standalone preview injection
     init(story: Story, storageService: StorageService? = nil) {
         self.story = story
         self.storageService = storageService
