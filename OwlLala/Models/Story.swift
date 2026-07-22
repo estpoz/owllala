@@ -400,14 +400,14 @@ enum StoryCatalog {
                                 AnswerOption(id: "blue-bag", text: nil, imageAssetName: "game5icon4"),
                                 AnswerOption(id: "blue-lunchbox", text: nil, imageAssetName: "game5Icon2")
                             ],
-                            correctAnswerID: "blue-lunchbox",
+                            correctAnswerID: "blue-bag",
                             hintText: "Coba perhatikan bentuknya. Cari kotak makan yang kotak, biru, dan bergaris."
                         )
                     ),
                     learningSummary: LearningSummary(
                         successMessage: "Lala menemukan kotak makannya!",
                         explanation: "Kamu menggabungkan bentuk, warna, dan pola untuk mengenali benda dalam situasi sehari-hari.",
-                        mainIllustrationAssetName: "game5Icon2",
+                        mainIllustrationAssetName: "game5icon4",
                         exampleAssetNames: ["game5Icon1", "game5icon4", "game5Icon2"]
                     )
                 )
