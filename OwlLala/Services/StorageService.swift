@@ -63,6 +63,7 @@ final class StorageService: ObservableObject {
         let normalizedSettings = Settings(
             backgroundBrightness: settings.backgroundBrightness,
             colorVisionSimulation: settings.colorVisionSimulation,
+            lastColorVisionSimulation: settings.lastColorVisionSimulation,
             textSize: settings.textSize
         )
 
