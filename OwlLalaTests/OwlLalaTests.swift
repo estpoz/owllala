@@ -107,9 +107,7 @@ struct ChapterGameplayViewModelTests {
 
 // MARK: - ChapterSelectionViewModel
 
-/// Behavior of `ChapterSelectionViewModel` — turning a story plus persisted
-/// progress into the chapter list, gating selection to unlocked chapters, and
-/// resolving the "next chapter" for progression.
+
 @MainActor
 @Suite("ChapterSelectionViewModel")
 struct ChapterSelectionViewModelTests {
@@ -144,16 +142,24 @@ struct ChapterSelectionViewModelTests {
         viewModel.selectChapter(story.chapters[0]) // unlocked
         #expect(viewModel.selectedChapter?.id == "chapter-1")
     }
+    
+    /// Given a selected chapter, when `clearSelection()` is called,
+    /// then `selectedChapter` is reset to `nil`.
+    @Test func clearSelectionResetsSelectedChapter() {
+            let chapters = (1...3).map { i in Chapter(id: "chapter-\(i)", order: i, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: [])) }
+            let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+            let viewModel = ChapterSelectionViewModel(story: story, storageService: StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!))
 
-    // NOTE: `nextChapterID(after:)` was removed from the view model during the
-    // new-test refactor, so its test was retired with it.
+            viewModel.selectChapter(story.chapters[0])
+            #expect(viewModel.selectedChapter?.id == "chapter-1")
+
+            viewModel.clearSelection()
+            #expect(viewModel.selectedChapter == nil)
+        }
 }
 
 // MARK: - TrainingModeViewModel
 
-/// Behavior of `TrainingModeViewModel` — gating Training Mode until the whole
-/// story is finished, and vending gameplay view models configured for training
-/// (replay) rather than story progression.
 @MainActor
 @Suite("TrainingModeViewModel")
 struct TrainingModeViewModelTests {
@@ -174,22 +180,75 @@ struct TrainingModeViewModelTests {
         #expect(viewModel.isTrainingUnlocked == true)
     }
 
-    /// Given a chapter, when `makeGameplayViewModel(for:)` builds a gameplay
-    /// view model, then it is configured with the `.training` source and no next
-    /// chapter — so replaying it records stats without advancing the story.
-    // NOTE: `makeGameplayViewModel(for:)` was removed from the view model
-    // during the new-test refactor, so its test was retired with it.
+    /// Given locked training mode, selecting a chapter does nothing; when training mode unlocks,
+    /// selecting a chapter sets `selectedChapter`.
+    @Test func selectChapterGatedByTrainingUnlockState() {
+        let chapters = [Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))]
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = TrainingModeViewModel(story: story, storageService: storage)
+
+        // Attempt selection while locked
+        viewModel.selectChapter(story.chapters[0])
+        #expect(viewModel.selectedChapter == nil)
+
+        // Complete story to unlock training
+        storage.updateUserStats { stats in
+            stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
+        }
+
+        // Attempt selection while unlocked
+        viewModel.selectChapter(story.chapters[0])
+        #expect(viewModel.selectedChapter?.id == "chapter-1")
+    }
+
+    /// Given a selected chapter in training mode, when `clearSelection()` is called,
+    /// then `selectedChapter` is reset to `nil`.
+    @Test func clearSelectionResetsSelectedChapter() {
+        let chapters = [Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))]
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        let viewModel = TrainingModeViewModel(story: story, storageService: storage)
+
+        storage.updateUserStats { stats in
+            stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
+        }
+
+        viewModel.selectChapter(story.chapters[0])
+        #expect(viewModel.selectedChapter?.id == "chapter-1")
+
+        viewModel.clearSelection()
+        #expect(viewModel.selectedChapter == nil)
+    }
+
+    /// Given completed gameplay stats in storage, `TrainingModeViewModel.items` maps
+    /// `isUnlocked`, `bestStars`, and `playCount` for every chapter.
+    @Test func trainingItemsReflectPersistedPlayCountAndBestStars() {
+        let chapters = [Chapter(id: "chapter-1", order: 1, title: "Bab", subtitle: nil, description: "d", thumbnailAssetName: "t", competency: .shape, storyPages: [], gameConfiguration: GameConfiguration(question: GameQuestion(id: "q", prompt: "p", promptImageAssetName: nil, answerOptions: [AnswerOption(id: "c", text: "B", imageAssetName: nil)], correctAnswerID: "c", hintText: "h")), learningSummary: LearningSummary(successMessage: "s", explanation: "e", mainIllustrationAssetName: "m", exampleAssetNames: []))]
+        let story = Story(id: "story-1", order: 1, title: "Cerita", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: chapters, completionSummary: nil)
+        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
+        
+        storage.updateUserStats { stats in
+            stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 3)
+            stats.recordCompletedGame(chapterID: "chapter-1", earnedStars: 2) // play count = 2
+        }
+
+        let viewModel = TrainingModeViewModel(story: story, storageService: storage)
+
+        #expect(viewModel.items.count == 1)
+        #expect(viewModel.items[0].isUnlocked == true)
+        #expect(viewModel.items[0].bestStars == 3)
+        #expect(viewModel.items[0].playCount == 2)
+    }
 }
 
 // MARK: - StorySelectionViewModel
 
-/// Behavior of `StorySelectionViewModel` — allowing navigation into available
-/// stories only and ignoring taps on "coming soon" ones.
 @MainActor
 @Suite("StorySelectionViewModel")
 struct StorySelectionViewModelTests {
 
-    /// The view model now owns its built-in story list: selecting an
+    /// The view model owns its built-in story list: selecting an
     /// unavailable ("coming soon") story does nothing, while selecting an
     /// available one stores it.
     @Test func selectStoryOnlySelectsAvailableStories() throws {
@@ -204,6 +263,30 @@ struct StorySelectionViewModelTests {
         let available = try #require(viewModel.items.first { $0.isAvailable }?.story)
         viewModel.selectStory(available)
         #expect(viewModel.selectedStory?.id == available.id)
+    }
+
+    /// Given a custom set of injected stories, the view model's items match the injected story availability.
+    @Test func customInjectedStoriesMapToItems() {
+        let availableStory = Story(id: "s1", order: 1, title: "S1", subtitle: nil, description: "d", coverAssetName: "c", availability: .available, chapters: [], completionSummary: nil)
+        let comingSoonStory = Story(id: "s2", order: 2, title: "S2", subtitle: nil, description: "d", coverAssetName: "c", availability: .comingSoon, chapters: [], completionSummary: nil)
+        
+        let viewModel = StorySelectionViewModel(stories: [availableStory, comingSoonStory])
+
+        #expect(viewModel.items.count == 2)
+        #expect(viewModel.items[0].isAvailable == true)
+        #expect(viewModel.items[1].isAvailable == false)
+    }
+
+    /// Given a selected story, when `clearSelection()` is called, then `selectedStory` is reset to `nil`.
+    @Test func clearSelectionResetsSelectedStory() {
+        let viewModel = StorySelectionViewModel()
+        guard let available = viewModel.items.first(where: { $0.isAvailable })?.story else { return }
+
+        viewModel.selectStory(available)
+        #expect(viewModel.selectedStory != nil)
+
+        viewModel.clearSelection()
+        #expect(viewModel.selectedStory == nil)
     }
 }
 
