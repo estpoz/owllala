@@ -150,7 +150,9 @@ struct SettingsSurface: View {
                     showsIndicators: false,
                     appliesColorFilterToContent: false
                 ) {
-                    Color.white
+                    Image("bgPattern")
+                        .resizable()
+                        .scaledToFill()
                         .ignoresSafeArea()
                 } content: {
                     panelContent
@@ -159,7 +161,9 @@ struct SettingsSurface: View {
                 // X Small through XXX Large fit without scrolling, allowing the
                 // complete pure-SwiftUI panel to retain its live color preview.
                 AppScreen {
-                    Color.white
+                    Image("bgPattern")
+                        .resizable()
+                        .scaledToFill()
                         .ignoresSafeArea()
                 } content: {
                     panelContent
@@ -416,20 +420,12 @@ struct SettingsPanelContent: View {
         }
     }
 
-    /// At AX sizes the switch moves below its label; this keeps both elements
-    /// full-sized instead of compressing either side of one horizontal row.
-    @ViewBuilder
+    /// The switch always sits to the right of the "Filter Warna" label, on one
+    /// row, at every text size (including the accessibility sizes).
     private var filterHeader: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: min(labelToControlSpacing, 14)) {
-                filterLabel
-                filterToggle
-            }
-        } else {
-            HStack(spacing: 12) {
-                filterLabel
-                filterToggle
-            }
+        HStack(spacing: 12) {
+            filterLabel
+            filterToggle
         }
     }
 
