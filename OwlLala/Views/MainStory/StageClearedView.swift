@@ -88,12 +88,12 @@ struct StageClearedView: View {
             starRow(baseUnit: baseUnit)
                 .padding(.top, baseUnit * 0.01)
 
-            Text(summaryText)
-                .font(.system(size: summarySize, weight: .regular, design: .rounded))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
+            StageClearedText(
+                summaryText,
+                font: .system(size: summarySize, weight: .regular, design: .rounded),
+                maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth),
+                glowStrength: .strong
+            )
 
             actionButtons(baseUnit: baseUnit)
                 .padding(.top, baseUnit * 0.014)
@@ -104,21 +104,19 @@ struct StageClearedView: View {
 
     private func headerText(baseUnit: CGFloat, cardWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: baseUnit * 0.01) {
-            Text(title)
-                .font(.system(size: titleSize, weight: .heavy, design: .rounded))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.leading)
-                .lineLimit(usesAccessibilityLayout ? 3 : 2)
-                .minimumScaleFactor(0.7)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
+            StageClearedText(
+                title,
+                font: .system(size: titleSize, weight: .heavy, design: .rounded),
+                maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth),
+                lineLimit: usesAccessibilityLayout ? 3 : 2,
+                minimumScaleFactor: 0.7
+            )
 
-            Text(subtitle)
-                .font(.system(size: subtitleSize, weight: .semibold, design: .rounded))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth), alignment: .leading)
+            StageClearedText(
+                subtitle,
+                font: .system(size: subtitleSize, weight: .semibold, design: .rounded),
+                maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth)
+            )
         }
     }
 
@@ -164,6 +162,77 @@ struct StageClearedView: View {
                 StageContinueButton(action: onContinue)
             }
         }
+    }
+}
+
+private enum StageClearedTextGlowStrength {
+    case normal
+    case strong
+}
+
+private struct StageClearedText: View {
+
+    let text: String
+    let font: Font
+    let maxWidth: CGFloat
+    let lineLimit: Int?
+    let minimumScaleFactor: CGFloat
+    let glowStrength: StageClearedTextGlowStrength
+
+    init(
+        _ text: String,
+        font: Font,
+        maxWidth: CGFloat,
+        lineLimit: Int? = nil,
+        minimumScaleFactor: CGFloat = 1.2,
+        glowStrength: StageClearedTextGlowStrength = .normal
+    ) {
+        self.text = text
+        self.font = font
+        self.maxWidth = maxWidth
+        self.lineLimit = lineLimit
+        self.minimumScaleFactor = minimumScaleFactor
+        self.glowStrength = glowStrength
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            textLayer(color: .white)
+                .blur(radius: glowStrength == .strong ? 8 : 5)
+                .opacity(glowStrength == .strong ? 1.0 : 0.95)
+
+            if glowStrength == .strong {
+                textLayer(color: .white)
+                    .offset(x: -2, y: 0)
+                    .opacity(0.95)
+
+                textLayer(color: .white)
+                    .offset(x: 2, y: 0)
+                    .opacity(0.95)
+
+                textLayer(color: .white)
+                    .offset(x: 0, y: -2)
+                    .opacity(0.95)
+            }
+
+            textLayer(color: .white)
+                .offset(x: 0, y: glowStrength == .strong ? 2 : 1)
+                .opacity(0.9)
+
+            textLayer(color: .black)
+        }
+        .frame(maxWidth: maxWidth, alignment: .leading)
+    }
+
+    private func textLayer(color: Color) -> some View {
+        Text(text)
+            .font(font)
+            .foregroundStyle(color)
+            .multilineTextAlignment(.leading)
+            .lineLimit(lineLimit)
+            .minimumScaleFactor(minimumScaleFactor)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: maxWidth, alignment: .leading)
     }
 }
 

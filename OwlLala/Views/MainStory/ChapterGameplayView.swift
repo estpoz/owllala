@@ -185,7 +185,7 @@ struct ChapterGamePlayView: View {
                     .ignoresSafeArea()
                     .appBackgroundAdjustments()
 
-                VStack(spacing: baseUnit * 0.035) {
+                VStack(spacing: baseUnit * 0.015) {
                     Text("Bab \(viewModel.chapter.order)")
                         .appScaledFont(
                             size: AppFontSize.largeTitle,
@@ -207,9 +207,9 @@ struct ChapterGamePlayView: View {
 
                     Text("\(totalGameplayPages) Halaman")
                         .appScaledFont(size: AppFontSize.body)
-                        .foregroundStyle(primaryBlue)
+                        .foregroundStyle(.gray)
 
-                    PrimaryActionButton(title: "Mulai") {
+                    PrimaryActionButton(title: "Mulai Baca") {
                         startChapter()
                     }
                     .accessibilityLabel("Mulai Bab \(viewModel.chapter.order)")
@@ -325,9 +325,9 @@ struct ChapterGamePlayView: View {
                 Text(questionInstructionText)
                     .appScaledFont(
                         size: AppFontSize.body,
-                        weight: .semibold
+                        weight: .light
                     )
-                    .foregroundStyle(primaryBlue)
+                    .foregroundStyle(.gray)
                     .padding(.top, geometry.size.height * 0.028)
                     .padding(.bottom, geometry.size.height * 0.035)
             }
