@@ -247,7 +247,6 @@ struct ChapterSelectionView: View {
 
     if let realStory = selectionVM.items.first?.story {
         ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
-            .previewInterfaceOrientation(.landscapeLeft)
             .environmentObject(storageService)
             .environmentObject(SettingsViewModel(storageService: storageService))
     }
