@@ -49,9 +49,9 @@ final class SettingsViewModel: ObservableObject {
 
     /// Whether the "Filter Warna" section is switched on.
     ///
-    /// This is UI state, not persisted directly: the child can switch the
-    /// filter on before picking a type (no simulation chosen yet). Switching it
-    /// off clears the draft's simulation, which is what actually persists.
+    /// This is derived UI state. The active simulation becomes `nil` while the
+    /// switch is off, but `Settings` retains the last selected type so the next
+    /// switch-on restores it.
     @Published private(set) var isFilterEnabled: Bool
 
     /// The settings the app should currently RENDER with: the draft while an
@@ -130,6 +130,7 @@ final class SettingsViewModel: ObservableObject {
         let normalizedSettings = Settings(
             backgroundBrightness: draftSettings.backgroundBrightness,
             colorVisionSimulation: draftSettings.colorVisionSimulation,
+            lastColorVisionSimulation: draftSettings.lastColorVisionSimulation,
             textSize: draftSettings.textSize
         )
 
@@ -176,20 +177,18 @@ final class SettingsViewModel: ObservableObject {
 
     /// Switches the "Filter Warna" section on or off.
     ///
-    /// Switching off also clears the chosen simulation from the draft (the
-    /// previously selected type is not retained, matching the `Settings`
-    /// model's rule). Bound to the filter toggle on both settings surfaces.
+    /// Switching off removes the active effect without discarding the selected
+    /// type. Switching on restores that last selection. Bound to the filter
+    /// toggle on both settings surfaces.
     ///
     /// - Parameter isEnabled: The new switch state.
     func setFilterEnabled(_ isEnabled: Bool) {
         isFilterEnabled = isEnabled
 
         if isEnabled {
-            // A switch-on state must represent a real, persistable setting.
-            // Use the first displayed option when no simulation is selected.
-            if draftSettings.colorVisionSimulation == nil {
-                draftSettings.enableColorVisionSimulation(.protanopia)
-            }
+            draftSettings.enableColorVisionSimulation(
+                draftSettings.lastColorVisionSimulation
+            )
         } else {
             draftSettings.disableColorVisionSimulation()
         }
@@ -215,9 +214,9 @@ final class SettingsViewModel: ObservableObject {
     /// Used by the option rows to draw their radio indicator.
     ///
     /// - Parameter simulation: The filter type to check.
-    /// - Returns: `true` when it is the active selection.
+    /// - Returns: `true` when it is the current or retained selection.
     func isSimulationSelected(_ simulation: ColorVisionSimulation) -> Bool {
-        draftSettings.colorVisionSimulation == simulation
+        draftSettings.lastColorVisionSimulation == simulation
     }
 
     /// Enables a color-vision simulation on the draft directly, without going
