@@ -53,7 +53,7 @@ struct ChapterSelectionView: View {
                     // MARK: Endless Circular Roadmap Track Framework
                     if !viewModel.items.isEmpty {
                         ZStack {
-                            // Using lineStroke Image Asset directly for the curve
+                            // lineStroke Image Asset directly for the curve
                             Image("lineStroke")
                                 .resizable()
                                 .scaledToFit()
@@ -140,7 +140,7 @@ struct ChapterSelectionView: View {
                                         .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
                                         .foregroundColor(.black)
                                     
-                                    // Large Text Mode: Display stars safely down below the text
+                                    // Large Text Mode: Display stars safely down below text
                                     if isLargeLayout && selectionItem.isUnlocked {
                                         HStack(spacing: 6) {
                                             ForEach(0..<3) { starIndex in
@@ -214,6 +214,24 @@ struct ChapterSelectionView: View {
         .navigationBarHidden(true)
         .onAppear {
             pulseScale = 1.02
+            focusOnLatestUnlockedChapter()
+        }
+    }
+    
+    // MARK: Auto-Focus Map Center Engine
+    private func focusOnLatestUnlockedChapter() {
+        guard !viewModel.items.isEmpty else { return }
+        
+        // Find index of the newest/highest unlocked chapter (defaults to index 0 if none found)
+        let targetIndex = viewModel.items.lastIndex(where: { $0.isUnlocked }) ?? 0
+        
+        // Align with modular virtualIndex baseline (1000)
+        let baseOffset = 1000
+        let remainder = baseOffset % viewModel.items.count
+        let alignedBase = baseOffset - remainder
+        
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+            virtualIndex = alignedBase + targetIndex
         }
     }
     
