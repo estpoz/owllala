@@ -170,6 +170,7 @@ private struct WrongAnswerFeedback: ViewModifier {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
         #endif
 
+        AudioService.shared.duckBackgroundMusicForWrongAnswer()
         AudioService.shared.playWrongAnswerSound()
     }
 }
