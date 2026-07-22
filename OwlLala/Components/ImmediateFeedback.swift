@@ -170,6 +170,7 @@ private struct WrongAnswerFeedback: ViewModifier {
         UINotificationFeedbackGenerator().notificationOccurred(.error)
         #endif
 
+        AudioService.shared.duckBackgroundMusicForWrongAnswer()
         AudioService.shared.playWrongAnswerSound()
     }
 }
@@ -288,6 +289,7 @@ struct HintOverlay: View {
     /// Dynamic Type multipliers for the bubble text and illustration size.
     @ScaledMetric(relativeTo: .body) private var bubbleTextScale: CGFloat = 1
     @ScaledMetric(relativeTo: .body) private var owlScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .title) private var buttonScale: CGFloat = 1
 
     /// Creates the overlay with an explicit hint sentence and cover image.
     ///
@@ -335,21 +337,20 @@ struct HintOverlay: View {
                 .ignoresSafeArea()
 
             // Chapter cover + speech bubble, side by side like a conversation,
-            // with clear breathing room between the frame and the bubble.
+            // with the retry action grouped directly under the hint.
             HStack(alignment: .center, spacing: 24) {
                 owlIllustration
-                speechBubble
+
+                VStack(alignment: .leading, spacing: 20) {
+                    speechBubble
+                    retryButton
+                        .padding(.leading, 26)
+                }
+                .frame(maxWidth: 520, alignment: .leading)
             }
             .padding(40)
         }
-        // No button: tapping ANYWHERE on the screen dismisses the hint so the
-        // child can try again.
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onDismiss()
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Ketuk di mana saja untuk mencoba lagi")
+        .accessibilityElement(children: .contain)
     }
 
     /// The chapter cover inside the circle frame beside the speech bubble.
@@ -395,6 +396,24 @@ struct HintOverlay: View {
         .frame(maxWidth: 520, alignment: .leading)
         .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
         .accessibilityLabel("Petunjuk: \(hintText)")
+    }
+
+    /// Closes the hint so the child can return to the same question.
+    private var retryButton: some View {
+        Button(action: onDismiss) {
+            Text("Coba Lagi")
+                .font(.owlRounded(AppFontSize.button * buttonScale, .bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 30 * buttonScale)
+                .padding(.vertical, 10 * buttonScale)
+                .background(AppColor.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Coba lagi")
+        .accessibilityHint("Tutup petunjuk dan kembali ke pertanyaan")
     }
 }
 

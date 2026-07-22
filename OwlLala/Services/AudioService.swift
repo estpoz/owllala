@@ -9,7 +9,7 @@
 //  Plays the short feedback sounds used by the gameplay components in
 //  `ImmediateFeedback.swift`:
 //
-//    • Background music — loops while a mini-game is active.
+//    • Background music — loops continuously from app launch.
 //    • Correct answer   — when the child selects the correct option.
 //    • Yay and applause — with the correct-answer celebration.
 //    • Wrong buzz       — when the child picks a wrong answer.
@@ -49,11 +49,16 @@ final class AudioService {
     private var players: [String: AVAudioPlayer] = [:]
     private var voiceOverPlayer: AVAudioPlayer?
     private var backgroundMusicPlayer: AVAudioPlayer?
+    private var wrongAnswerDuckTask: Task<Void, Never>?
+    private var backgroundMusicBaseVolume = BackgroundMusicVolume.voiceOverEnabled
 
     private enum BackgroundMusicVolume {
         static let voiceOverEnabled: Float = 0.12
         static let voiceOverDisabled: Float = 0.40
+        static let wrongAnswer: Float = 0.04
     }
+
+    private static let wrongAnswerDuckDuration: TimeInterval = 2.9
 
     /// File extensions to try, in order, when locating a sound in the bundle.
     private let supportedExtensions = ["mp3", "wav", "m4a"]
@@ -89,9 +94,13 @@ final class AudioService {
     /// Starts or resumes looping gameplay music at the appropriate voice-over volume.
     func playBackgroundMusic(isVoiceOverEnabled: Bool) {
         let volume = backgroundMusicVolume(isVoiceOverEnabled: isVoiceOverEnabled)
+        backgroundMusicBaseVolume = volume
 
         if let backgroundMusicPlayer {
-            backgroundMusicPlayer.volume = volume
+            if wrongAnswerDuckTask == nil {
+                backgroundMusicPlayer.volume = volume
+            }
+
             guard !backgroundMusicPlayer.isPlaying else {
                 return
             }
@@ -108,23 +117,80 @@ final class AudioService {
         }
 
         player.numberOfLoops = -1
-        player.volume = volume
+        player.volume = wrongAnswerDuckTask == nil
+            ? volume
+            : BackgroundMusicVolume.wrongAnswer
         backgroundMusicPlayer = player
         player.play()
     }
 
     /// Smoothly updates gameplay-music volume after the voice-over toggle changes.
     func updateBackgroundMusicVolume(isVoiceOverEnabled: Bool) {
+        backgroundMusicBaseVolume = backgroundMusicVolume(
+            isVoiceOverEnabled: isVoiceOverEnabled
+        )
+
+        guard wrongAnswerDuckTask == nil else {
+            return
+        }
+
         backgroundMusicPlayer?.setVolume(
-            backgroundMusicVolume(isVoiceOverEnabled: isVoiceOverEnabled),
+            backgroundMusicBaseVolume,
             fadeDuration: 0.25
         )
     }
 
+    /// Temporarily lowers gameplay music while wrong-answer feedback is audible.
+    /// Repeated wrong answers restart the restoration timer.
+    func duckBackgroundMusicForWrongAnswer() {
+        guard backgroundMusicPlayer?.isPlaying == true else {
+            return
+        }
+
+        wrongAnswerDuckTask?.cancel()
+        backgroundMusicPlayer?.setVolume(
+            BackgroundMusicVolume.wrongAnswer,
+            fadeDuration: 0.1
+        )
+
+        wrongAnswerDuckTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(Self.wrongAnswerDuckDuration))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            self?.restoreBackgroundMusicAfterWrongAnswer()
+        }
+    }
+
     /// Stops gameplay music and resets it for the next session.
     func stopBackgroundMusic() {
+        wrongAnswerDuckTask?.cancel()
+        wrongAnswerDuckTask = nil
         backgroundMusicPlayer?.stop()
         backgroundMusicPlayer?.currentTime = 0
+    }
+
+    /// Returns continuous app music to its normal non-gameplay volume.
+    func restoreBackgroundMusicForApp() {
+        wrongAnswerDuckTask?.cancel()
+        wrongAnswerDuckTask = nil
+        backgroundMusicBaseVolume = BackgroundMusicVolume.voiceOverDisabled
+
+        guard backgroundMusicPlayer?.isPlaying == true else {
+            playBackgroundMusic(isVoiceOverEnabled: false)
+            return
+        }
+
+        backgroundMusicPlayer?.setVolume(
+            backgroundMusicBaseVolume,
+            fadeDuration: 0.25
+        )
     }
 
     /// Plays the correct-answer sound when the correct option is selected.
@@ -177,6 +243,14 @@ final class AudioService {
         isVoiceOverEnabled
             ? BackgroundMusicVolume.voiceOverEnabled
             : BackgroundMusicVolume.voiceOverDisabled
+    }
+
+    private func restoreBackgroundMusicAfterWrongAnswer() {
+        backgroundMusicPlayer?.setVolume(
+            backgroundMusicBaseVolume,
+            fadeDuration: 0.25
+        )
+        wrongAnswerDuckTask = nil
     }
 
     // MARK: Playback
