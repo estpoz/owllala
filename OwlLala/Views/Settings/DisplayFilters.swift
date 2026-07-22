@@ -129,11 +129,14 @@ extension View {
             .textSizeAdjustment(for: settings)
     }
 
-    /// Scales the app's text according to the "Ukuran Teks" setting by raising
-    /// the subtree's Dynamic Type size.
+    /// Scales the app's text using BOTH the device's Dynamic Type (iOS Settings
+    /// › Larger Text) and the in-game "Ukuran Teks" setting — whichever is
+    /// larger wins.
     ///
-    /// Every saved choice maps directly to an iPadOS Dynamic Type category,
-    /// which all text using `@ScaledMetric` or text styles follows.
+    /// The device size arrives as the incoming environment value; the in-game
+    /// setting can only raise it, and only inside the app. So the device's text
+    /// size affects the app (and the whole system), while the in-game setting
+    /// affects only the app — never the device.
     ///
     /// - Parameter settings: The settings whose text scale to apply.
     /// - Returns: The view with the adjusted type size.
@@ -144,7 +147,7 @@ extension View {
     /// Teks slider snap back while dragging).
     func textSizeAdjustment(for settings: Settings) -> some View {
         transformEnvironment(\.dynamicTypeSize) { dynamicTypeSize in
-            dynamicTypeSize = settings.preferredDynamicTypeSize
+            dynamicTypeSize = max(dynamicTypeSize, settings.preferredDynamicTypeSize)
         }
     }
 }
