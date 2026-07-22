@@ -52,8 +52,11 @@ storage, and navigation logic.
 ### Settings
 - Stores only:
   - background brightness;
-  - optional color-vision simulation;
+  - whether a color-vision simulation is active;
+  - the most recently selected color-vision simulation;
   - the preferred app text size from X Small through Accessibility 5.
+- Disabling the color-vision simulation retains its most recently selected
+  type, and enabling it again restores that selection.
 - Text size uses the matching native iPadOS Dynamic Type category throughout
   the app, including Accessibility 1–5.
 - Exit confirmation is always enabled and is not configurable.

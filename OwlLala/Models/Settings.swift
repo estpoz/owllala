@@ -40,9 +40,11 @@ struct Settings: Codable, Hashable, Sendable {
     /// The active color-vision simulation.
     ///
     /// A `nil` value means that color simulation is disabled.
-    /// When the simulation is disabled, the previously selected type is not
-    /// retained.
     var colorVisionSimulation: ColorVisionSimulation?
+
+    /// The most recently selected simulation, retained while the filter is off
+    /// so enabling it again restores the child's previous choice.
+    var lastColorVisionSimulation: ColorVisionSimulation
 
     /// The preferred app-wide Dynamic Type category ("Ukuran Teks").
     var textSize: AppTextSize
@@ -59,10 +61,12 @@ struct Settings: Codable, Hashable, Sendable {
     /// - Parameters:
     ///   - backgroundBrightness: The preferred background-brightness level.
     ///   - colorVisionSimulation: The optional active simulation type.
+    ///   - lastColorVisionSimulation: The most recently selected simulation.
     ///   - textSize: The preferred app-wide Dynamic Type category.
     init(
         backgroundBrightness: Double = 1.0,
         colorVisionSimulation: ColorVisionSimulation? = nil,
+        lastColorVisionSimulation: ColorVisionSimulation? = nil,
         textSize: AppTextSize = .large
     ) {
         self.backgroundBrightness = min(
@@ -74,6 +78,9 @@ struct Settings: Codable, Hashable, Sendable {
         )
 
         self.colorVisionSimulation = colorVisionSimulation
+        self.lastColorVisionSimulation = lastColorVisionSimulation
+            ?? colorVisionSimulation
+            ?? .protanopia
 
         self.textSize = textSize
     }
@@ -100,9 +107,18 @@ struct Settings: Codable, Hashable, Sendable {
             decodedTextSize = .large
         }
 
+        let decodedSimulation = try container.decodeIfPresent(
+            ColorVisionSimulation.self,
+            forKey: .colorVisionSimulation
+        )
+
         self.init(
             backgroundBrightness: try container.decode(Double.self, forKey: .backgroundBrightness),
-            colorVisionSimulation: try container.decodeIfPresent(ColorVisionSimulation.self, forKey: .colorVisionSimulation),
+            colorVisionSimulation: decodedSimulation,
+            lastColorVisionSimulation: try container.decodeIfPresent(
+                ColorVisionSimulation.self,
+                forKey: .lastColorVisionSimulation
+            ) ?? decodedSimulation,
             textSize: decodedTextSize
         )
     }
@@ -114,12 +130,17 @@ struct Settings: Codable, Hashable, Sendable {
             colorVisionSimulation,
             forKey: .colorVisionSimulation
         )
+        try container.encode(
+            lastColorVisionSimulation,
+            forKey: .lastColorVisionSimulation
+        )
         try container.encode(textSize, forKey: .textSize)
     }
 
     private enum CodingKeys: String, CodingKey {
         case backgroundBrightness
         case colorVisionSimulation
+        case lastColorVisionSimulation
         case textSize
         /// Legacy key used before the slider represented Dynamic Type steps.
         case textScale
@@ -147,11 +168,13 @@ struct Settings: Codable, Hashable, Sendable {
         _ simulation: ColorVisionSimulation
     ) {
         colorVisionSimulation = simulation
+        lastColorVisionSimulation = simulation
     }
 
     /// Disables the active color-vision simulation.
     ///
-    /// The previously selected simulation type is not retained.
+    /// The previously selected simulation remains available for the next time
+    /// the filter is enabled.
     mutating func disableColorVisionSimulation() {
         colorVisionSimulation = nil
     }
