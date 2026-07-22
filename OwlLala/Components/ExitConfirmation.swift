@@ -65,6 +65,11 @@ struct ExitConfirmation: View {
     /// an accessibility text size (see `panelHeightRatio` in `makeLayout`).
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// The shared display settings, so the dialog reflects the same background
+    /// brightness and color filter as the rest of the app. (Text size is applied
+    /// by the presenter via `appTextSizeAdjustment()`.)
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
+
     /// Dynamic Type multipliers for the three text roles in the card. Each one
     /// tracks a different text style so the title, buttons, and spacing scale
     /// proportionally with the user's chosen size.
@@ -77,6 +82,10 @@ struct ExitConfirmation: View {
     private let primaryBlue = AppColor.primary
 
     var body: some View {
+        // The active display settings drive the background brightness and color
+        // filter, so the dialog matches the rest of the app.
+        let settings = settingsViewModel.activeDisplaySettings
+
         // `GeometryReader` gives us the space the dialog is presented in so the
         // card can be sized relative to the host screen.
         GeometryReader { geometry in
@@ -89,45 +98,51 @@ struct ExitConfirmation: View {
                     .opacity(0.36)
                     .ignoresSafeArea()
 
-                // A plain pure-SwiftUI card: no ScrollView and no color-filter
-                // modifiers. A `colorEffect` shader can't rasterize a ScrollView's
-                // content (it renders blank), and a confirmation dialog is UI
-                // chrome — not learning content — so it stays a simple white card
-                // that always renders, in every context.
+                // The card sizes to its content (no fixed height) so there is no
+                // empty gap under the buttons. Title and button labels WRAP
+                // (never truncate), so every text stays readable at every size —
+                // on the iPad the content fits even at the largest text size, so
+                // no ScrollView is needed (a color shader can't rasterize one).
                 VStack(spacing: 0) {
                     // Question / title — SF Pro Rounded Bold, black, centered.
-                    Text("Apa kamu yakin mau\nkehilangan progress\nbelajarmu?")
+                    Text("Apa kamu yakin mau kehilangan progress belajarmu?")
                         .font(.owlRounded(layout.titleFontSize, .bold))
                         .foregroundStyle(.black)
                         .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(layout.titleFontSize * 0.18)
+                        .frame(maxWidth: .infinity)
                         .padding(.horizontal, layout.horizontalPadding)
                         .padding(.top, layout.verticalPadding)
 
                     VStack(spacing: layout.buttonSpacing) {
-                        // Primary action: stay and keep learning (filled blue,
-                        // white bold label).
+                        // Primary action: stay and keep learning (filled blue).
                         Button(action: onContinueLearning) {
                             Text("Kembali Belajar")
                                 .font(.owlRounded(layout.buttonFontSize, .bold))
                                 .foregroundStyle(.white)
                                 .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, layout.buttonHorizontalPadding)
+                                .padding(.vertical, 14)
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: layout.primaryButtonHeight)
                                 .background(primaryBlue)
                                 .clipShape(RoundedRectangle(cornerRadius: layout.buttonCornerRadius, style: .continuous))
                         }
 
-                        // Destructive action: leave and lose progress
-                        // (outlined blue, blue bold label — the less-preferred
-                        // option).
+                        // Destructive action: leave and lose progress (outlined).
                         Button(action: onDiscardProgress) {
                             Text("Hilangkan Progres")
                                 .font(.owlRounded(layout.buttonFontSize, .bold))
                                 .foregroundStyle(primaryBlue)
                                 .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, layout.buttonHorizontalPadding)
+                                .padding(.vertical, 14)
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: layout.secondaryButtonHeight)
                                 .overlay {
@@ -140,18 +155,23 @@ struct ExitConfirmation: View {
                     .padding(.top, layout.contentSpacing)
                     .padding(.horizontal, layout.horizontalPadding)
                     .padding(.bottom, layout.verticalPadding)
-
-                    Spacer(minLength: 0)
                 }
-                .frame(width: layout.panelWidth, height: layout.panelHeight)
+                .frame(width: layout.panelWidth)
                 .background(
+                    // Designated background layer: dims with the "Kecerahan Latar
+                    // Belakang" setting, like the rest of the app's backgrounds.
                     Image("bgPattern")
                         .resizable()
                         .scaledToFill()
+                        .backgroundBrightness(settings.backgroundBrightness)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: layout.panelCornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.18), radius: 28, x: 0, y: 16)
             }
+            // The whole dialog follows the app's color filter, exactly like every
+            // other screen. `nil` (filter off) is a no-op; no ScrollView sits
+            // under this shader, so it rasterizes and never blanks.
+            .colorVisionFilter(settings.colorVisionSimulation)
         }
     }
 
@@ -172,13 +192,21 @@ struct ExitConfirmation: View {
         let shortestSide = min(size.width, size.height)
         let isCompact = shortestSide < 500
         let isLarge = size.width >= 900 && size.height >= 700
-        let panelWidthRatio: CGFloat = isCompact ? 0.90 : (isLarge ? 0.66 : 0.76)
-        let panelHeightRatio: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.88 : (isCompact ? 0.72 : 0.64)
-        let panelWidth = (size.width * panelWidthRatio).clamped(to: 280...820)
-        let panelHeight = (size.height * panelHeightRatio).clamped(to: 320...760)
+        let usesAccessibilityLayout = dynamicTypeSize.isAccessibilitySize
+        let panelWidthRatio: CGFloat = usesAccessibilityLayout
+            ? (isCompact ? 0.96 : 0.90)
+            : (isCompact ? 0.90 : (isLarge ? 0.66 : 0.76))
+        let panelHeightRatio: CGFloat = usesAccessibilityLayout
+            ? 0.92
+            : (isCompact ? 0.72 : 0.64)
+        let panelWidth = (size.width * panelWidthRatio).clamped(to: 280...900)
+        let panelHeight = (size.height * panelHeightRatio).clamped(to: 320...820)
         let titleBaseSize = (panelWidth * (isCompact ? 0.070 : 0.058)).clamped(to: 28...46)
         let buttonBaseSize = (panelWidth * (isCompact ? 0.045 : 0.038)).clamped(to: 19...30)
-        let buttonMaxWidth = (panelWidth * (isCompact ? 0.78 : 0.56)).clamped(to: 230...440)
+        let buttonMaxWidth = (
+            panelWidth * (usesAccessibilityLayout ? 0.82 : (isCompact ? 0.78 : 0.56))
+        )
+        .clamped(to: 230...680)
 
         return ModalLayout(
             panelWidth: panelWidth,
@@ -190,11 +218,21 @@ struct ExitConfirmation: View {
             primaryButtonHeight: max(panelHeight * 0.13, 52 * buttonScale),
             secondaryButtonHeight: max(panelHeight * 0.12, 48 * buttonScale),
             buttonCornerRadius: (panelWidth * 0.030).clamped(to: 16...26),
-            horizontalPadding: (panelWidth * 0.08).clamped(to: 20...64),
-            verticalPadding: (panelHeight * 0.10).clamped(to: 28...72),
-            contentSpacing: (panelHeight * 0.09).clamped(to: 26...64),
-            buttonSpacing: max(panelHeight * 0.04, 16 * spacingScale),
-            buttonHorizontalPadding: (18 * spacingScale).clamped(to: 16...34)
+            horizontalPadding: usesAccessibilityLayout
+                ? (panelWidth * 0.05).clamped(to: 16...40)
+                : (panelWidth * 0.08).clamped(to: 20...64),
+            verticalPadding: usesAccessibilityLayout
+                ? (panelHeight * 0.06).clamped(to: 20...48)
+                : (panelHeight * 0.10).clamped(to: 28...72),
+            contentSpacing: usesAccessibilityLayout
+                ? (panelHeight * 0.05).clamped(to: 20...40)
+                : (panelHeight * 0.09).clamped(to: 26...64),
+            buttonSpacing: usesAccessibilityLayout
+                ? max(panelHeight * 0.03, 12 * spacingScale)
+                : max(panelHeight * 0.04, 16 * spacingScale),
+            buttonHorizontalPadding: usesAccessibilityLayout
+                ? (12 * spacingScale).clamped(to: 12...32)
+                : (18 * spacingScale).clamped(to: 16...34)
         )
     }
 }
@@ -255,7 +293,7 @@ private extension CGFloat {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Default") {
     let storageService = StorageService()
 
     return ZStack {
@@ -267,6 +305,23 @@ private extension CGFloat {
             onDiscardProgress: {}
         )
     }
+    .environmentObject(storageService)
+    .environmentObject(SettingsViewModel(storageService: storageService))
+}
+
+#Preview("Accessibility 5") {
+    let storageService = StorageService()
+
+    return ZStack {
+        Color(white: 0.6)
+            .ignoresSafeArea()
+
+        ExitConfirmation(
+            onContinueLearning: {},
+            onDiscardProgress: {}
+        )
+    }
+    .dynamicTypeSize(.accessibility5)
     .environmentObject(storageService)
     .environmentObject(SettingsViewModel(storageService: storageService))
 }
