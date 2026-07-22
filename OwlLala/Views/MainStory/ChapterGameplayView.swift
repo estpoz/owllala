@@ -64,54 +64,32 @@ struct ChapterGamePlayView: View {
                 }
             }
 
-            if isShowingExitConfirmation {
-                ExitConfirmation(
-                    onContinueLearning: {
-                        isShowingExitConfirmation = false
-                        resumeStoryVoiceOverIfNeeded()
-                    },
-                    onDiscardProgress: {
-                        stopGameplayAudio()
-                        dismiss()
-                    }
-                )
-                .zIndex(2)
-            }
-
-            // MARK: - Success overlay, layered on top of gameplay
-            if isShowingSuccessOverlay {
-                StageClearedView(
-                    title: "Hebat Sekali!",
-                    subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
-                    starCount: viewModel.earnedStars ?? Chapter.maximumStars,
-                    maxStars: 3,
-                    summaryText: viewModel.chapter.learningSummary.explanation,
-                    onReplay: {
-                        stopGameplayAudio()
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isShowingSuccessOverlay = false
-                        }
-                        viewModel.resetForReplay()
-                        hasStartedChapter = viewModel.source == .training
-
-                        if viewModel.source == .training {
-                            startBackgroundMusic()
-                        }
-                    },
-                    onContinue: {
-                        stopGameplayAudio()
-                        viewModel.finishStageCleared()
-                        dismiss()
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(1)
-            }
         }
         .navigationBarHidden(true)
-        // A separate transparent presentation keeps the modal's AX ScrollView
-        // outside gameplay's shader while preserving the same centered card
-        // and live preview over the game beneath it.
+        // A separate transparent presentation keeps the dialog's accessible
+        // ScrollView outside gameplay's shader while preserving the centered
+        // card and the visible game beneath it.
+        .fullScreenCover(isPresented: $isShowingExitConfirmation) {
+            ExitConfirmation(
+                onContinueLearning: {
+                    isShowingExitConfirmation = false
+                    resumeStoryVoiceOverIfNeeded()
+                },
+                onDiscardProgress: {
+                    stopGameplayAudio()
+                    isShowingExitConfirmation = false
+                    dismiss()
+                }
+            )
+            // A fullScreenCover is a separate presentation that does NOT inherit
+            // the root's app-wide text sizing, so re-apply it here — the dialog
+            // now follows the "Ukuran Teks" setting like the rest of the app.
+            // (Brightness and color filter are applied inside ExitConfirmation
+            // from the shared settings.)
+            .appTextSizeAdjustment()
+            .presentationBackground(.clear)
+            .interactiveDismissDisabled()
+        }
         .fullScreenCover(
             isPresented: $isShowingSettings,
             onDismiss: resumeStoryVoiceOverIfNeeded
@@ -119,6 +97,7 @@ struct ChapterGamePlayView: View {
             SettingsView(viewModel: settingsViewModel, isModal: true) {
                 isShowingSettings = false
             }
+            .appTextSizeAdjustment()
             .appIndependentColorFilterScope()
             .presentationBackground(.clear)
         }
@@ -159,7 +138,7 @@ struct ChapterGamePlayView: View {
             }
         }
         .onAppear {
-            if viewModel.source == .training {
+            if viewModel.destination == nil {
                 startBackgroundMusic()
             }
         }
@@ -176,15 +155,16 @@ struct ChapterGamePlayView: View {
             maxStars: 3,
             summaryText: viewModel.chapter.learningSummary.explanation,
             onReplay: {
-                stopStoryVoiceOver()
+                stopGameplayAudio()
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isShowingSuccessOverlay = false
                 }
                 viewModel.resetForReplay()
                 hasStartedChapter = viewModel.source == .training
+                startBackgroundMusic()
             },
             onContinue: {
-                stopStoryVoiceOver()
+                stopGameplayAudio()
                 viewModel.finishStageCleared()
                 isShowingSuccessOverlay = false
                 dismiss()
@@ -205,7 +185,7 @@ struct ChapterGamePlayView: View {
                     .ignoresSafeArea()
                     .appBackgroundAdjustments()
 
-                VStack(spacing: baseUnit * 0.035) {
+                VStack(spacing: baseUnit * 0.015) {
                     Text("Bab \(viewModel.chapter.order)")
                         .appScaledFont(
                             size: AppFontSize.largeTitle,
@@ -227,9 +207,9 @@ struct ChapterGamePlayView: View {
 
                     Text("\(totalGameplayPages) Halaman")
                         .appScaledFont(size: AppFontSize.body)
-                        .foregroundStyle(primaryBlue)
+                        .foregroundStyle(.gray)
 
-                    PrimaryActionButton(title: "Mulai") {
+                    PrimaryActionButton(title: "Mulai Baca") {
                         startChapter()
                     }
                     .accessibilityLabel("Mulai Bab \(viewModel.chapter.order)")
@@ -345,9 +325,9 @@ struct ChapterGamePlayView: View {
                 Text(questionInstructionText)
                     .appScaledFont(
                         size: AppFontSize.body,
-                        weight: .semibold
+                        weight: .light
                     )
-                    .foregroundStyle(primaryBlue)
+                    .foregroundStyle(.gray)
                     .padding(.top, geometry.size.height * 0.028)
                     .padding(.bottom, geometry.size.height * 0.035)
             }
@@ -625,7 +605,7 @@ struct ChapterGamePlayView: View {
 
     private func resumeBackgroundMusicIfNeeded() {
         guard !isShowingSuccessOverlay,
-              viewModel.source == .training || hasStartedChapter
+              viewModel.destination == nil
         else {
             return
         }
@@ -635,7 +615,7 @@ struct ChapterGamePlayView: View {
 
     private func stopGameplayAudio() {
         stopStoryVoiceOver()
-        AudioService.shared.stopBackgroundMusic()
+        AudioService.shared.restoreBackgroundMusicForApp()
     }
 
 }
