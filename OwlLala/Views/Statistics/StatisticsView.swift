@@ -19,8 +19,6 @@ struct StatisticsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedCompetency: Competency?
     @State private var pairedBulletPanelHeight: CGFloat = 0
-    @State private var detailViewportHeight: CGFloat = 0
-    @State private var detailContentHeight: CGFloat = 0
 
     // MARK: Styling
 
@@ -39,8 +37,6 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .title3) private var detailTitleFontSize: CGFloat = 20
     @ScaledMetric(relativeTo: .body) private var detailBodyFontSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var detailPanelPadding: CGFloat = 8
-    @ScaledMetric(relativeTo: .body) private var scrollIndicatorIconSize: CGFloat = 18
-    @ScaledMetric(relativeTo: .body) private var scrollIndicatorHeight: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
     @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
 
@@ -109,10 +105,6 @@ struct StatisticsView: View {
 
     private var hasSelectedCompetencyProgress: Bool {
         (selectedItem?.score ?? 0) > 0
-    }
-
-    private var needsDetailScrollIndicator: Bool {
-        detailContentHeight > detailViewportHeight + 1
     }
 
     private var selectedItem: CompetencyProgressItem? {
@@ -215,7 +207,7 @@ struct StatisticsView: View {
                     scrollingTitle(width: size.width)
                         .frame(height: headerHeight)
 
-                    competencyList
+                    compactCompetencySelector
                         .frame(maxWidth: .infinity)
 
                     selectedDetailPanel
@@ -303,6 +295,72 @@ struct StatisticsView: View {
         }
     }
 
+    private var compactCompetencySelector: some View {
+        HStack(alignment: .center, spacing: 12) {
+            CircleIconButton(
+                systemImageName: "chevron.left",
+                accessibilityLabel: "Kemampuan sebelumnya",
+                action: selectPreviousCompetency
+            )
+            .scaleEffect(0.58)
+
+            if let selectedItem {
+                compactCompetencyCard(selectedItem)
+                    .frame(maxWidth: .infinity)
+            }
+
+            CircleIconButton(
+                systemImageName: "chevron.right",
+                accessibilityLabel: "Kemampuan berikutnya",
+                action: selectNextCompetency
+            )
+            .scaleEffect(0.58)
+        }
+        .appAdaptiveColorFilter()
+    }
+
+    private func compactCompetencyCard(_ item: CompetencyProgressItem) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(item.competency.displayName)
+                    .font(.system(size: rowTitleFontSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.black)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 4) {
+                    ForEach(1...item.maximumScore, id: \.self) { index in
+                        Image(systemName: "star.fill")
+                            .font(.system(size: rowStarFontSize, weight: .bold, design: .rounded))
+                            .foregroundStyle(index <= item.score ? Color.yellow : inactiveStarColor(isSelected: false))
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+
+            Spacer(minLength: 12)
+
+            Text("(\(item.score)/\(item.maximumScore))")
+                .font(.system(size: rowScoreFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.gray)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: rowMinHeight)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(AppColor.primary, lineWidth: 3)
+                )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(item.competency.displayName), \(item.score) dari \(item.maximumScore)")
+    }
+
     private func competencyRow(_ item: CompetencyProgressItem, isSelected: Bool) -> some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
@@ -345,6 +403,27 @@ struct StatisticsView: View {
 
     private func inactiveStarColor(isSelected: Bool) -> Color {
         isSelected ? Color.white.opacity(0.35) : Color.gray.opacity(0.30)
+    }
+
+    private func selectPreviousCompetency() {
+        selectCompetency(offset: -1)
+    }
+
+    private func selectNextCompetency() {
+        selectCompetency(offset: 1)
+    }
+
+    private func selectCompetency(offset: Int) {
+        let items = viewModel.competencyItems
+        guard !items.isEmpty else {
+            return
+        }
+
+        let currentIndex = selectedItem.flatMap { selectedItem in
+            items.firstIndex { $0.competency == selectedItem.competency }
+        } ?? 0
+        let nextIndex = (currentIndex + offset + items.count) % items.count
+        selectedCompetency = items[nextIndex].competency
     }
 
     // MARK: Summary
@@ -469,62 +548,14 @@ struct StatisticsView: View {
     @ViewBuilder
     private var selectedDetailScrollPanel: some View {
         if hasSelectedCompetencyProgress {
-            GeometryReader { proxy in
-                ZStack(alignment: .bottom) {
-                    AppFilteredScrollView(.vertical, showsIndicators: false) {
-                        selectedDetailPanel
-                            .padding(.horizontal, 6)
-                            .padding(.bottom, needsDetailScrollIndicator ? scrollIndicatorHeight + 8 : 8)
-                            .background {
-                                GeometryReader { contentProxy in
-                                    Color.clear.preference(
-                                        key: DetailContentHeightPreferenceKey.self,
-                                        value: contentProxy.size.height
-                                    )
-                                }
-                            }
-                    }
-
-                    if needsDetailScrollIndicator {
-                        scrollMoreIndicator
-                    }
-                }
-                .onAppear {
-                    detailViewportHeight = proxy.size.height
-                }
-                .onChange(of: proxy.size.height) { _, height in
-                    detailViewportHeight = height
-                }
-                .onPreferenceChange(DetailContentHeightPreferenceKey.self) { height in
-                    detailContentHeight = height
-                }
+            AppFilteredScrollView(.vertical, showsIndicators: false) {
+                selectedDetailPanel
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 8)
             }
         } else {
             emptyStatisticsState
         }
-    }
-
-    private var scrollMoreIndicator: some View {
-        ZStack(alignment: .bottom) {
-            LinearGradient(
-                stops: [
-                    Gradient.Stop(color: Color.white.opacity(0), location: 0),
-                    Gradient.Stop(color: Color.white.opacity(0.68), location: 0.58),
-                    Gradient.Stop(color: Color.white.opacity(0.94), location: 1)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            Image(systemName: "chevron.down")
-                .font(.system(size: scrollIndicatorIconSize, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.primary)
-                .padding(.bottom, 6)
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: scrollIndicatorHeight)
-        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -557,13 +588,13 @@ struct StatisticsView: View {
             Image("statsEmptyState")
                 .resizable()
                 .scaledToFit()
-                .frame(width: min(width * 0.78, height * 0.90))
+                .frame(width: min(width * 0.92, height * 1.12))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Belum ada bintang terkumpul")
         }
-        .frame(minHeight: 360)
+        .frame(minHeight: shouldStackMainContent ? 500 : 360)
     }
 
     @ViewBuilder
@@ -680,14 +711,6 @@ struct StatisticsView: View {
 // MARK: - Detail Panel Height Preference
 
 private struct DetailBulletPanelHeightPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct DetailContentHeightPreferenceKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
