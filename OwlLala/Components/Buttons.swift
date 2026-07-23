@@ -175,14 +175,14 @@ struct PrimaryActionButton: View {
         Button(action: action) {
             // Button — SF Pro Rounded 44pt Bold, per the shared type scale.
             Text(title)
-//                .font(.system(size: 24 * buttonScale, weight: .semibold))
-//                .foregroundStyle(.white)
-//                .padding(.horizontal, 56 * buttonScale)
                 .font(.title)
                 .fontWeight(.bold)
                 .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .multilineTextAlignment(.center)
+                // Wrap instead of truncating, so the full label is always shown
+                // — at large text sizes it grows to multiple lines rather than
+                // ending in "…".
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 30)
                 .padding(.vertical, 16)
                 .frame(minHeight: 20 * buttonScale)
