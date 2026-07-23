@@ -103,6 +103,8 @@ struct ChapterGamePlayView: View {
         }
         .fullScreenCover(isPresented: $isShowingSuccessOverlay) {
             stageClearedOverlay
+                .appTextSizeAdjustment() // 1. Re-applies your custom in-app font scaling modifier
+                .environmentObject(settingsViewModel) // 2. Passes the settings environment down to the cover
                 .appIndependentColorFilterScope()
                 .presentationBackground(.clear)
         }
