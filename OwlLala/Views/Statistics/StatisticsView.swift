@@ -82,9 +82,10 @@ struct StatisticsView: View {
     // MARK: Responsive Layout
 
     private var shouldStackMainContent: Bool {
-        // Large Dynamic Type needs vertical flow so cards and detail text remain readable.
+        // Extra-large Dynamic Type needs vertical flow so cards and detail text remain readable.
         switch dynamicTypeSize {
-        case .xxLarge,
+        case .xLarge,
+             .xxLarge,
              .xxxLarge,
              .accessibility1,
              .accessibility2,
@@ -336,26 +337,52 @@ struct StatisticsView: View {
 
     // MARK: Summary
 
+    @ViewBuilder
     private var summaryPanel: some View {
-        HStack(spacing: 0) {
-            summaryItem(
-                title: "Bintang Terkumpul",
-                value: viewModel.totalStars
-            )
+        Group {
+            if shouldStackMainContent {
+                VStack(spacing: 0) {
+                    summaryItem(
+                        title: "Bintang Terkumpul",
+                        value: viewModel.totalStars
+                    )
 
-            summaryDivider
+                    summaryDivider
 
-            summaryItem(
-                title: "Bab Diselesaikan",
-                value: viewModel.completedChapterCount
-            )
+                    summaryItem(
+                        title: "Bab Diselesaikan",
+                        value: viewModel.completedChapterCount
+                    )
 
-            summaryDivider
+                    summaryDivider
 
-            summaryItem(
-                title: "Cerita Ditamatkan",
-                value: viewModel.completedStoryCount
-            )
+                    summaryItem(
+                        title: "Cerita Ditamatkan",
+                        value: viewModel.completedStoryCount
+                    )
+                }
+            } else {
+                HStack(spacing: 0) {
+                    summaryItem(
+                        title: "Bintang Terkumpul",
+                        value: viewModel.totalStars
+                    )
+
+                    summaryDivider
+
+                    summaryItem(
+                        title: "Bab Diselesaikan",
+                        value: viewModel.completedChapterCount
+                    )
+
+                    summaryDivider
+
+                    summaryItem(
+                        title: "Cerita Ditamatkan",
+                        value: viewModel.completedStoryCount
+                    )
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .background(
@@ -371,33 +398,58 @@ struct StatisticsView: View {
     private var summaryDivider: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.45))
-            .frame(width: 1)
+            .frame(
+                width: shouldStackMainContent ? nil : 1,
+                height: shouldStackMainContent ? 1 : nil
+            )
     }
 
+    @ViewBuilder
     private func summaryItem(
         title: String,
         value: Int
     ) -> some View {
-        HStack(spacing: 18) {
-            Text(title)
-                .font(.system(size: summaryTitleFontSize, weight: .regular, design: .rounded))
-                .foregroundStyle(.black)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        Group {
+            if shouldStackMainContent {
+                HStack(alignment: .firstTextBaseline, spacing: 18) {
+                    summaryTitle(title)
 
-            Spacer(minLength: 8)
+                    Spacer(minLength: 8)
 
-            Text("\(value)")
-                .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.primary)
-                .frame(width: summaryValueSize, height: summaryValueSize)
-                .background(Circle().fill(Color.white.opacity(0.96)))
-                .overlay(Circle().stroke(AppColor.primary, lineWidth: 3))
-                .accessibilityLabel("\(value)")
+                    summaryValue(value)
+                }
+                .padding(.vertical, 16)
+            } else {
+                HStack(alignment: .center, spacing: 18) {
+                    summaryTitle(title)
+
+                    Spacer(minLength: 8)
+
+                    summaryValue(value)
+                }
+            }
         }
         .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private func summaryTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: summaryTitleFontSize, weight: .regular, design: .rounded))
+            .foregroundStyle(.black)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+    }
+
+    private func summaryValue(_ value: Int) -> some View {
+        Text("\(value)")
+            .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
+            .foregroundStyle(AppColor.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .accessibilityLabel("\(value)")
     }
 
     // MARK: Inline Detail
