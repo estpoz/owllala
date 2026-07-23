@@ -82,9 +82,10 @@ struct StatisticsView: View {
     // MARK: Responsive Layout
 
     private var shouldStackMainContent: Bool {
-        // Large Dynamic Type needs vertical flow so cards and detail text remain readable.
+        // Extra-large Dynamic Type needs vertical flow so cards and detail text remain readable.
         switch dynamicTypeSize {
-        case .xxLarge,
+        case .xLarge,
+             .xxLarge,
              .xxxLarge,
              .accessibility1,
              .accessibility2,
@@ -100,6 +101,10 @@ struct StatisticsView: View {
 
     private var hasCompletedProgress: Bool {
         viewModel.completedChapterCount > 0
+    }
+
+    private var hasSelectedCompetencyProgress: Bool {
+        (selectedItem?.score ?? 0) > 0
     }
 
     private var selectedItem: CompetencyProgressItem? {
@@ -202,7 +207,7 @@ struct StatisticsView: View {
                     scrollingTitle(width: size.width)
                         .frame(height: headerHeight)
 
-                    competencyList
+                    compactCompetencySelector
                         .frame(maxWidth: .infinity)
 
                     selectedDetailPanel
@@ -290,6 +295,72 @@ struct StatisticsView: View {
         }
     }
 
+    private var compactCompetencySelector: some View {
+        HStack(alignment: .center, spacing: 12) {
+            CircleIconButton(
+                systemImageName: "chevron.left",
+                accessibilityLabel: "Kemampuan sebelumnya",
+                action: selectPreviousCompetency
+            )
+            .scaleEffect(0.58)
+
+            if let selectedItem {
+                compactCompetencyCard(selectedItem)
+                    .frame(maxWidth: .infinity)
+            }
+
+            CircleIconButton(
+                systemImageName: "chevron.right",
+                accessibilityLabel: "Kemampuan berikutnya",
+                action: selectNextCompetency
+            )
+            .scaleEffect(0.58)
+        }
+        .appAdaptiveColorFilter()
+    }
+
+    private func compactCompetencyCard(_ item: CompetencyProgressItem) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(item.competency.displayName)
+                    .font(.system(size: rowTitleFontSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.black)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 4) {
+                    ForEach(1...item.maximumScore, id: \.self) { index in
+                        Image(systemName: "star.fill")
+                            .font(.system(size: rowStarFontSize, weight: .bold, design: .rounded))
+                            .foregroundStyle(index <= item.score ? Color.yellow : inactiveStarColor(isSelected: false))
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+
+            Spacer(minLength: 12)
+
+            Text("(\(item.score)/\(item.maximumScore))")
+                .font(.system(size: rowScoreFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.gray)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: rowMinHeight)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(AppColor.primary, lineWidth: 3)
+                )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(item.competency.displayName), \(item.score) dari \(item.maximumScore)")
+    }
+
     private func competencyRow(_ item: CompetencyProgressItem, isSelected: Bool) -> some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
@@ -334,28 +405,75 @@ struct StatisticsView: View {
         isSelected ? Color.white.opacity(0.35) : Color.gray.opacity(0.30)
     }
 
+    private func selectPreviousCompetency() {
+        selectCompetency(offset: -1)
+    }
+
+    private func selectNextCompetency() {
+        selectCompetency(offset: 1)
+    }
+
+    private func selectCompetency(offset: Int) {
+        let items = viewModel.competencyItems
+        guard !items.isEmpty else {
+            return
+        }
+
+        let currentIndex = selectedItem.flatMap { selectedItem in
+            items.firstIndex { $0.competency == selectedItem.competency }
+        } ?? 0
+        let nextIndex = (currentIndex + offset + items.count) % items.count
+        selectedCompetency = items[nextIndex].competency
+    }
+
     // MARK: Summary
 
+    @ViewBuilder
     private var summaryPanel: some View {
-        HStack(spacing: 0) {
-            summaryItem(
-                title: "Bintang Terkumpul",
-                value: viewModel.totalStars
-            )
+        Group {
+            if shouldStackMainContent {
+                VStack(spacing: 0) {
+                    summaryItem(
+                        title: "Bintang Terkumpul",
+                        value: viewModel.totalStars
+                    )
 
-            summaryDivider
+                    summaryDivider
 
-            summaryItem(
-                title: "Bab Diselesaikan",
-                value: viewModel.completedChapterCount
-            )
+                    summaryItem(
+                        title: "Bab Diselesaikan",
+                        value: viewModel.completedChapterCount
+                    )
 
-            summaryDivider
+                    summaryDivider
 
-            summaryItem(
-                title: "Cerita Ditamatkan",
-                value: viewModel.completedStoryCount
-            )
+                    summaryItem(
+                        title: "Cerita Ditamatkan",
+                        value: viewModel.completedStoryCount
+                    )
+                }
+            } else {
+                HStack(spacing: 0) {
+                    summaryItem(
+                        title: "Bintang Terkumpul",
+                        value: viewModel.totalStars
+                    )
+
+                    summaryDivider
+
+                    summaryItem(
+                        title: "Bab Diselesaikan",
+                        value: viewModel.completedChapterCount
+                    )
+
+                    summaryDivider
+
+                    summaryItem(
+                        title: "Cerita Ditamatkan",
+                        value: viewModel.completedStoryCount
+                    )
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .background(
@@ -371,40 +489,65 @@ struct StatisticsView: View {
     private var summaryDivider: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.45))
-            .frame(width: 1)
+            .frame(
+                width: shouldStackMainContent ? nil : 1,
+                height: shouldStackMainContent ? 1 : nil
+            )
     }
 
+    @ViewBuilder
     private func summaryItem(
         title: String,
         value: Int
     ) -> some View {
-        HStack(spacing: 18) {
-            Text(title)
-                .font(.system(size: summaryTitleFontSize, weight: .regular, design: .rounded))
-                .foregroundStyle(.black)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        Group {
+            if shouldStackMainContent {
+                HStack(alignment: .firstTextBaseline, spacing: 18) {
+                    summaryTitle(title)
 
-            Spacer(minLength: 8)
+                    Spacer(minLength: 8)
 
-            Text("\(value)")
-                .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.primary)
-                .frame(width: summaryValueSize, height: summaryValueSize)
-                .background(Circle().fill(Color.white.opacity(0.96)))
-                .overlay(Circle().stroke(AppColor.primary, lineWidth: 3))
-                .accessibilityLabel("\(value)")
+                    summaryValue(value)
+                }
+                .padding(.vertical, 16)
+            } else {
+                HStack(alignment: .center, spacing: 18) {
+                    summaryTitle(title)
+
+                    Spacer(minLength: 8)
+
+                    summaryValue(value)
+                }
+            }
         }
         .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private func summaryTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: summaryTitleFontSize, weight: .regular, design: .rounded))
+            .foregroundStyle(.black)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+    }
+
+    private func summaryValue(_ value: Int) -> some View {
+        Text("\(value)")
+            .font(.system(size: summaryValueFontSize, weight: .bold, design: .rounded))
+            .foregroundStyle(AppColor.primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .accessibilityLabel("\(value)")
     }
 
     // MARK: Inline Detail
 
     @ViewBuilder
     private var selectedDetailScrollPanel: some View {
-        if hasCompletedProgress {
+        if hasSelectedCompetencyProgress {
             AppFilteredScrollView(.vertical, showsIndicators: false) {
                 selectedDetailPanel
                     .padding(.horizontal, 6)
@@ -417,7 +560,7 @@ struct StatisticsView: View {
 
     @ViewBuilder
     private var selectedDetailPanel: some View {
-        if hasCompletedProgress,
+        if hasSelectedCompetencyProgress,
            let selectedItem,
            let guidance = viewModel.guidance(for: selectedItem.competency) {
             VStack(alignment: .leading, spacing: 10) {
@@ -445,13 +588,13 @@ struct StatisticsView: View {
             Image("statsEmptyState")
                 .resizable()
                 .scaledToFit()
-                .frame(width: min(width * 0.78, height * 0.90))
+                .frame(width: min(width * 0.92, height * 1.12))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Belum ada bintang terkumpul")
         }
-        .frame(minHeight: 360)
+        .frame(minHeight: shouldStackMainContent ? 500 : 360)
     }
 
     @ViewBuilder
