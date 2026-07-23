@@ -185,7 +185,8 @@ struct ChapterGamePlayView: View {
                     .ignoresSafeArea()
                     .appBackgroundAdjustments()
 
-                VStack(spacing: baseUnit * 0.015) {
+                VStack(spacing: baseUnit * 0.02) {
+                    // Pinned at the top — stays put at every text size.
                     Text("Bab \(viewModel.chapter.order)")
                         .appScaledFont(
                             size: AppFontSize.largeTitle,
@@ -193,29 +194,50 @@ struct ChapterGamePlayView: View {
                             weight: .bold
                         )
                         .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                    Text(viewModel.chapter.title)
-                        .appScaledFont(
-                            size: AppFontSize.headline,
-                            relativeTo: .headline,
-                            weight: .medium
-                        )
-                        .foregroundStyle(.black)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.75)
+                    // Only the middle scrolls when the text gets too tall for the
+                    // fixed card, so the title/page count never push the button
+                    // out of the box. A pure-SwiftUI scroller (not a UIKit
+                    // ScrollView) is used because the color-vision shader can't
+                    // rasterize a ScrollView and would render its content blank.
+                    ColorFilterSafeVScroll {
+                        VStack(spacing: baseUnit * 0.015) {
+                            Text(viewModel.chapter.title)
+                                .appScaledFont(
+                                    size: AppFontSize.headline,
+                                    relativeTo: .headline,
+                                    weight: .medium
+                                )
+                                .foregroundStyle(.black)
+                                .multilineTextAlignment(.center)
+                                // Wrap to as many lines as the text needs instead
+                                // of truncating to one line with an ellipsis.
+                                .fixedSize(horizontal: false, vertical: true)
 
-                    Text("\(totalGameplayPages) Halaman")
-                        .appScaledFont(size: AppFontSize.body)
-                        .foregroundStyle(.gray)
+                            Text("\(totalGameplayPages) Halaman")
+                                .appScaledFont(size: AppFontSize.body)
+                                .foregroundStyle(.gray)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, baseUnit * 0.005)
+                    }
 
+                    // Pinned at the bottom — stays put at every text size.
                     PrimaryActionButton(title: "Mulai Baca") {
                         startChapter()
                     }
                     .accessibilityLabel("Mulai Bab \(viewModel.chapter.order)")
                 }
                 .padding(baseUnit * 0.05)
-                .frame(width: geometry.size.width * 0.5)
+                // Fixed frame box — the same size from X Small through AX5.
+                .frame(
+                    width: geometry.size.width * 0.5,
+                    height: geometry.size.height * 0.55
+                )
                 .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -739,6 +761,65 @@ private struct AnswerOptionButton: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.65)
         }
+    }
+}
+
+// MARK: - Color-Filter-Safe Vertical Scroll
+
+/// A minimal vertical scroller built from pure SwiftUI (offset + clip + drag),
+/// used where a normal `ScrollView` can't be: a UIKit `ScrollView` cannot be
+/// rasterized by the color-vision `colorEffect` shader and renders blank, but
+/// this offset-based content survives it. It only scrolls when the content is
+/// taller than the space it's given; otherwise it behaves like a plain VStack.
+private struct ColorFilterSafeVScroll<Content: View>: View {
+
+    @ViewBuilder let content: Content
+
+    /// Committed scroll position (0 = top, negative moves content up).
+    @State private var offset: CGFloat = 0
+    /// Measured height of the content, used to bound scrolling.
+    @State private var contentHeight: CGFloat = 0
+    /// Live finger translation during a drag.
+    @GestureState private var dragTranslation: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { viewport in
+            let maxScroll = max(contentHeight - viewport.size.height, 0)
+            // Positive only while the content fits — centers it vertically.
+            // Zero once it overflows, so it pins to the top and scrolls.
+            let centerInset = max((viewport.size.height - contentHeight) / 2, 0)
+            let live = centerInset + min(max(offset + dragTranslation, -maxScroll), 0)
+
+            content
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(key: ContentHeightKey.self, value: proxy.size.height)
+                    }
+                )
+                .frame(width: viewport.size.width, alignment: .top)
+                .offset(y: live)
+                .frame(height: viewport.size.height, alignment: .top)
+                .clipped()
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture()
+                        .updating($dragTranslation) { value, state, _ in
+                            state = value.translation.height
+                        }
+                        .onEnded { value in
+                            offset = min(max(offset + value.translation.height, -maxScroll), 0)
+                        }
+                )
+                .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
+        }
+    }
+}
+
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
