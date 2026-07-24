@@ -14,6 +14,7 @@ struct TrainingModeView: View {
     // MARK: - Dependencies & Environment
     
     @ObservedObject var viewModel: TrainingModeViewModel
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
@@ -159,7 +160,7 @@ struct TrainingModeView: View {
                                     .onTapGesture {
                                         if offset == 0 {
                                             if selectionItem.isUnlocked && !isComingSoon {
-                                                viewModel.selectedChapter = selectionItem.chapter
+                                                viewModel.selectChapter(selectionItem.chapter)
                                             }
                                         } else {
                                             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
@@ -253,18 +254,67 @@ struct TrainingModeView: View {
             }
         }
         .navigationBarHidden(true)
+        .fullScreenCover(item: $viewModel.selectedChapter) { chapter in
+            ChapterGamePlayView(
+                viewModel: ChapterGameplayViewModel(
+                    chapter: chapter,
+                    source: .training,
+                    nextChapterID: viewModel.nextChapterID(for: chapter),
+                    storageService: viewModel.storageService ?? StorageService()
+                ),
+                onChapterCompleted: { completedID in
+                    viewModel.recordChapterCompletion(completedID)
+                }
+            )
+            .environmentObject(settingsViewModel)
+        }
         .onAppear {
             pulseScale = 1.02
+            focusOnLatestUnlockedChapter()
         }
+    }
+    
+    // MARK: - Auto-Focus Engine
+    
+    /// Smoothly scrolls the roadmap track to center on the appropriate chapter upon appearance.
+    private func focusOnLatestUnlockedChapter() {
+        guard !viewModel.items.isEmpty else { return }
+
+        let targetIndex: Int
+        
+        if let playedID = viewModel.lastPlayedChapterID ?? viewModel.selectedChapter?.id,
+           let playedIndex = viewModel.items.firstIndex(where: { $0.chapter.id == playedID }) {
+            
+            let didFinishChapter = (viewModel.lastCompletedChapterID == playedID)
+            
+            if didFinishChapter {
+                // Rule 1: Finished training chapter -> advance to next index
+                let nextIndex = playedIndex + 1
+                targetIndex = min(nextIndex, viewModel.items.count - 1)
+            } else {
+                // Rule 2: Exited / Canceled -> keep current index
+                targetIndex = playedIndex
+            }
+        } else {
+            // Fresh launch fallback: Focus on highest unlocked chapter
+            targetIndex = viewModel.items.lastIndex(where: { $0.isUnlocked }) ?? 0
+        }
+
+        // Align with modular virtualIndex baseline (1000)
+        let baseOffset = 1000
+        let remainder = baseOffset % viewModel.items.count
+        let alignedBase = baseOffset - remainder
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+            virtualIndex = alignedBase + targetIndex
+        }
+        
+        viewModel.clearCompletionState()
     }
     
     // MARK: - Math Helpers
     
     /// Wraps arbitrary virtual index offsets into a valid array index bounds.
-    /// - Parameters:
-    ///   - index: The unbounded virtual index integer.
-    ///   - total: The total number of chapters available in training.
-    /// - Returns: A safe, zero-based array index within `[0 ... total - 1]`.
     private func determineModularIndex(_ index: Int, total: Int) -> Int {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
@@ -278,7 +328,7 @@ struct TrainingModeView: View {
     let storageService = StorageService()
 
     if let realStory = selectionVM.items.first?.story {
-        TrainingModeView(viewModel: TrainingModeViewModel(story: realStory))
+        TrainingModeView(viewModel: TrainingModeViewModel(story: realStory, storageService: storageService))
             .environmentObject(storageService)
             .environmentObject(SettingsViewModel(storageService: storageService))
     }
