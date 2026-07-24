@@ -125,6 +125,13 @@ private struct NarrationScroll<Content: View>: View {
                 .offset(y: live)
                 .frame(width: viewport.size.width, height: viewport.size.height, alignment: .top)
                 .clipped()
+                // A slim scrollbar on the right appears only when the text is
+                // taller than the box, showing there is more to read below.
+                .overlay(alignment: .trailing) {
+                    if maxScroll > 0 {
+                        scrollBar(viewportHeight: viewport.size.height)
+                    }
+                }
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture()
@@ -138,12 +145,35 @@ private struct NarrationScroll<Content: View>: View {
                 .onPreferenceChange(NarrationHeightKey.self) { contentHeight = $0 }
         }
     }
+
+    /// Draws the scroll thumb: its length reflects how much of the text is
+    /// visible, and its position reflects how far the reader has scrolled.
+    private func scrollBar(viewportHeight: CGFloat) -> some View {
+        let maxScroll = max(contentHeight - viewportHeight, 0)
+        let inset: CGFloat = 6
+        let trackHeight = max(viewportHeight - inset * 2, 0)
+        let visibleRatio = min(viewportHeight / max(contentHeight, 1), 1)
+        let thumbHeight = max(trackHeight * visibleRatio, 24)
+        let scrolled = -min(max(offset + dragTranslation, -maxScroll), 0)
+        let progress = maxScroll > 0 ? scrolled / maxScroll : 0
+        let thumbY = inset + progress * (trackHeight - thumbHeight)
+
+        return GeometryReader { proxy in
+            Capsule()
+                .fill(Color.gray.opacity(0.5))
+                .frame(width: 5, height: thumbHeight)
+                .position(x: proxy.size.width - 7, y: thumbY + thumbHeight / 2)
+        }
+        .allowsHitTesting(false)
+    }
 }
 
 private struct NarrationHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
+    // Use max so the measured content height wins over the default (0) that
+    // sibling subtrees (the scrollbar/overlay) also contribute.
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+        value = max(value, nextValue())
     }
 }
 
