@@ -19,6 +19,8 @@ struct StatisticsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedCompetency: Competency?
     @State private var pairedBulletPanelHeight: CGFloat = 0
+    @State private var detailViewportHeight: CGFloat = 0
+    @State private var detailContentHeight: CGFloat = 0
 
     // MARK: Styling
 
@@ -37,6 +39,9 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .title3) private var detailTitleFontSize: CGFloat = 20
     @ScaledMetric(relativeTo: .body) private var detailBodyFontSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var detailPanelPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var scrollIndicatorIconSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var scrollIndicatorHeight: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var scrollIndicatorStripHeight: CGFloat = 22
     @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
     @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
 
@@ -105,6 +110,10 @@ struct StatisticsView: View {
 
     private var hasSelectedCompetencyProgress: Bool {
         (selectedItem?.score ?? 0) > 0
+    }
+
+    private var needsDetailScrollIndicator: Bool {
+        detailContentHeight > detailViewportHeight + 1
     }
 
     private var selectedItem: CompetencyProgressItem? {
@@ -548,14 +557,68 @@ struct StatisticsView: View {
     @ViewBuilder
     private var selectedDetailScrollPanel: some View {
         if hasSelectedCompetencyProgress {
-            AppFilteredScrollView(.vertical, showsIndicators: false) {
-                selectedDetailPanel
-                    .padding(.horizontal, 6)
-                    .padding(.bottom, 8)
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    AppFilteredScrollView(.vertical, showsIndicators: false) {
+                        selectedDetailPanel
+                            .padding(.horizontal, 6)
+                            .padding(.bottom, needsDetailScrollIndicator ? scrollIndicatorHeight + 8 : 8)
+                            .background {
+                                GeometryReader { contentProxy in
+                                    Color.clear.preference(
+                                        key: DetailContentHeightPreferenceKey.self,
+                                        value: contentProxy.size.height
+                                    )
+                                }
+                            }
+                    }
+
+                    if needsDetailScrollIndicator {
+                        scrollMoreIndicator
+                    }
+                }
+                .onAppear {
+                    detailViewportHeight = proxy.size.height
+                }
+                .onChange(of: proxy.size.height) { _, height in
+                    detailViewportHeight = height
+                }
+                .onPreferenceChange(DetailContentHeightPreferenceKey.self) { height in
+                    detailContentHeight = height
+                }
             }
         } else {
             emptyStatisticsState
         }
+    }
+
+    private var scrollMoreIndicator: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                stops: [
+                    Gradient.Stop(color: Color.white.opacity(0), location: 0),
+                    Gradient.Stop(color: Color.white.opacity(0.24), location: 0.50),
+                    Gradient.Stop(color: Color.white.opacity(0.72), location: 0.84),
+                    Gradient.Stop(color: Color.white.opacity(1), location: 1)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: scrollIndicatorHeight - scrollIndicatorStripHeight)
+
+            ZStack {
+                Color.white
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: scrollIndicatorIconSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppColor.primary)
+                    .accessibilityHidden(true)
+            }
+            .frame(height: scrollIndicatorStripHeight)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: scrollIndicatorHeight)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -711,6 +774,14 @@ struct StatisticsView: View {
 // MARK: - Detail Panel Height Preference
 
 private struct DetailBulletPanelHeightPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct DetailContentHeightPreferenceKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
