@@ -76,6 +76,10 @@ struct StoryNarrationBlock: View {
                 .padding(.horizontal, 36)
                 .padding(.vertical, 18)
         }
+        // Rebuild the scroller for each page so its scroll position resets to
+        // the top when the narration changes, instead of keeping the previous
+        // page's offset.
+        .id(narration)
         .frame(maxWidth: .infinity)
         .frame(height: blockHeight)
         .background(Color.white)
