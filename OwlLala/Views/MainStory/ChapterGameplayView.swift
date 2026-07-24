@@ -14,7 +14,7 @@ struct ChapterGamePlayView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @StateObject private var viewModel: ChapterGameplayViewModel
 
-    /// Closure callback invoked when the user finishes a chapter
+    /// Notifies the presenting list after the completed chapter is dismissed.
     var onChapterCompleted: ((String) -> Void)?
 
     @State private var isVoiceOverEnabled = true
@@ -75,6 +75,9 @@ struct ChapterGamePlayView: View {
 
     var body: some View {
         ZStack {
+            // The gameplay layer remains independently filterable when the
+            // scrolling Stage Cleared overlay asks the navigation wrapper to
+            // step aside. `AppScreen` centralizes both settings boundaries.
             AppScreen {
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
@@ -92,6 +95,9 @@ struct ChapterGamePlayView: View {
 
         }
         .navigationBarHidden(true)
+        // A separate transparent presentation keeps the dialog's accessible
+        // ScrollView outside gameplay's shader while preserving the centered
+        // card and the visible game beneath it.
         .fullScreenCover(isPresented: $isShowingExitConfirmation) {
             ExitConfirmation(
                 onContinueLearning: {
@@ -104,6 +110,11 @@ struct ChapterGamePlayView: View {
                     dismiss()
                 }
             )
+            // A fullScreenCover is a separate presentation that does NOT inherit
+            // the root's app-wide text sizing, so re-apply it here — the dialog
+            // now follows the "Ukuran Teks" setting like the rest of the app.
+            // (Brightness and color filter are applied inside ExitConfirmation
+            // from the shared settings.)
             .appTextSizeAdjustment()
             .presentationBackground(.clear)
             .interactiveDismissDisabled()
@@ -121,8 +132,8 @@ struct ChapterGamePlayView: View {
         }
         .fullScreenCover(isPresented: $isShowingSuccessOverlay) {
             stageClearedOverlay
-                .appTextSizeAdjustment()
-                .environmentObject(settingsViewModel)
+                .appTextSizeAdjustment() // 1. Re-applies your custom in-app font scaling modifier
+                .environmentObject(settingsViewModel) // 2. Passes the settings environment down to the cover
                 .appIndependentColorFilterScope()
                 .presentationBackground(.clear)
         }
@@ -187,10 +198,7 @@ struct ChapterGamePlayView: View {
                 stopGameplayAudio()
                 viewModel.finishStageCleared()
                 isShowingSuccessOverlay = false
-                
-                // Triggers parent completion callback
                 onChapterCompleted?(viewModel.chapter.id)
-                
                 dismiss()
             }
         )
@@ -210,6 +218,11 @@ struct ChapterGamePlayView: View {
                     .appBackgroundAdjustments()
 
                 VStack(spacing: baseUnit * 0.02) {
+                    // Balances any extra height above and below the content so
+                    // the block stays nicely centered when there is white space.
+                    Spacer(minLength: 0)
+
+                    // Pinned at the top — stays put at every text size.
                     Text("Bab \(viewModel.chapter.order)")
                         .appScaledFont(
                             size: AppFontSize.largeTitle,
@@ -264,7 +277,9 @@ struct ChapterGamePlayView: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(baseUnit * 0.05)
+                .padding(baseUnit * 0.045)
+                // The box scales with the text size — smallest at X Small,
+                // largest (its cap) at AX5 — and stays centered on the page.
                 .frame(
                     width: geometry.size.width * startCardWidthFraction,
                     height: geometry.size.height * startCardHeightFraction
@@ -811,17 +826,27 @@ private struct AnswerOptionButton: View {
 
 // MARK: - Color-Filter-Safe Vertical Scroll
 
+/// A minimal vertical scroller built from pure SwiftUI (offset + clip + drag),
+/// used where a normal `ScrollView` can't be: a UIKit `ScrollView` cannot be
+/// rasterized by the color-vision `colorEffect` shader and renders blank, but
+/// this offset-based content survives it. It only scrolls when the content is
+/// taller than the space it's given; otherwise it behaves like a plain VStack.
 private struct ColorFilterSafeVScroll<Content: View>: View {
 
     @ViewBuilder let content: Content
 
+    /// Committed scroll position (0 = top, negative moves content up).
     @State private var offset: CGFloat = 0
+    /// Measured height of the content, used to bound scrolling.
     @State private var contentHeight: CGFloat = 0
+    /// Live finger translation during a drag.
     @GestureState private var dragTranslation: CGFloat = 0
 
     var body: some View {
         GeometryReader { viewport in
             let maxScroll = max(contentHeight - viewport.size.height, 0)
+            // Positive only while the text fits — centers it vertically. Zero
+            // once it overflows, so it pins to the top and scrolls.
             let centerInset = max((viewport.size.height - contentHeight) / 2, 0)
             let live = centerInset + min(max(offset + dragTranslation, -maxScroll), 0)
 
@@ -915,6 +940,20 @@ private struct ContentHeightKey: PreferenceKey {
                             illustrationAssetName: "page1-1",
                             narration: "Lala membuka laci mejanya untuk mengambil bekal, tetapi bekalnya tidak ada di sana!",
                             voiceOverAssetName: "chapter1-1"
+                        ),
+                        StoryPage(
+                            id: "chapter-1-page-2",
+                            order: 2,
+                            illustrationAssetName: "page1-2",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari lokasi benda berdasarkan bentuk, bukan warna.",
+                            voiceOverAssetName: "chapter1-2"
+                        ),
+                        StoryPage(
+                            id: "chapter-1-page-3",
+                            order: 3,
+                            illustrationAssetName: "page1-3",
+                            narration: "Lala mencoba mengingat bentuk bekalnya dan menyadari bahwa bekalnya berbentuk seperti kotak kecil dengan pegangan.",
+                            voiceOverAssetName: "chapter1-3"
                         )
                     ],
                     gameConfiguration: GameConfiguration(
@@ -923,17 +962,20 @@ private struct ContentHeightKey: PreferenceKey {
                             prompt: "Objek mana yang cocok dengan bayangan ini?",
                             promptImageAssetName: "lunchboxSilhouette",
                             answerOptions: [
-                                AnswerOption(id: "lunchbox", text: nil, imageAssetName: "lunchbox")
+                                AnswerOption(id: "book", text: nil, imageAssetName: "game1Icon2"),
+                                AnswerOption(id: "backpack", text: nil, imageAssetName: "game1Icon3"),
+                                AnswerOption(id: "lunchbox", text: nil, imageAssetName: "lunchbox"),
+                                AnswerOption(id: "bottle", text: nil, imageAssetName: "game1Icon1")
                             ],
                             correctAnswerID: "lunchbox",
-                            hintText: "Coba perhatikan bentuknya."
+                            hintText: "Coba perhatikan bentuknya. Cari benda yang kotak dan punya pegangan seperti bayangannya."
                         )
                     ),
                     learningSummary: LearningSummary(
                         successMessage: "Lala menemukan kotak makannya!",
                         explanation: "Kamu mengenali objek berdasarkan bentuknya, bukan warnanya.",
                         mainIllustrationAssetName: "lunchbox",
-                        exampleAssetNames: ["lunchbox"]
+                        exampleAssetNames: ["game1Icon2", "game1Icon3", "lunchbox"]
                     )
                 ),
                 source: .mainStory,
