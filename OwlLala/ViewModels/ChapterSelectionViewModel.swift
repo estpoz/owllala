@@ -1,10 +1,3 @@
-//
-//  ChapterSelectionViewModel.swift
-//  OwlLala
-//
-//  Created by Farrell Sudjatmiko on 17/07/26.
-//
-
 import Combine
 import Foundation
 
@@ -20,11 +13,9 @@ struct ChapterSelectionItem: Identifiable, Hashable {
 @MainActor
 final class ChapterSelectionViewModel: ObservableObject {
     @Published var selectedChapter: Chapter?
-    @Published var lastCompletedChapterID: String?
-    @Published var lastPlayedChapterID: String?
 
     let story: Story
-    let storageService: StorageService?
+    private let storageService: StorageService?
     private var cancellables: Set<AnyCancellable> = []
 
     var items: [ChapterSelectionItem] {
@@ -58,30 +49,10 @@ final class ChapterSelectionViewModel: ObservableObject {
                 return
             }
         }
-        lastPlayedChapterID = chapter.id
         selectedChapter = chapter
     }
 
     func clearSelection() {
         selectedChapter = nil
-    }
-
-    /// Computes the ID of the chapter directly following the given chapter.
-    func nextChapterID(for chapter: Chapter) -> String? {
-        guard let currentIndex = story.chapters.firstIndex(where: { $0.id == chapter.id }),
-              currentIndex + 1 < story.chapters.count else {
-            return nil
-        }
-        return story.chapters[currentIndex + 1].id
-    }
-
-    /// Records that the user completed the chapter.
-    func recordChapterCompletion(_ chapterID: String) {
-        lastCompletedChapterID = chapterID
-    }
-
-    /// Clears completion state after updating carousel focus.
-    func clearCompletionState() {
-        lastCompletedChapterID = nil
     }
 }
