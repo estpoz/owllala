@@ -136,7 +136,18 @@ struct ChapterSelectionView: View {
                                         .scaleEffect(offset == 0 ? pulseScale : 1.0)
                                         .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulseScale)
                                         
-                                        // MARK: 2. Top Stars Component (Standard Mode)
+                                        // MARK: 2. Locked Chapter Speech Bubble (Only when locked & in center)
+                                        if offset == 0 && !selectionItem.isUnlocked {
+                                            Image("lockedChapter")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: nodeDiameter * 1.05)
+                                                .offset(x: nodeDiameter * 0.52, y: -nodeDiameter * 0.38)
+                                                .transition(.scale.combined(with: .opacity))
+                                                .accessibilityLabel("Selesaikan bab sebelumnya untuk membuka")
+                                        }
+                                        
+                                        // MARK: 3. Top Stars Component (Standard Mode)
                                         if !isLargeLayout {
                                             HStack(spacing: 6) {
                                                 ForEach(0..<3) { starIndex in
@@ -161,7 +172,7 @@ struct ChapterSelectionView: View {
                                         }
                                     }
                                     
-                                    // MARK: 3. Label & Accessibility Stars Component
+                                    // MARK: 4. Label & Accessibility Stars Component
                                     Text("Bab \(selectionItem.chapter.order)")
                                         .font(.system(size: babLabelSize, weight: .bold, design: .rounded))
                                         .foregroundColor(.black)
