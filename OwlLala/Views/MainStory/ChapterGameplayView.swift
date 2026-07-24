@@ -392,6 +392,8 @@ struct ChapterGamePlayView: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
+        // Match the story page so the top bar sits at the same spot on both.
+        .ignoresSafeArea()
     }
 
     private var usesTwoColumnAnswerLayout: Bool {
@@ -407,15 +409,44 @@ struct ChapterGamePlayView: View {
     }
 
     private var topQuestionSpacing: CGFloat {
-        usesTwoColumnAnswerLayout ? 0.12 : 0.055
+        // Tighten the two-column layout at accessibility sizes so the hint line
+        // has room to grow.
+        if usesTwoColumnAnswerLayout {
+            return dynamicTypeSize.isAccessibilitySize ? 0.03 : 0.12
+        }
+        return 0.055
     }
 
     private var answerTopSpacing: CGFloat {
-        usesTwoColumnAnswerLayout ? 0.075 : 0.035
+        if usesTwoColumnAnswerLayout {
+            return dynamicTypeSize.isAccessibilitySize ? 0.03 : 0.075
+        }
+        return 0.035
     }
 
     private var questionInstructionText: String {
         usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
+    }
+
+    /// Shared question typography for every chapter. The prompt follows the
+    /// app's complete Dynamic Type range, wraps instead of truncating, and
+    /// keeps priority over the decorative owl when horizontal space is tight.
+    private var questionPromptText: some View {
+        Text(viewModel.question.prompt)
+            .appScaledFont(
+                size: 30,
+                relativeTo: .headline,
+                weight: .bold
+            )
+            .foregroundStyle(.black)
+            .multilineTextAlignment(.center)
+            // The hint line is the only thing that scales; the owl and prompt
+            // image are sized by screen geometry so they never change. The low
+            // shrink floor lets the line grow but shrink-to-fit rather than
+            // truncate when a chapter's fixed layout runs out of room.
+            .lineLimit(5)
+            .minimumScaleFactor(0.3)
+            .accessibilityAddTraits(.isHeader)
     }
 
     @ViewBuilder
@@ -424,32 +455,24 @@ struct ChapterGamePlayView: View {
             chapterFivePromptArea(in: geometry)
         } else if let promptImageAssetName = viewModel.question.promptImageAssetName {
             VStack(spacing: geometry.size.height * 0.02) {
-                Text(viewModel.question.prompt)
-                    .appScaledFont(
-                        size: AppFontSize.headline,
-                        relativeTo: .headline,
-                        weight: .bold
-                    )
-                    .foregroundStyle(.black)
-                    .multilineTextAlignment(.center)
-                    // Scales with Larger Text, but shrinks to fit its slot so
-                    // the whole prompt stays on screen and never truncates.
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.5)
+                questionPromptText
 
                 HStack(alignment: .center, spacing: geometry.size.width * 0.055) {
                     Image(promptImageAssetName)
                         .resizable()
                         .scaledToFit()
+                        // The prompt image shrinks at accessibility sizes to give
+                        // the hint line room to grow. The owl stays fixed.
                         .frame(
-                            width: geometry.size.width * (usesCompactPromptImageLayout ? 0.15 : 0.18),
-                            height: geometry.size.height * (usesCompactPromptImageLayout ? 0.17 : 0.24)
+                            width: geometry.size.width * (dynamicTypeSize.isAccessibilitySize ? 0.11 : (usesCompactPromptImageLayout ? 0.15 : 0.18)),
+                            height: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.12 : (usesCompactPromptImageLayout ? 0.17 : 0.24))
                         )
                         .accessibilityLabel("Gambar petunjuk")
 
                     Image("ingameOwl")
                         .resizable()
                         .scaledToFit()
+                        // Fixed size — the owl never changes.
                         .frame(
                             width: geometry.size.width * 0.12,
                             height: geometry.size.height * 0.16
@@ -460,23 +483,18 @@ struct ChapterGamePlayView: View {
             .frame(maxWidth: .infinity)
         } else {
             HStack(alignment: .center, spacing: geometry.size.width * 0.025) {
-                Text(viewModel.question.prompt)
-                    .appScaledFont(
-                        size: AppFontSize.headline,
-                        relativeTo: .headline,
-                        weight: .bold
+                questionPromptText
+                    // Wider at accessibility sizes so the hint line can grow big
+                    // without wrapping into a wall of narrow lines.
+                    .frame(
+                        width: geometry.size.width * (dynamicTypeSize.isAccessibilitySize ? 0.6 : 0.42),
+                        alignment: dynamicTypeSize.isAccessibilitySize ? .center : .trailing
                     )
-                    .foregroundStyle(.black)
-                    .multilineTextAlignment(.center)
-                    // Scales with Larger Text, but shrinks to fit its slot so
-                    // the whole prompt stays on screen and never truncates.
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.5)
-                    .frame(width: geometry.size.width * 0.42, alignment: .trailing)
 
                 Image("ingameOwl")
                     .resizable()
                     .scaledToFit()
+                    // Fixed size — the owl never changes.
                     .frame(
                         width: geometry.size.width * 0.12,
                         height: geometry.size.height * 0.16
@@ -490,27 +508,18 @@ struct ChapterGamePlayView: View {
     private func chapterFivePromptArea(in geometry: GeometryProxy) -> some View {
         HStack(alignment: .center, spacing: geometry.size.width * 0.03) {
             VStack(spacing: geometry.size.height * 0.018) {
-                Text(viewModel.question.prompt)
-                    .appScaledFont(
-                        size: AppFontSize.headline,
-                        relativeTo: .headline,
-                        weight: .bold
-                    )
-                    .foregroundStyle(.black)
-                    .multilineTextAlignment(.center)
-                    // Scales with Larger Text, but shrinks to fit its slot so
-                    // the whole prompt stays on screen and never truncates.
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.5)
+                questionPromptText
 
                 VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
                     Text("Bentuk : Kotak")
                     Text("Warna : Biru")
                     Text("Pola : Bergaris")
                 }
+                // Same size as the prompt so the whole hint reads at one size,
+                // scaling all the way to AX5.
                 .appScaledFont(
-                    size: AppFontSize.body,
-                    relativeTo: .body,
+                    size: 30,
+                    relativeTo: .headline,
                     weight: .bold
                 )
                 .foregroundStyle(primaryBlue)
@@ -523,6 +532,7 @@ struct ChapterGamePlayView: View {
             Image("ingameOwl")
                 .resizable()
                 .scaledToFit()
+                // Fixed size — the owl never moves or scales with the text.
                 .frame(
                     width: geometry.size.width * 0.12,
                     height: geometry.size.height * 0.16
@@ -537,21 +547,24 @@ struct ChapterGamePlayView: View {
         if usesTwoColumnAnswerLayout {
             LazyVGrid(
                 columns: [
-                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035),
-                    GridItem(.fixed(geometry.size.width * 0.32), spacing: geometry.size.width * 0.035)
+                    GridItem(.fixed(geometry.size.width * 0.34), spacing: geometry.size.width * 0.03),
+                    GridItem(.fixed(geometry.size.width * 0.34), spacing: geometry.size.width * 0.03)
                 ],
-                spacing: geometry.size.height * 0.035
+                // Tighter row gap at accessibility sizes to free room for the hint.
+                spacing: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.02 : 0.035)
             ) {
                 ForEach(viewModel.question.answerOptions) { option in
                     AnswerOptionButton(
                         option: option,
+                        // Bigger buttons that keep enough room for the full label
+                        // at every text size.
                         size: CGSize(
-                            width: geometry.size.width * 0.32,
-                            height: geometry.size.height * 0.12
+                            width: geometry.size.width * 0.34,
+                            height: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.12 : 0.14)
                         ),
                         maxImageSize: CGSize(
                             width: geometry.size.width * 0.08,
-                            height: geometry.size.height * 0.075
+                            height: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.07 : 0.075)
                         ),
                         usesHorizontalContent: true,
                         appliesLowContrastOverlay: shouldDimIncorrectChapterThreeOption(option),
@@ -571,6 +584,8 @@ struct ChapterGamePlayView: View {
                 ForEach(viewModel.question.answerOptions) { option in
                     AnswerOptionButton(
                         option: option,
+                        // The answer choices are a fixed size — never affected
+                        // by the text-size setting.
                         size: CGSize(
                             width: geometry.size.width * 0.18,
                             height: geometry.size.height * 0.19
@@ -802,7 +817,8 @@ private struct AnswerOptionButton: View {
         if let text = option.text {
             Text(text)
                 .appScaledFont(
-                    size: AppFontSize.body,
+                    size: 34,
+                    relativeTo: .title,
                     weight: .bold
                 )
                 .foregroundStyle(primaryBlue)
