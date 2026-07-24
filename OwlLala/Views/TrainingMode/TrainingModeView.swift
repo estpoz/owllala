@@ -254,20 +254,6 @@ struct TrainingModeView: View {
             }
         }
         .navigationBarHidden(true)
-        .fullScreenCover(item: $viewModel.selectedChapter) { chapter in
-            ChapterGamePlayView(
-                viewModel: ChapterGameplayViewModel(
-                    chapter: chapter,
-                    source: .training,
-                    nextChapterID: viewModel.nextChapterID(for: chapter),
-                    storageService: viewModel.storageService ?? StorageService()
-                ),
-                onChapterCompleted: { completedID in
-                    viewModel.recordChapterCompletion(completedID)
-                }
-            )
-            .environmentObject(settingsViewModel)
-        }
         .onAppear {
             pulseScale = 1.02
             focusOnLatestUnlockedChapter()
