@@ -625,7 +625,10 @@ struct StatisticsView: View {
     private var selectedDetailPanel: some View {
         if hasSelectedCompetencyProgress,
            let selectedItem,
-           let guidance = viewModel.guidance(for: selectedItem.competency) {
+           let guidance = viewModel.guidance(
+                for: selectedItem.competency,
+                score: selectedItem.score
+           ) {
             VStack(alignment: .leading, spacing: 10) {
                 detailSection(title: "Ringkasan Pembelajaran") {
                     detailTextPanel(guidance.learningSummary)
