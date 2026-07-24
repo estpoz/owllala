@@ -199,28 +199,44 @@ struct ChapterGamePlayView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
 
+                    // Only the title scrolls when it gets too tall for the fixed
+                    // card, so the page count and button never move. A
+                    // pure-SwiftUI scroller (not a UIKit ScrollView) is used
+                    // because the color-vision shader can't rasterize a
+                    // ScrollView and would render its content blank.
                     ColorFilterSafeVScroll {
-                        VStack(spacing: baseUnit * 0.015) {
-                            Text(viewModel.chapter.title)
-                                .appScaledFont(
-                                    size: AppFontSize.headline,
-                                    relativeTo: .headline,
-                                    weight: .medium
-                                )
-                                .foregroundStyle(.black)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Text("\(totalGameplayPages) Halaman")
-                                .appScaledFont(size: AppFontSize.body)
-                                .foregroundStyle(.gray)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, baseUnit * 0.005)
+                        Text(viewModel.chapter.title)
+                            .appScaledFont(
+                                size: AppFontSize.headline,
+                                relativeTo: .headline,
+                                weight: .medium
+                            )
+                            .foregroundStyle(.black)
+                            .multilineTextAlignment(.center)
+                            // Wrap to as many lines as the text needs instead
+                            // of truncating to one line with an ellipsis.
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, baseUnit * 0.005)
                     }
 
+                    // Pinned — stays put at every text size, like the button.
+                    // Matches the "Bab" heading's size so both read at the same
+                    // scale on every chapter's start page.
+                    Text("\(totalGameplayPages) Halaman")
+                        .appScaledFont(
+                            size: AppFontSize.largeTitle,
+                            relativeTo: .largeTitle,
+                            weight: .bold
+                        )
+                        .foregroundStyle(.gray)
+                        .multilineTextAlignment(.center)
+                        // Shrinks to fit the card at big text sizes instead of
+                        // truncating with an ellipsis.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+
+                    // Pinned at the bottom — stays put at every text size.
                     PrimaryActionButton(title: "Mulai Baca") {
                         startChapter()
                     }
@@ -388,8 +404,10 @@ struct ChapterGamePlayView: View {
                     )
                     .foregroundStyle(.black)
                     .multilineTextAlignment(.center)
+                    // Scales with Larger Text, but shrinks to fit its slot so
+                    // the whole prompt stays on screen and never truncates.
                     .lineLimit(3)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.5)
 
                 HStack(alignment: .center, spacing: geometry.size.width * 0.055) {
                     Image(promptImageAssetName)
@@ -422,8 +440,10 @@ struct ChapterGamePlayView: View {
                     )
                     .foregroundStyle(.black)
                     .multilineTextAlignment(.center)
+                    // Scales with Larger Text, but shrinks to fit its slot so
+                    // the whole prompt stays on screen and never truncates.
                     .lineLimit(3)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.5)
                     .frame(width: geometry.size.width * 0.42, alignment: .trailing)
 
                 Image("ingameOwl")
@@ -443,24 +463,32 @@ struct ChapterGamePlayView: View {
         HStack(alignment: .center, spacing: geometry.size.width * 0.03) {
             VStack(spacing: geometry.size.height * 0.018) {
                 Text(viewModel.question.prompt)
-                    .font(.owlHeadline)
-                    .fontWeight(.bold)
+                    .appScaledFont(
+                        size: AppFontSize.headline,
+                        relativeTo: .headline,
+                        weight: .bold
+                    )
                     .foregroundStyle(.black)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.68)
+                    // Scales with Larger Text, but shrinks to fit its slot so
+                    // the whole prompt stays on screen and never truncates.
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.5)
 
                 VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
                     Text("Bentuk : Kotak")
                     Text("Warna : Biru")
                     Text("Pola : Bergaris")
                 }
-                .font(.owlBody)
-                .fontWeight(.bold)
+                .appScaledFont(
+                    size: AppFontSize.body,
+                    relativeTo: .body,
+                    weight: .bold
+                )
                 .foregroundStyle(primaryBlue)
                 .multilineTextAlignment(.leading)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.5)
             }
             .frame(width: geometry.size.width * 0.36)
 
@@ -751,8 +779,10 @@ private struct AnswerOptionButton: View {
                 )
                 .foregroundStyle(primaryBlue)
                 .multilineTextAlignment(usesHorizontalContent ? .leading : .center)
+                // Scales with Larger Text, but shrinks to fit the fixed button
+                // so the whole label shows without overflowing or truncating.
                 .lineLimit(2)
-                .minimumScaleFactor(0.65)
+                .minimumScaleFactor(0.5)
         }
     }
 }
@@ -774,16 +804,37 @@ private struct ColorFilterSafeVScroll<Content: View>: View {
             let live = centerInset + min(max(offset + dragTranslation, -maxScroll), 0)
 
             content
+                // Constrain the width FIRST, then measure — otherwise the
+                // height is read at the text's unwrapped one-line width and
+                // overflow (and the scroll hint) is never detected.
+                .frame(width: viewport.size.width, alignment: .top)
                 .background(
                     GeometryReader { proxy in
                         Color.clear
                             .preference(key: ContentHeightKey.self, value: proxy.size.height)
                     }
                 )
-                .frame(width: viewport.size.width, alignment: .top)
                 .offset(y: live)
                 .frame(height: viewport.size.height, alignment: .top)
                 .clipped()
+                // A white fade with a down chevron while there is still text
+                // below the fold, mirroring the scroll hint on the stats page.
+                .overlay(alignment: .bottom) {
+                    if maxScroll > 0 && live > -maxScroll + 0.5 {
+                        LinearGradient(
+                            colors: [Color.white.opacity(0), Color.white],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 44)
+                        .overlay(alignment: .bottom) {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.gray.opacity(0.7))
+                        }
+                        .allowsHitTesting(false)
+                    }
+                }
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture()
@@ -801,8 +852,10 @@ private struct ColorFilterSafeVScroll<Content: View>: View {
 
 private struct ContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
+    // Use max so the measured content height wins over the default (0) that
+    // sibling subtrees (the fade/chevron overlay) also contribute.
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+        value = max(value, nextValue())
     }
 }
 
