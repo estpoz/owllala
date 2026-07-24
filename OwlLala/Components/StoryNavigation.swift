@@ -20,6 +20,9 @@ struct StoryNarrationBlock: View {
     /// Indonesian narration shown below the story illustration.
     let narration: String
 
+    /// Stable page identity used to reset the narration scroll position.
+    let scrollResetID: String
+
     /// Whether the previous-page chevron should be visible and tappable.
     let canGoPrevious: Bool
 
@@ -77,9 +80,8 @@ struct StoryNarrationBlock: View {
                 .padding(.vertical, 18)
         }
         // Rebuild the scroller for each page so its scroll position resets to
-        // the top when the narration changes, instead of keeping the previous
-        // page's offset.
-        .id(narration)
+        // the top even if two pages happen to use the same narration.
+        .id(scrollResetID)
         .frame(maxWidth: .infinity)
         .frame(height: blockHeight)
         .background(Color.white)
@@ -212,6 +214,7 @@ private struct StoryChevronButton: View {
     VStack(spacing: 32) {
         StoryNarrationBlock(
             narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan bentuk, bukan warna.",
+            scrollResetID: "preview-page-1",
             canGoPrevious: true,
             canGoNext: true,
             onPrevious: {},
@@ -220,6 +223,7 @@ private struct StoryChevronButton: View {
 
         StoryNarrationBlock(
             narration: "Lala mencoba mengingat bentuk bekalnya dan menyadari bahwa bekalnya berbentuk seperti kotak kecil dengan pegangan.",
+            scrollResetID: "preview-page-2",
             canGoPrevious: false,
             canGoNext: true,
             onPrevious: {},

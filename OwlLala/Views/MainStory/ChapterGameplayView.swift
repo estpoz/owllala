@@ -56,21 +56,44 @@ struct ChapterGamePlayView: View {
     /// 0 at the smallest text size, 1 at the largest — used to scale the
     /// start-chapter card responsively across the whole Dynamic Type range.
     private var dynamicTypeProgress: CGFloat {
-        let all = DynamicTypeSize.allCases
-        guard let index = all.firstIndex(of: dynamicTypeSize), all.count > 1 else {
+        switch dynamicTypeSize {
+        case .xSmall:
+            return 0 / 11
+        case .small:
+            return 1 / 11
+        case .medium:
+            return 2 / 11
+        case .large:
+            return 3 / 11
+        case .xLarge:
+            return 4 / 11
+        case .xxLarge:
+            return 5 / 11
+        case .xxxLarge:
+            return 6 / 11
+        case .accessibility1:
+            return 7 / 11
+        case .accessibility2:
+            return 8 / 11
+        case .accessibility3:
+            return 9 / 11
+        case .accessibility4:
+            return 10 / 11
+        case .accessibility5:
+            return 1
+        default:
             return 0
         }
-        return CGFloat(index) / CGFloat(all.count - 1)
     }
 
     /// Start-card width fraction: narrowest at X Small, widest (cap) at AX5.
     private var startCardWidthFraction: CGFloat {
-        0.5 + dynamicTypeProgress * (0.68 - 0.5)
+        0.54 + dynamicTypeProgress * (0.72 - 0.54)
     }
 
     /// Start-card height fraction: shortest at X Small, tallest (cap) at AX5.
     private var startCardHeightFraction: CGFloat {
-        0.42 + dynamicTypeProgress * (0.66 - 0.42)
+        0.48 + dynamicTypeProgress * (0.72 - 0.48)
     }
 
     var body: some View {
@@ -251,15 +274,17 @@ struct ChapterGamePlayView: View {
                             // of truncating to one line with an ellipsis.
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, baseUnit * 0.005)
+                            .padding(.horizontal, baseUnit * 0.018)
+                            .padding(.vertical, baseUnit * 0.012)
                     }
+                    .id(dynamicTypeSize)
 
-                    // Pinned — stays put at every text size. Same size as the
-                    // chapter title above it.
+                    // Pinned — stays put at every text size and remains
+                    // slightly smaller than the chapter number above it.
                     Text("\(totalGameplayPages) Halaman")
                         .appScaledFont(
-                            size: AppFontSize.headline,
-                            relativeTo: .headline,
+                            size: AppFontSize.title1,
+                            relativeTo: .title,
                             weight: .medium
                         )
                         .foregroundStyle(.gray)
@@ -277,7 +302,8 @@ struct ChapterGamePlayView: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(baseUnit * 0.045)
+                .padding(.horizontal, baseUnit * 0.035)
+                .padding(.vertical, baseUnit * 0.04)
                 // The box scales with the text size — smallest at X Small,
                 // largest (its cap) at AX5 — and stays centered on the page.
                 .frame(
@@ -347,6 +373,7 @@ struct ChapterGamePlayView: View {
 
                     StoryNarrationBlock(
                         narration: storyPage.narration,
+                        scrollResetID: storyPage.id,
                         canGoPrevious: !viewModel.isFirstStoryPage,
                         canGoNext: true,
                         onPrevious: viewModel.goToPreviousStoryPage,
@@ -903,10 +930,24 @@ private struct ColorFilterSafeVScroll<Content: View>: View {
         let thumbY = inset + progress * (trackHeight - thumbHeight)
 
         return GeometryReader { proxy in
-            Capsule()
-                .fill(Color.gray.opacity(0.5))
-                .frame(width: 5, height: thumbHeight)
-                .position(x: proxy.size.width - 7, y: thumbY + thumbHeight / 2)
+            ZStack(alignment: .trailing) {
+                LinearGradient(
+                    stops: [
+                        Gradient.Stop(color: Color.white.opacity(0), location: 0),
+                        Gradient.Stop(color: Color.white.opacity(0.72), location: 0.72),
+                        Gradient.Stop(color: Color.white, location: 1)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 40)
+                .frame(maxHeight: .infinity)
+
+                Capsule()
+                    .fill(AppColor.primary.opacity(0.72))
+                    .frame(width: 5, height: thumbHeight)
+                    .position(x: proxy.size.width - 7, y: thumbY + thumbHeight / 2)
+            }
         }
         .allowsHitTesting(false)
     }
