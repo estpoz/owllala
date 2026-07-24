@@ -140,6 +140,8 @@ private struct StorySelectionRouterView: View {
 
 private struct ChapterSelectionRouterView: View {
     @StateObject private var chapterSelectionVM: ChapterSelectionViewModel
+    @State private var isShowingStoryCleared = false
+    @Environment(\.dismiss) private var dismiss
     private let story: Story
     private let storageService: StorageService
 
@@ -164,9 +166,25 @@ private struct ChapterSelectionRouterView: View {
                         source: .mainStory,
                         nextChapterID: nextChapterID(after: chapter),
                         storageService: storageService
-                    )
+                    ),
+                    onStoryCompletion: {
+                        chapterSelectionVM.clearSelection()
+                        isShowingStoryCleared = true
+                    }
                 )
                 .autoDisplayAdjustments()
+            }
+            .fullScreenCover(isPresented: $isShowingStoryCleared) {
+                StoryClearedView(
+                    onContinue: {
+                        isShowingStoryCleared = false
+                        chapterSelectionVM.clearSelection()
+                        dismiss()
+                    }
+                )
+                .appTextSizeAdjustment()
+                .appIndependentColorFilterScope()
+                .presentationBackground(.clear)
             }
     }
 

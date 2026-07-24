@@ -31,7 +31,7 @@ struct StoryClearedView: View {
 
     struct LearningPoint: Identifiable {
         let id = UUID()
-        let symbol: String
+//        let symbol: String
         let title: String
         let description: String
     }
@@ -45,11 +45,11 @@ struct StoryClearedView: View {
     var mascotImageName: String = "owlCircle"
 
     var learningPoints: [LearningPoint] = [
-        LearningPoint(symbol: "square.on.circle", title: "Bentuk", description: "Mengenali objek berdasarkan bentuknya."),
-        LearningPoint(symbol: "tag.fill", title: "Tulisan, Simbol, dan Label", description: "Menggunakan tulisan, simbol, dan label sebagai penunjuk arah."),
-        LearningPoint(symbol: "sun.max.fill", title: "Terang dan Gelap (Kontras)", description: "Membedakan benda berdasarkan tingkat terang dan gelapnya."),
-        LearningPoint(symbol: "water.waves", title: "Pola dan Tekstur", description: "Menemukan perbedaan melalui pola dan tekstur permukaan."),
-        LearningPoint(symbol: "brain.head.profile", title: "Menggabungkan Semua Petunjuk", description: "Menggabungkan semua petunjuk untuk mengenali benda dalam situasi sehari-hari.")
+        LearningPoint(title: "Bentuk", description: "Mengenali objek berdasarkan bentuknya."),
+        LearningPoint(title: "Tulisan, Simbol, dan Label", description: "Menggunakan tulisan, simbol, dan label sebagai penunjuk arah."),
+        LearningPoint(title: "Terang dan Gelap (Kontras)", description: "Membedakan benda berdasarkan tingkat terang dan gelapnya."),
+        LearningPoint(title: "Pola dan Tekstur", description: "Menemukan perbedaan melalui pola dan tekstur permukaan."),
+        LearningPoint(title: "Menggabungkan Semua Petunjuk", description: "Menggabungkan semua petunjuk untuk mengenali benda dalam situasi sehari-hari.")
     ]
 
     var onContinue: () -> Void = {}
@@ -218,10 +218,10 @@ struct StoryClearedView: View {
 
     private func learningPointCard(_ point: LearningPoint, baseUnit: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: baseUnit * 0.01) {
-            Image(systemName: point.symbol)
+//            Image(systemName: point.symbol)
                 // Menggunakan @ScaledMetric (cardSymbolSize) agar ikon membesar otomatis
-                .font(.system(size: cardSymbolSize, weight: .semibold))
-                .foregroundStyle(navy)
+//                .font(.system(size: cardSymbolSize, weight: .semibold))
+//                .foregroundStyle(navy)
                 // Hapus .frame(height: ...) agar ikon tidak terpotong saat font menjadi besar
 
             Text(point.title)
