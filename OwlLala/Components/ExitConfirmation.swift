@@ -105,7 +105,7 @@ struct ExitConfirmation: View {
                 // no ScrollView is needed (a color shader can't rasterize one).
                 VStack(spacing: 0) {
                     // Question / title — SF Pro Rounded Bold, black, centered.
-                    Text("Apa kamu yakin mau kehilangan progress belajarmu?")
+                    Text("Yakin mau keluar? \n Kamu akan kehilangan progress belajarmu")
                         .font(.owlRounded(layout.titleFontSize, .bold))
                         .foregroundStyle(.black)
                         .multilineTextAlignment(.center)
@@ -135,7 +135,7 @@ struct ExitConfirmation: View {
 
                         // Destructive action: leave and lose progress (outlined).
                         Button(action: onDiscardProgress) {
-                            Text("Hilangkan Progres")
+                            Text("Keluar")
                                 .font(.owlRounded(layout.buttonFontSize, .bold))
                                 .foregroundStyle(primaryBlue)
                                 .multilineTextAlignment(.center)
