@@ -20,7 +20,7 @@ struct StageClearedView: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    private let gold = Color(red: 0.95, green: 0.72, blue: 0.20)
+    private let starBlue = Color(red: 0.0, green: 0.227, blue: 0.655)
 
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 80
     @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 33
@@ -156,7 +156,7 @@ struct StageClearedView: View {
             ForEach(0..<maxStars, id: \.self) { index in
                 Image(systemName: index < starCount ? "star.fill" : "star")
                     .font(.system(size: starSize))
-                    .foregroundStyle(gold)
+                    .foregroundStyle(starBlue)
             }
         }
         .accessibilityElement(children: .ignore)
