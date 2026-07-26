@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StageClearedView: View {
 
-    var title: String = "Hebat Sekali!"
+    var title: String?
     var subtitle: String = "Kamu berhasil menyelesaikan Bab 1"
     var starCount: Int = 3
     var maxStars: Int = 3
@@ -26,6 +26,21 @@ struct StageClearedView: View {
     @ScaledMetric(relativeTo: .title) private var subtitleSize: CGFloat = 33
     @ScaledMetric(relativeTo: .title2) private var summarySize: CGFloat = 30
     @ScaledMetric(relativeTo: .largeTitle) private var starSize: CGFloat = 55
+
+    private var resolvedTitle: String {
+        if let title {
+            return title
+        }
+
+        switch starCount {
+        case 1:
+            return "Baik!"
+        case 2:
+            return "Hebat!"
+        default:
+            return "Hebat Sekali!"
+        }
+    }
 
     private var usesAccessibilityLayout: Bool {
         switch dynamicTypeSize {
@@ -105,7 +120,7 @@ struct StageClearedView: View {
     private func headerText(baseUnit: CGFloat, cardWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: baseUnit * 0.01) {
             StageClearedText(
-                title,
+                resolvedTitle,
                 font: .system(size: titleSize, weight: .heavy, design: .rounded),
                 maxWidth: textColumnWidth(baseUnit: baseUnit, cardWidth: cardWidth),
                 lineLimit: usesAccessibilityLayout ? 3 : 2,

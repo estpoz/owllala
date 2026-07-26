@@ -172,7 +172,6 @@ struct ChapterGamePlayView: View {
 
     private var stageClearedOverlay: some View {
         StageClearedView(
-            title: "Hebat Sekali!",
             subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
             starCount: viewModel.earnedStars ?? Chapter.maximumStars,
             maxStars: 3,
