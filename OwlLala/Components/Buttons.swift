@@ -157,13 +157,19 @@ struct CloseButton: View {
 
 // MARK: - Primary Action Button
 
-/// The filled, rounded-rectangle blue button used for the main confirmation
-/// action on a panel — e.g. the "Simpan" (Save) button in the settings views.
+enum PrimaryActionButtonStyle {
+    case filled
+    case outlined
+}
+
+/// The rounded-rectangle text button used for primary panel actions.
 /// Scales with Dynamic Type.
 struct PrimaryActionButton: View {
 
     /// The button's label text.
     let title: String
+
+    var style: PrimaryActionButtonStyle = .filled
 
     /// Invoked on tap.
     let action: () -> Void
@@ -177,7 +183,7 @@ struct PrimaryActionButton: View {
             Text(title)
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(foregroundColor)
                 .multilineTextAlignment(.center)
                 // Wrap instead of truncating, so the full label is always shown
                 // — at large text sizes it grows to multiple lines rather than
@@ -186,8 +192,48 @@ struct PrimaryActionButton: View {
                 .padding(.horizontal, 30)
                 .padding(.vertical, 16)
                 .frame(minHeight: 20 * buttonScale)
-                .background(primaryBlue)
+                .background(backgroundColor)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(borderColor, lineWidth: borderWidth)
+                )
+        }
+    }
+
+    private var foregroundColor: Color {
+        switch style {
+        case .filled:
+            return .white
+        case .outlined:
+            return primaryBlue
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .filled:
+            return primaryBlue
+        case .outlined:
+            return .white
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .filled:
+            return .clear
+        case .outlined:
+            return primaryBlue
+        }
+    }
+
+    private var borderWidth: CGFloat {
+        switch style {
+        case .filled:
+            return 0
+        case .outlined:
+            return max(2, 2 * buttonScale)
         }
     }
 }
