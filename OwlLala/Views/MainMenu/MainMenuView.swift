@@ -126,14 +126,32 @@ struct MainMenuView: View {
 private struct StorySelectionRouterView: View {
     @ObservedObject var mainMenuViewModel: MainMenuViewModel
     @StateObject private var storySelectionVM = StorySelectionViewModel()
+    @State private var isShowingStoryCleared = false
     @EnvironmentObject private var storageService: StorageService
 
     var body: some View {
         StorySelectionView(viewModel: storySelectionVM)
             .navigationDestination(item: $storySelectionVM.selectedStory) { story in
                 // Choke point: pushed screens inherit adjustments automatically.
-                ChapterSelectionRouterView(story: story, storageService: storageService)
-                    .autoDisplayAdjustments()
+                ChapterSelectionRouterView(
+                    story: story,
+                    storageService: storageService,
+                    onStoryCompletion: {
+                        storySelectionVM.clearSelection()
+                        isShowingStoryCleared = true
+                    }
+                )
+                .autoDisplayAdjustments()
+            }
+            .fullScreenCover(isPresented: $isShowingStoryCleared) {
+                StoryClearedView(
+                    onContinue: {
+                        isShowingStoryCleared = false
+                    }
+                )
+                .appTextSizeAdjustment()
+                .appIndependentColorFilterScope()
+                .presentationBackground(.clear)
             }
     }
 }
@@ -142,10 +160,16 @@ private struct ChapterSelectionRouterView: View {
     @StateObject private var chapterSelectionVM: ChapterSelectionViewModel
     private let story: Story
     private let storageService: StorageService
+    private let onStoryCompletion: () -> Void
 
-    init(story: Story, storageService: StorageService) {
+    init(
+        story: Story,
+        storageService: StorageService,
+        onStoryCompletion: @escaping () -> Void
+    ) {
         self.story = story
         self.storageService = storageService
+        self.onStoryCompletion = onStoryCompletion
         _chapterSelectionVM = StateObject(
             wrappedValue: ChapterSelectionViewModel(
                 story: story,
@@ -164,7 +188,8 @@ private struct ChapterSelectionRouterView: View {
                         source: .mainStory,
                         nextChapterID: nextChapterID(after: chapter),
                         storageService: storageService
-                    )
+                    ),
+                    onStoryCompletion: onStoryCompletion
                 )
                 .autoDisplayAdjustments()
             }
