@@ -280,14 +280,14 @@ enum StoryCatalog {
                             id: "chapter-3-page-2",
                             order: 2,
                             illustrationAssetName: "page3-2",
-                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan simbol, bukan warna.",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari lokasi benda berdasarkan kontras, bukan warna.",
                             voiceOverAssetName: "chapter3-2"
                         ),
                         StoryPage(
                             id: "chapter-3-page-3",
                             order: 3,
                             illustrationAssetName: "page3-3",
-                            narration: "Lala memperhatikan dengan saksama simbol-simbol yang ada di lorong sekolah.",
+                            narration: "Lala memperhatikan dengan saksama barang-barang yang ada di loker gelap tersebut.",
                             voiceOverAssetName: "chapter3-3"
                         )
                     ],
