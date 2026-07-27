@@ -14,6 +14,7 @@ struct ChapterSelectionView: View {
     // MARK: - Dependencies & Environment
     
     @ObservedObject var viewModel: ChapterSelectionViewModel
+    @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
@@ -249,6 +250,20 @@ struct ChapterSelectionView: View {
             }
         }
         .navigationBarHidden(true)
+        .fullScreenCover(item: $viewModel.selectedChapter) { chapter in
+            ChapterGamePlayView(
+                viewModel: ChapterGameplayViewModel(
+                    chapter: chapter,
+                    source: .mainStory,
+                    nextChapterID: viewModel.nextChapterID(for: chapter),
+                    storageService: viewModel.storageService ?? StorageService()
+                ),
+                onChapterCompleted: { completedID in
+                    viewModel.recordChapterCompletion(completedID)
+                }
+            )
+            .environmentObject(settingsViewModel)
+        }
         .onAppear {
             pulseScale = 1.02
             focusOnLatestUnlockedChapter()
@@ -257,30 +272,45 @@ struct ChapterSelectionView: View {
     
     // MARK: - Auto-Focus Engine
     
-    /// Smoothly scrolls the roadmap track to center on the latest unlocked chapter upon appearance.
+    /// Smoothly scrolls the roadmap track to center on the appropriate chapter upon appearance.
     private func focusOnLatestUnlockedChapter() {
         guard !viewModel.items.isEmpty else { return }
+
+        let targetIndex: Int
         
-        // Find index of the newest/highest unlocked chapter (defaults to index 0 if none found)
-        let targetIndex = viewModel.items.lastIndex(where: { $0.isUnlocked }) ?? 0
-        
+        if let playedID = viewModel.lastPlayedChapterID ?? viewModel.selectedChapter?.id,
+           let playedIndex = viewModel.items.firstIndex(where: { $0.chapter.id == playedID }) {
+            
+            let didFinishChapter = (viewModel.lastCompletedChapterID == playedID)
+            
+            if didFinishChapter {
+                // Rule 1: Finished chapter -> advance to next index
+                let nextIndex = playedIndex + 1
+                targetIndex = min(nextIndex, viewModel.items.count - 1)
+            } else {
+                // Rule 2: Exited / Canceled -> keep current index
+                targetIndex = playedIndex
+            }
+        } else {
+            // Fresh launch fallback
+            targetIndex = viewModel.items.lastIndex(where: { $0.isUnlocked }) ?? 0
+        }
+
         // Align with modular virtualIndex baseline (1000)
         let baseOffset = 1000
         let remainder = baseOffset % viewModel.items.count
         let alignedBase = baseOffset - remainder
-        
+
         withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
             virtualIndex = alignedBase + targetIndex
         }
+        
+        viewModel.clearCompletionState()
     }
     
     // MARK: - Math Helpers
     
     /// Wraps arbitrary virtual index offsets into a valid array index bounds.
-    /// - Parameters:
-    ///   - index: The unbounded virtual index integer.
-    ///   - total: The total number of chapters in the story.
-    /// - Returns: A safe, zero-based array index within `[0 ... total - 1]`.
     private func determineModularIndex(_ index: Int, total: Int) -> Int {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
@@ -294,7 +324,7 @@ struct ChapterSelectionView: View {
     let storageService = StorageService()
 
     if let realStory = selectionVM.items.first?.story {
-        ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory))
+        ChapterSelectionView(viewModel: ChapterSelectionViewModel(story: realStory, storageService: storageService))
             .environmentObject(storageService)
             .environmentObject(SettingsViewModel(storageService: storageService))
     }
