@@ -13,7 +13,7 @@ struct ChapterGamePlayView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @StateObject private var viewModel: ChapterGameplayViewModel
-    private let onStoryCompletion: (() -> Void)?
+    var onChapterCompleted: ((String) -> Void)?
     @State private var isVoiceOverEnabled = true
     @State private var isShowingExitConfirmation = false
     @State private var isShowingSettings = false
@@ -22,10 +22,10 @@ struct ChapterGamePlayView: View {
 
     init(
         viewModel: ChapterGameplayViewModel,
-        onStoryCompletion: (() -> Void)? = nil
+        onChapterCompleted: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
-        self.onStoryCompletion = onStoryCompletion
+        self.onChapterCompleted = onChapterCompleted
     }
 
     private var totalGameplayPages: Int {
@@ -195,12 +195,9 @@ struct ChapterGamePlayView: View {
                 viewModel.finishStageCleared()
                 isShowingSuccessOverlay = false
 
-                if viewModel.destination == .storyCompletion,
-                   let onStoryCompletion {
-                    onStoryCompletion()
-                } else {
-                    dismiss()
-                }
+                onChapterCompleted?(viewModel.chapter.id)
+                                
+                dismiss()
             }
         )
     }
