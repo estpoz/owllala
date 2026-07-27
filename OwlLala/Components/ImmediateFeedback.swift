@@ -8,7 +8,7 @@
 //  --------
 //  The reusable immediate-feedback pieces for the chapter mini-games:
 //
-//  1. `CorrectAnswerCelebration` — 3 seconds of confetti (reusing
+//  1. `CorrectAnswerCelebration` — 2 seconds of confetti (reusing
 //     `ConfettiOverlay` from StageCleared.swift), a correct-answer sound, yay,
 //     and applause, started by one call.
 //  2. `wrongAnswerFeedback(...)` — view modifier for a wrong option: red
@@ -49,7 +49,7 @@ import UIKit
 
 // MARK: - 1. Correct Answer Celebration
 
-/// Fullscreen celebration for a correct answer: confetti rains for 3 seconds
+/// Fullscreen celebration for a correct answer: confetti rains for 2 seconds
 /// while correct-answer, yay, and applause sounds play, then `onFinished`
 /// fires so the host can move on (e.g. call
 /// `ChapterGameplayViewModel.finishCorrectFeedback()`).
@@ -58,9 +58,9 @@ import UIKit
 struct CorrectAnswerCelebration: View {
 
     /// How long the celebration runs before `onFinished` is called.
-    static let duration: TimeInterval = 3.0
+    static let duration: TimeInterval = 2.0
 
-    /// Invoked once after the three-second feedback presentation.
+    /// Invoked once after the two-second feedback presentation.
     let onFinished: () -> Void
 
     /// Fades the confetti out at the end of the celebration.
@@ -77,7 +77,7 @@ struct CorrectAnswerCelebration: View {
     }
 
     /// The one entry point: starts all celebration features together and
-    /// schedules the finish after `Self.duration` (3 seconds).
+    /// schedules the finish after `Self.duration` (2 seconds).
     private func startCelebration() {
         isFadingOut = false
         AudioService.shared.playCorrectAnswerSound()
@@ -479,13 +479,13 @@ private struct BubbleTail: Shape {
 
 extension View {
 
-    /// Overlays the 3-second confetti + clap celebration on this view while
+    /// Overlays the 2-second confetti + clap celebration on this view while
     /// `isActive` is true; `onFinished` fires when it completes (set your flag
     /// back to false there).
     ///
     /// - Parameters:
     ///   - isActive: Whether the celebration is currently playing.
-    ///   - onFinished: Called once, after the 3 seconds.
+    ///   - onFinished: Called once, after the 2 seconds.
     /// - Returns: The view with the celebration overlay attached.
     func correctAnswerCelebration(
         isActive: Bool,
