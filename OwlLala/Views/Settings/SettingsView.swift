@@ -212,6 +212,9 @@ struct SettingsSurface: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let navigationTopInset = geometry.safeAreaInsets.top
+                + min(navigationTopMargin, 36)
+
             ZStack(alignment: .topLeading) {
                 if dynamicTypeSize.isAccessibilitySize {
                     // The UIKit-backed scroll surface must stay outside a shader.
@@ -226,18 +229,32 @@ struct SettingsSurface: View {
                             .scaledToFill()
                             .ignoresSafeArea()
                     } content: {
-                        panelContent
+                        panelContent()
                     }
                 } else {
                     // X Small through XXX Large fit without scrolling, allowing the
                     // complete pure-SwiftUI panel to retain its live color preview.
+                    // Pin the panel to the top like the AX1–AX5 scroll layout and
+                    // leave any unused space below the settings content.
                     AppScreen {
                         Image("bgPattern")
                             .resizable()
                             .scaledToFill()
                             .ignoresSafeArea()
                     } content: {
-                        panelContent
+                        VStack(spacing: 0) {
+                            panelContent(
+                                regularHeaderTopInset: navigationTopInset,
+                                regularHeaderMinimumHeight:
+                                    navigationTopInset + 98
+                            )
+                            Spacer(minLength: 0)
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity,
+                            alignment: .top
+                        )
                     }
                 }
 
@@ -267,15 +284,22 @@ struct SettingsSurface: View {
                 )
                 .padding(
                     .top,
-                    geometry.safeAreaInsets.top + min(navigationTopMargin, 36)
+                    navigationTopInset
                 )
                 .appAdaptiveColorFilter()
             }
         }
     }
 
-    private var panelContent: some View {
-        SettingsPanelContent(viewModel: viewModel)
+    private func panelContent(
+        regularHeaderTopInset: CGFloat? = nil,
+        regularHeaderMinimumHeight: CGFloat? = nil
+    ) -> some View {
+        SettingsPanelContent(
+            viewModel: viewModel,
+            regularHeaderTopInset: regularHeaderTopInset,
+            regularHeaderMinimumHeight: regularHeaderMinimumHeight
+        )
         .frame(maxWidth: .infinity)
     }
 }
@@ -295,6 +319,14 @@ struct SettingsPanelContent: View {
 
     /// Asset-catalog name of the preview image.
     var previewImageAssetName: String = "settingReference"
+
+    /// Matches the navigation controls' top inset so the regular title can be
+    /// vertically centered on the buttons rather than at the top of the page.
+    var regularHeaderTopInset: CGFloat? = nil
+
+    /// Reserves the navigation-button band above the regular layout so the
+    /// controls and preview cannot rise underneath the overlaid buttons.
+    var regularHeaderMinimumHeight: CGFloat? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -338,14 +370,7 @@ struct SettingsPanelContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Pengaturan")
-                .font(.owlRounded(titleFontSize, .bold))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 110)
-                .padding(.top, min(titleTopPadding, 44))
-                .colorVisionFilter(accessibilityContentSimulation)
+            title
 
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
@@ -357,6 +382,38 @@ struct SettingsPanelContent: View {
             .padding(.bottom, min(contentBottomPadding, 72))
         }
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var title: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            titleText
+                .padding(.top, min(titleTopPadding, 44))
+        } else if let regularHeaderTopInset,
+                  let regularHeaderMinimumHeight {
+            titleText
+                .frame(
+                    height: max(
+                        regularHeaderMinimumHeight - regularHeaderTopInset,
+                        0
+                    ),
+                    alignment: .center
+                )
+                .padding(.top, regularHeaderTopInset)
+        } else {
+            titleText
+                .padding(.top, min(titleTopPadding, 44))
+        }
+    }
+
+    private var titleText: some View {
+        Text("Pengaturan")
+            .font(.owlRounded(titleFontSize, .bold))
+            .foregroundStyle(.black)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 110)
+            .colorVisionFilter(accessibilityContentSimulation)
     }
 
     /// Side-by-side layout used from X Small through XXX Large. Both columns
