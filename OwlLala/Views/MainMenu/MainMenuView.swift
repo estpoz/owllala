@@ -179,21 +179,20 @@ private struct ChapterSelectionRouterView: View {
     }
 
     var body: some View {
-        ChapterSelectionView(viewModel: chapterSelectionVM)
-            .navigationDestination(item: $chapterSelectionVM.selectedChapter) { chapter in
-                // Choke point: pushed screens inherit adjustments automatically.
-                ChapterGamePlayView(
-                    viewModel: ChapterGameplayViewModel(
-                        chapter: chapter,
-                        source: .mainStory,
-                        nextChapterID: nextChapterID(after: chapter),
-                        storageService: storageService
-                    ),
-                    onStoryCompletion: onStoryCompletion
-                )
-                .autoDisplayAdjustments()
-            }
-    }
+            ChapterSelectionView(viewModel: chapterSelectionVM)
+                .navigationDestination(item: $chapterSelectionVM.selectedChapter) { chapter in
+                    // Choke point: pushed screens inherit adjustments automatically.
+                    ChapterGamePlayView(
+                        viewModel: ChapterGameplayViewModel(
+                            chapter: chapter,
+                            source: .mainStory,
+                            nextChapterID: nextChapterID(after: chapter),
+                            storageService: storageService
+                        )
+                    )
+                    .autoDisplayAdjustments()
+                }
+        }
 
     private func nextChapterID(after chapter: Chapter) -> String? {
         guard let currentIndex = story.chapters.firstIndex(of: chapter) else {
