@@ -59,12 +59,46 @@ struct SettingsView: View {
     /// overlay flag).
     let onDismiss: () -> Void
 
+    /// The confirmation currently on screen, if any: asking to apply the edits
+    /// (Save tapped) or to keep/discard them (Close tapped with unsaved edits).
+    @State private var confirmationMode: SettingsChangesConfirmation.Mode?
+
     var body: some View {
-        Group {
-            if isModal {
-                modalPresentation
-            } else {
-                SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
+        ZStack {
+            Group {
+                if isModal {
+                    modalPresentation
+                } else {
+                    SettingsSurface(
+                        viewModel: viewModel,
+                        onDismiss: onDismiss,
+                        onRequestSave: requestSave,
+                        onRequestClose: requestClose
+                    )
+                }
+            }
+
+            // Presented above the surface (not inside it, so it is never clipped
+            // by the modal card) whenever a decision about the edits is needed.
+            if let confirmationMode {
+                SettingsChangesConfirmation(
+                    mode: confirmationMode,
+                    onSave: {
+                        viewModel.save()
+                        onDismiss()
+                    },
+                    onDiscard: {
+                        viewModel.cancel()
+                        onDismiss()
+                    },
+                    onCancel: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.confirmationMode = nil
+                        }
+                    }
+                )
+                .environmentObject(viewModel)
+                .transition(.opacity)
             }
         }
         // Apply the draft category directly so both presentations and isolated
@@ -75,6 +109,31 @@ struct SettingsView: View {
             viewModel.beginEditing()
         }
         .navigationBarBackButtonHidden(true)
+    }
+
+    /// Called by the surface's Save control. Confirms before applying the edits;
+    /// with nothing changed there is nothing to confirm, so it just closes.
+    private func requestSave() {
+        if viewModel.hasUnsavedChanges {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                confirmationMode = .confirmSave
+            }
+        } else {
+            onDismiss()
+        }
+    }
+
+    /// Called by the surface's close control. Confirms before discarding when
+    /// there are unsaved edits; otherwise closes straight away.
+    private func requestClose() {
+        if viewModel.hasUnsavedChanges {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                confirmationMode = .unsavedOnClose
+            }
+        } else {
+            viewModel.cancel()
+            onDismiss()
+        }
     }
 
     /// The modal state uses the same responsive surface at the card's actual
@@ -95,7 +154,9 @@ struct SettingsView: View {
                     viewModel: viewModel,
                     navigationSystemImageName: "xmark",
                     navigationAccessibilityLabel: "Tutup",
-                    onDismiss: onDismiss
+                    onDismiss: onDismiss,
+                    onRequestSave: requestSave,
+                    onRequestClose: requestClose
                 )
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -130,6 +191,14 @@ struct SettingsSurface: View {
 
     /// Invoked after save/cancel; the host removes the surface from the tree.
     let onDismiss: () -> Void
+
+    /// Invoked when the Save control is tapped. The host confirms the change
+    /// before it is applied.
+    let onRequestSave: () -> Void
+
+    /// Invoked when the close control is tapped. The host decides whether to
+    /// confirm (unsaved changes) or dismiss immediately.
+    let onRequestClose: () -> Void
 
     /// Normal sizes fit the original fixed surface. Accessibility sizes need
     /// vertical scrolling to preserve Apple's native AX text dimensions.
@@ -177,16 +246,14 @@ struct SettingsSurface: View {
                         systemImageName: navigationSystemImageName,
                         accessibilityLabel: navigationAccessibilityLabel
                     ) {
-                        viewModel.cancel()
-                        onDismiss()
+                        onRequestClose()
                     }
                     .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
 
                     Spacer()
 
                     SaveChangesButton(hasChanges: viewModel.hasUnsavedChanges) {
-                        viewModel.save()
-                        onDismiss()
+                        onRequestSave()
                     }
                     .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
                 }
