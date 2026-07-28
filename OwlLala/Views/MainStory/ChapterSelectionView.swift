@@ -17,6 +17,7 @@ struct ChapterSelectionView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var onStoryCompleted: (() -> Void)? = nil
     
     // MARK: - View State
     
@@ -260,6 +261,9 @@ struct ChapterSelectionView: View {
                 ),
                 onChapterCompleted: { completedID in
                     viewModel.recordChapterCompletion(completedID)
+                },
+                onStoryCompleted: {
+                    onStoryCompleted?()
                 }
             )
             // A fullScreenCover is a separate presentation that does NOT inherit
