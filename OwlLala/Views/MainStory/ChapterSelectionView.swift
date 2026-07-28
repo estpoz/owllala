@@ -266,6 +266,10 @@ struct ChapterSelectionView: View {
             // the root's app-wide text sizing, so re-apply it here — gameplay now
             // follows the "Ukuran Teks" setting like the rest of the app.
             .appTextSizeAdjustment()
+            // Gameplay is presented in a separate render layer. Reset the
+            // inherited ownership flag so its AppScreen applies the active
+            // color filter exactly once.
+            .appIndependentColorFilterScope()
             .environmentObject(settingsViewModel)
         }
         .onAppear {
