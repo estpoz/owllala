@@ -618,6 +618,7 @@ struct StatisticsView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: scrollIndicatorHeight)
+        .appAdaptiveColorFilter()
         .allowsHitTesting(false)
     }
 
