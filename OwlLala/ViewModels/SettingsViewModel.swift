@@ -40,7 +40,7 @@ final class SettingsViewModel: ObservableObject {
 
     /// The working copy being edited; applied live as a preview, but only
     /// persisted when `save()` is called.
-    @Published var draftSettings: Settings
+    @Published private(set) var draftSettings: Settings
 
     /// Whether an editing session is in progress (between `beginEditing()` and
     /// `save()`/`cancel()`). While `true`, external settings changes do not
@@ -52,7 +52,9 @@ final class SettingsViewModel: ObservableObject {
     /// This is derived UI state. The active simulation becomes `nil` while the
     /// switch is off, but `Settings` retains the last selected type so the next
     /// switch-on restores it.
-    @Published private(set) var isFilterEnabled: Bool
+    var isFilterEnabled: Bool {
+        draftSettings.isColorVisionSimulationEnabled
+    }
 
     /// The settings the app should currently RENDER with: the draft while an
     /// editing session is open (live preview), otherwise the saved settings.
@@ -84,7 +86,6 @@ final class SettingsViewModel: ObservableObject {
         self.savedSettings = storageService.settings
         self.draftSettings = storageService.settings
         self.isEditing = false
-        self.isFilterEnabled = storageService.settings.isColorVisionSimulationEnabled
 
         storageService.$settings
             .dropFirst()
@@ -97,7 +98,6 @@ final class SettingsViewModel: ObservableObject {
                     self.savedSettings = settings
                     if !self.isEditing {
                         self.draftSettings = settings
-                        self.isFilterEnabled = settings.isColorVisionSimulationEnabled
                     }
                 }
             }
@@ -119,7 +119,6 @@ final class SettingsViewModel: ObservableObject {
 
         savedSettings = storageService.settings
         draftSettings = storageService.settings
-        isFilterEnabled = draftSettings.isColorVisionSimulationEnabled
         isEditing = true
     }
 
@@ -137,7 +136,6 @@ final class SettingsViewModel: ObservableObject {
         storageService.updateSettings(normalizedSettings)
         savedSettings = normalizedSettings
         draftSettings = normalizedSettings
-        isFilterEnabled = normalizedSettings.isColorVisionSimulationEnabled
         isEditing = false
     }
 
@@ -148,7 +146,6 @@ final class SettingsViewModel: ObservableObject {
     func cancel() {
         savedSettings = storageService.settings
         draftSettings = storageService.settings
-        isFilterEnabled = draftSettings.isColorVisionSimulationEnabled
         isEditing = false
     }
 
@@ -183,8 +180,6 @@ final class SettingsViewModel: ObservableObject {
     ///
     /// - Parameter isEnabled: The new switch state.
     func setFilterEnabled(_ isEnabled: Bool) {
-        isFilterEnabled = isEnabled
-
         if isEnabled {
             draftSettings.enableColorVisionSimulation(
                 draftSettings.lastColorVisionSimulation
