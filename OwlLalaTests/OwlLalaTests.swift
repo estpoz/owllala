@@ -433,8 +433,14 @@ struct StatisticsViewModelTests {
         let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
         let viewModel = StatisticsViewModel(stories: StoryCatalog.stories, storageService: storage)
 
+        storage.updateUserStats { stats in
+            for chapterID in ["chapter-1", "chapter-2", "chapter-3", "chapter-4", "chapter-5"] {
+                stats.recordCompletedGame(chapterID: chapterID, earnedStars: 3)
+            }
+        }
+
         for item in viewModel.competencyItems {
-            let guidance = try #require(viewModel.guidance(for: item.competency))
+            let guidance = try #require(viewModel.guidance(for: item.competency, score: item.score))
             #expect(guidance.learningSummary.isEmpty == false)
             #expect(guidance.masteredItems.isEmpty == false)
             #expect(guidance.practiceItems.isEmpty == false)
