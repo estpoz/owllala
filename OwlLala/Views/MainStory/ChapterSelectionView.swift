@@ -262,6 +262,10 @@ struct ChapterSelectionView: View {
                     viewModel.recordChapterCompletion(completedID)
                 }
             )
+            // A fullScreenCover is a separate presentation that does NOT inherit
+            // the root's app-wide text sizing, so re-apply it here — gameplay now
+            // follows the "Ukuran Teks" setting like the rest of the app.
+            .appTextSizeAdjustment()
             .environmentObject(settingsViewModel)
         }
         .onAppear {
