@@ -415,6 +415,29 @@ struct ChapterGamePlayView: View {
         viewModel.chapter.order == 5
     }
 
+    /// Chapter 1's bag silhouette grows with Dynamic Type so the visual hint
+    /// remains as prominent as the enlarged question text. Chapter 4 keeps its
+    /// existing compact prompt-image sizing.
+    private var promptImageWidthFraction: CGFloat {
+        if viewModel.chapter.order == 1 {
+            return 0.18 + dynamicTypeProgress * 0.06
+        }
+
+        return dynamicTypeSize.isAccessibilitySize
+            ? 0.11
+            : (usesCompactPromptImageLayout ? 0.15 : 0.18)
+    }
+
+    private var promptImageHeightFraction: CGFloat {
+        if viewModel.chapter.order == 1 {
+            return 0.24 + dynamicTypeProgress * 0.06
+        }
+
+        return dynamicTypeSize.isAccessibilitySize
+            ? 0.12
+            : (usesCompactPromptImageLayout ? 0.17 : 0.24)
+    }
+
     private var topQuestionSpacing: CGFloat {
         // Tighten the two-column layout at accessibility sizes so the hint line
         // has room to grow.
@@ -435,13 +458,17 @@ struct ChapterGamePlayView: View {
         usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
     }
 
+    private var questionPromptBaseFontSize: CGFloat {
+        viewModel.chapter.order == 1 ? 38 : 30
+    }
+
     /// Shared question typography for every chapter. The prompt follows the
     /// app's complete Dynamic Type range, wraps instead of truncating, and
     /// keeps priority over the decorative owl when horizontal space is tight.
     private var questionPromptText: some View {
         Text(viewModel.question.prompt)
             .appScaledFont(
-                size: 30,
+                size: questionPromptBaseFontSize,
                 relativeTo: .headline,
                 weight: .bold
             )
@@ -468,11 +495,9 @@ struct ChapterGamePlayView: View {
                     Image(promptImageAssetName)
                         .resizable()
                         .scaledToFit()
-                        // The prompt image shrinks at accessibility sizes to give
-                        // the hint line room to grow. The owl stays fixed.
                         .frame(
-                            width: geometry.size.width * (dynamicTypeSize.isAccessibilitySize ? 0.11 : (usesCompactPromptImageLayout ? 0.15 : 0.18)),
-                            height: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.12 : (usesCompactPromptImageLayout ? 0.17 : 0.24))
+                            width: geometry.size.width * promptImageWidthFraction,
+                            height: geometry.size.height * promptImageHeightFraction
                         )
                         .accessibilityLabel("Gambar petunjuk")
 
