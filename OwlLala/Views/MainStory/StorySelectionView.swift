@@ -19,7 +19,7 @@ struct StorySelectionView: View {
     
     // MARK: - Scaled Metric Dynamic Type Dimensions
     
-    @ScaledMetric(relativeTo: .largeTitle) private var largeTitleSize: CGFloat = 60
+    @ScaledMetric(relativeTo: .largeTitle) private var largeTitleSize: CGFloat = 50
     @ScaledMetric(relativeTo: .title) private var title1Size: CGFloat = 40
     @ScaledMetric(relativeTo: .headline) private var headlineSize: CGFloat = 32
     
@@ -34,9 +34,18 @@ struct StorySelectionView: View {
             let bookWidth = baseBookWidth * (title1Size / 40.0)
             let bookHeight = bookWidth * 1.314
             
+            // MARK: Adaptive Layout & Font Size Hard Caps
+            let isLargeLayout = dynamicTypeSize >= .accessibility1
+            
+            let effectiveTitleSize: CGFloat = {
+                if dynamicTypeSize > .accessibility3 {
+                    return 50.0 * 1.8
+                }
+                return largeTitleSize
+            }()
+            
             ZStack {
                 // MARK: Background Layer
-                // Designated background layer: dims with Kecerahan Latar Belakang; books/text remain full brightness.
                 Color(red: 0.937, green: 0.953, blue: 0.957)
                     .ignoresSafeArea()
                     .appBackgroundAdjustments()
@@ -49,8 +58,8 @@ struct StorySelectionView: View {
                     .appBackgroundAdjustments()
                 
                 VStack(spacing: 0) {
-                    // MARK: Navigation Header Layer
-                    ZStack {
+                    // MARK: Navigation Header Layer (Aligned with ChapterSelectionView)
+                    ZStack(alignment: .top) {
                         HStack {
                             BackButton(style: .filled) {
                                 dismiss()
@@ -60,15 +69,18 @@ struct StorySelectionView: View {
                         }
                         
                         Text("Cerita Utama")
-                            .font(.system(size: largeTitleSize, weight: .bold, design: .rounded))
+                            .font(.system(size: effectiveTitleSize, weight: .bold, design: .rounded))
                             .foregroundColor(Color(red: 0.067, green: 0.067, blue: 0.067))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                            .padding(.horizontal, screenWidth * 0.13)
                     }
-                    .padding(.top, screenHeight * 0.04)
+                    .padding(.top, screenHeight * (isLargeLayout ? 0.02 : 0.04))
                     .appAdaptiveColorFilter()
                     
                     // MARK: Main Content Grid & Accessibility Container
                     if dynamicTypeSize.isAccessibilitySize {
-                        // Vertical Scroll Layout for Accessibility Dynamic Type sizes
                         AppFilteredScrollView(.vertical, showsIndicators: true) {
                             VStack(spacing: screenHeight * 0.04) {
                                 ForEach(viewModel.items) { item in
@@ -101,7 +113,6 @@ struct StorySelectionView: View {
                             )
                         )
                     } else {
-                        // Standard Horizontal Grid Layout for standard font sizes
                         Spacer(minLength: 0)
                         
                         HStack(spacing: screenWidth * 0.045) {
@@ -137,11 +148,7 @@ struct StorySelectionView: View {
 
 // MARK: - Story Book Item Subview
 
-/// Reusable card component presenting an individual story item with availability overlays and cover graphics.
 struct StoryBookView: View {
-    
-    // MARK: Properties
-    
     let item: StorySelectionItem
     let width: CGFloat
     let height: CGFloat
@@ -149,12 +156,9 @@ struct StoryBookView: View {
     let subtitleSize: CGFloat
     let onTap: () -> Void
     
-    // MARK: Body
-    
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .bottom) {
-                // Book Cover Graphic
                 Image("storyCover\(item.story.order)")
                     .resizable()
                     .scaledToFit()
@@ -162,7 +166,6 @@ struct StoryBookView: View {
                     .clipShape(RoundedRectangle(cornerRadius: width * 0.08))
                     .opacity(item.isAvailable ? 1.0 : 0.6)
                 
-                // Available vs. Coming Soon Overlay Label
                 if item.isAvailable {
                     VStack(spacing: 0) {
                         Spacer()
@@ -174,7 +177,6 @@ struct StoryBookView: View {
                             .padding(.bottom, height * 0.27)
                     }
                     .frame(width: width, height: height)
-                    
                 } else {
                     VStack(spacing: 4) {
                         Spacer()
@@ -201,7 +203,6 @@ struct StoryBookView: View {
     let storageService = StorageService()
 
     return StorySelectionView(viewModel: StorySelectionViewModel())
-
         .environmentObject(storageService)
         .environmentObject(SettingsViewModel(storageService: storageService))
 }
