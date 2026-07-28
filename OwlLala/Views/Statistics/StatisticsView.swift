@@ -197,7 +197,7 @@ struct StatisticsView: View {
 
             HStack(alignment: .top, spacing: contentSpacing) {
                 competencyList
-                    .frame(width: size.width * 0.44, height: middleHeight, alignment: .top)
+                    .frame(width: size.width * 0.36, height: middleHeight, alignment: .top)
                     .appAdaptiveColorFilter()
 
                 Divider()
@@ -207,9 +207,11 @@ struct StatisticsView: View {
                     .frame(maxWidth: .infinity, minHeight: middleHeight, maxHeight: middleHeight, alignment: .top)
                     .clipped()
             }
+            .padding(.leading, size.width * 0.04)
             .frame(height: middleHeight)
 
             summaryPanel
+                .padding(.leading, size.width * 0.04)
                 .frame(height: summaryHeight)
                 .appAdaptiveColorFilter()
         }
