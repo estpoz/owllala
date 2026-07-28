@@ -28,7 +28,7 @@ struct StatisticsView: View {
 
     // MARK: Dynamic Type Metrics
 
-    @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 68
+    @ScaledMetric(relativeTo: .largeTitle) private var titleFontSize: CGFloat = 50
     @ScaledMetric(relativeTo: .title2) private var rowTitleFontSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var rowStarFontSize: CGFloat = 25
     @ScaledMetric(relativeTo: .body) private var rowScoreFontSize: CGFloat = 25
@@ -42,8 +42,7 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .body) private var scrollIndicatorIconSize: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var scrollIndicatorHeight: CGFloat = 64
     @ScaledMetric(relativeTo: .body) private var scrollIndicatorStripHeight: CGFloat = 22
-    @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
-    @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var pageIndicatorDotSize: CGFloat = 10
 
     // MARK: Body
 
@@ -104,6 +103,14 @@ struct StatisticsView: View {
         }
     }
 
+    private var effectiveTitleFontSize: CGFloat {
+        if dynamicTypeSize > .accessibility3 {
+            return 50.0 * 1.8
+        }
+
+        return titleFontSize
+    }
+
     private var hasCompletedProgress: Bool {
         viewModel.completedChapterCount > 0
     }
@@ -123,6 +130,15 @@ struct StatisticsView: View {
         }
 
         return viewModel.competencyItems.first
+    }
+
+    private var selectedCompetencyIndex: Int {
+        guard let selectedItem,
+              let index = viewModel.competencyItems.firstIndex(where: { $0.competency == selectedItem.competency }) else {
+            return 0
+        }
+
+        return index
     }
 
     private func selectDefaultCompetencyIfNeeded() {
@@ -181,7 +197,7 @@ struct StatisticsView: View {
 
             HStack(alignment: .top, spacing: contentSpacing) {
                 competencyList
-                    .frame(width: size.width * 0.44, height: middleHeight, alignment: .top)
+                    .frame(width: size.width * 0.36, height: middleHeight, alignment: .top)
                     .appAdaptiveColorFilter()
 
                 Divider()
@@ -191,9 +207,11 @@ struct StatisticsView: View {
                     .frame(maxWidth: .infinity, minHeight: middleHeight, maxHeight: middleHeight, alignment: .top)
                     .clipped()
             }
+            .padding(.leading, size.width * 0.04)
             .frame(height: middleHeight)
 
             summaryPanel
+                .padding(.leading, size.width * 0.04)
                 .frame(height: summaryHeight)
                 .appAdaptiveColorFilter()
         }
@@ -210,11 +228,12 @@ struct StatisticsView: View {
         contentSpacing: CGFloat,
         headerHeight: CGFloat
     ) -> some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .top) {
             AppFilteredScrollView {
                 VStack(spacing: contentSpacing) {
-                    scrollingTitle(width: size.width)
+                    Color.clear
                         .frame(height: headerHeight)
+                        .accessibilityHidden(true)
 
                     compactCompetencySelector
                         .frame(maxWidth: .infinity)
@@ -229,8 +248,9 @@ struct StatisticsView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            stickyBackButton
-                .padding(min(navigationPadding, 28))
+            header(width: size.width)
+                .frame(height: headerHeight)
+                .padding(.top, size.height * 0.02)
                 .appAdaptiveColorFilter()
         }
         .background(StatisticsBackground())
@@ -238,45 +258,30 @@ struct StatisticsView: View {
 
     // MARK: Header
 
-    private var stickyBackButton: some View {
-        CircleIconButton(
-            systemImageName: "arrow.left",
-            accessibilityLabel: "Kembali",
-            action: goBack
-        )
-        .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
-    }
-
     private func header(width: CGFloat) -> some View {
-        HStack(spacing: 28) {
-            CircleIconButton(
-                systemImageName: "arrow.left",
-                accessibilityLabel: "Kembali",
-                action: goBack
-            )
+        ZStack(alignment: .top) {
+            HStack {
+                CircleIconButton(
+                    systemImageName: "arrow.left",
+                    accessibilityLabel: "Kembali",
+                    action: goBack
+                )
+                .padding(.leading, width * 0.04)
+
+                Spacer()
+            }
 
             Text("Hasil Perkembangan")
-                .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold, design: .rounded))
-                .foregroundStyle(.black)
+                .font(.system(size: effectiveTitleFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 0.067, green: 0.067, blue: 0.067))
+                .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
-                .frame(maxWidth: .infinity, alignment: .center)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                .padding(.horizontal, width * 0.13)
+                .frame(maxWidth: .infinity, alignment: .top)
                 .accessibilityAddTraits(.isHeader)
-
-            Color.clear
-                .frame(width: 112, height: 112)
-                .accessibilityHidden(true)
         }
-    }
-
-    private func scrollingTitle(width: CGFloat) -> some View {
-        Text("Hasil Perkembangan")
-            .font(.system(size: min(width * 0.055, titleFontSize), weight: .bold, design: .rounded))
-            .foregroundStyle(.black)
-            .lineLimit(1)
-            .minimumScaleFactor(0.62)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .accessibilityAddTraits(.isHeader)
     }
 
     private func goBack() {
@@ -313,10 +318,15 @@ struct StatisticsView: View {
             )
             .scaleEffect(0.58)
 
-            if let selectedItem {
-                compactCompetencyCard(selectedItem)
-                    .frame(maxWidth: .infinity)
+            VStack(spacing: 10) {
+                if let selectedItem {
+                    compactCompetencyCard(selectedItem)
+                        .frame(maxWidth: .infinity)
+                }
+
+                competencyPageIndicator
             }
+            .frame(maxWidth: .infinity)
 
             CircleIconButton(
                 systemImageName: "chevron.right",
@@ -326,6 +336,16 @@ struct StatisticsView: View {
             .scaleEffect(0.58)
         }
         .appAdaptiveColorFilter()
+    }
+
+    private var competencyPageIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(viewModel.competencyItems.indices, id: \.self) { index in
+                Circle()
+                    .fill(index == selectedCompetencyIndex ? AppColor.primary : Color.gray.opacity(0.35))
+                    .frame(width: pageIndicatorDotSize, height: pageIndicatorDotSize)
+            }
+        }
     }
 
     private func compactCompetencyCard(_ item: CompetencyProgressItem) -> some View {
