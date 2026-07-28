@@ -179,7 +179,10 @@ private struct ChapterSelectionRouterView: View {
     }
 
     var body: some View {
-            ChapterSelectionView(viewModel: chapterSelectionVM)
+            ChapterSelectionView(
+                viewModel: chapterSelectionVM,
+                onStoryCompleted: onStoryCompletion
+            )
                 .navigationDestination(item: $chapterSelectionVM.selectedChapter) { chapter in
                     // Choke point: pushed screens inherit adjustments automatically.
                     ChapterGamePlayView(
@@ -188,7 +191,10 @@ private struct ChapterSelectionRouterView: View {
                             source: .mainStory,
                             nextChapterID: nextChapterID(after: chapter),
                             storageService: storageService
-                        )
+                        ),
+                        onStoryCompleted: {
+                            onStoryCompletion()
+                        }
                     )
                     .autoDisplayAdjustments()
                 }
