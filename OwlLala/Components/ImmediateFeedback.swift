@@ -8,7 +8,7 @@
 //  --------
 //  The reusable immediate-feedback pieces for the chapter mini-games:
 //
-//  1. `CorrectAnswerCelebration` — 3 seconds of confetti (reusing
+//  1. `CorrectAnswerCelebration` — 2 seconds of confetti (reusing
 //     `ConfettiOverlay` from StageCleared.swift), a correct-answer sound, yay,
 //     and applause, started by one call.
 //  2. `wrongAnswerFeedback(...)` — view modifier for a wrong option: red
@@ -49,7 +49,7 @@ import UIKit
 
 // MARK: - 1. Correct Answer Celebration
 
-/// Fullscreen celebration for a correct answer: confetti rains for 3 seconds
+/// Fullscreen celebration for a correct answer: confetti rains for 2 seconds
 /// while correct-answer, yay, and applause sounds play, then `onFinished`
 /// fires so the host can move on (e.g. call
 /// `ChapterGameplayViewModel.finishCorrectFeedback()`).
@@ -58,9 +58,9 @@ import UIKit
 struct CorrectAnswerCelebration: View {
 
     /// How long the celebration runs before `onFinished` is called.
-    static let duration: TimeInterval = 3.0
+    static let duration: TimeInterval = 2.0
 
-    /// Invoked once after the three-second feedback presentation.
+    /// Invoked once after the two-second feedback presentation.
     let onFinished: () -> Void
 
     /// Fades the confetti out at the end of the celebration.
@@ -77,7 +77,7 @@ struct CorrectAnswerCelebration: View {
     }
 
     /// The one entry point: starts all celebration features together and
-    /// schedules the finish after `Self.duration` (3 seconds).
+    /// schedules the finish after `Self.duration` (2 seconds).
     private func startCelebration() {
         isFadingOut = false
         AudioService.shared.playCorrectAnswerSound()
@@ -275,6 +275,8 @@ enum ChapterHints {
 /// under the whole-screen color filter.
 struct HintOverlay: View {
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     /// The hint sentence displayed inside the speech bubble.
     let hintText: String
 
@@ -286,10 +288,14 @@ struct HintOverlay: View {
     /// the overlay (e.g. `viewModel.dismissHint()`).
     let onDismiss: () -> Void
 
-    /// Dynamic Type multipliers for the bubble text and illustration size.
-    @ScaledMetric(relativeTo: .body) private var bubbleTextScale: CGFloat = 1
-    @ScaledMetric(relativeTo: .body) private var owlScale: CGFloat = 1
-    @ScaledMetric(relativeTo: .title) private var buttonScale: CGFloat = 1
+    /// Text and controls follow every app Larger Text step from X Small
+    /// through Accessibility 5. Decorative geometry is capped in `body` so
+    /// the complete hint always receives enough room to wrap.
+    @ScaledMetric(relativeTo: .body) private var bubbleFontSize: CGFloat = AppFontSize.body
+    @ScaledMetric(relativeTo: .body) private var illustrationDiameter: CGFloat = 180
+    @ScaledMetric(relativeTo: .title) private var buttonFontSize: CGFloat = AppFontSize.button
+    @ScaledMetric(relativeTo: .body) private var bubblePadding: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var contentSpacing: CGFloat = 24
 
     /// Creates the overlay with an explicit hint sentence and cover image.
     ///
@@ -330,25 +336,45 @@ struct HintOverlay: View {
     }
 
     var body: some View {
-        ZStack {
-            // Dimmed backdrop pausing the game visually behind the hint.
-            Color.black
-                .opacity(0.36)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            let horizontalPadding = min(max(geometry.size.width * 0.04, 24), 44)
+            let availableWidth = geometry.size.width - horizontalPadding * 2
+            let cappedIllustrationDiameter = min(
+                illustrationDiameter,
+                geometry.size.width * 0.18,
+                geometry.size.height * 0.32
+            )
+            let cappedSpacing = min(contentSpacing, geometry.size.width * 0.035)
+            let messageWidth = max(
+                availableWidth - cappedIllustrationDiameter - cappedSpacing,
+                geometry.size.width * 0.56
+            )
 
-            // Chapter cover + speech bubble, side by side like a conversation,
-            // with the retry action grouped directly under the hint.
-            HStack(alignment: .center, spacing: 24) {
-                owlIllustration
+            ZStack {
+                // Dimmed backdrop pausing the game visually behind the hint.
+                Color.black
+                    .opacity(0.36)
+                    .ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 20) {
-                    speechBubble
-                    retryButton
-                        .padding(.leading, 26)
+                // Keep the cover beside the message at every text size. Its
+                // capped diameter prevents AX sizes from squeezing the words.
+                HStack(alignment: .center, spacing: cappedSpacing) {
+                    owlIllustration(diameter: cappedIllustrationDiameter)
+
+                    VStack(
+                        alignment: dynamicTypeSize.isAccessibilitySize ? .center : .leading,
+                        spacing: min(contentSpacing, 24)
+                    ) {
+                        speechBubble(maxWidth: messageWidth)
+                        retryButton
+                    }
+                    .frame(width: messageWidth, alignment: .leading)
+                    .layoutPriority(2)
                 }
-                .frame(maxWidth: 520, alignment: .leading)
+                .frame(maxWidth: availableWidth)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, min(max(geometry.size.height * 0.035, 20), 32))
             }
-            .padding(40)
         }
         .accessibilityElement(children: .contain)
     }
@@ -356,7 +382,7 @@ struct HintOverlay: View {
     /// The chapter cover inside the circle frame beside the speech bubble.
     /// The image is fitted (not cropped) on a white disc, so the whole cover
     /// illustration stays visible inside the frame.
-    private var owlIllustration: some View {
+    private func owlIllustration(diameter: CGFloat) -> some View {
         ZStack {
             Circle()
                 .fill(.white)
@@ -366,7 +392,7 @@ struct HintOverlay: View {
                 .scaledToFit()
                 .padding(14)
         }
-        .frame(width: 180 * owlScale, height: 180 * owlScale)
+        .frame(width: diameter, height: diameter)
         .clipShape(Circle())
         .overlay(
             Circle()
@@ -378,7 +404,7 @@ struct HintOverlay: View {
 
     /// The speech bubble with the chapter's hint. Text follows Dynamic Type
     /// and wraps freely inside the bubble.
-    private var speechBubble: some View {
+    private func speechBubble(maxWidth: CGFloat) -> some View {
         HStack(alignment: .center, spacing: -1) {
             // Tail pointing at the chapter cover.
             BubbleTail()
@@ -386,14 +412,16 @@ struct HintOverlay: View {
                 .frame(width: 26, height: 30)
 
             Text(hintText)
-                .font(.owlRounded(AppFontSize.body * bubbleTextScale, .medium))
+                .font(.owlRounded(bubbleFontSize, .medium))
                 .foregroundStyle(.black)
                 .multilineTextAlignment(.leading)
-                .padding(28)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(2)
+                .padding(min(bubblePadding, 40))
                 .background(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
-        .frame(maxWidth: 520, alignment: .leading)
+        .frame(maxWidth: maxWidth, alignment: .leading)
         .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
         .accessibilityLabel("Petunjuk: \(hintText)")
     }
@@ -402,12 +430,12 @@ struct HintOverlay: View {
     private var retryButton: some View {
         Button(action: onDismiss) {
             Text("Coba Lagi")
-                .font(.owlRounded(AppFontSize.button * buttonScale, .bold))
+                .font(.owlRounded(buttonFontSize, .bold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, 30 * buttonScale)
-                .padding(.vertical, 10 * buttonScale)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, min(buttonFontSize * 0.7, 52))
+                .padding(.vertical, min(buttonFontSize * 0.23, 18))
                 .background(AppColor.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
@@ -451,13 +479,13 @@ private struct BubbleTail: Shape {
 
 extension View {
 
-    /// Overlays the 3-second confetti + clap celebration on this view while
+    /// Overlays the 2-second confetti + clap celebration on this view while
     /// `isActive` is true; `onFinished` fires when it completes (set your flag
     /// back to false there).
     ///
     /// - Parameters:
     ///   - isActive: Whether the celebration is currently playing.
-    ///   - onFinished: Called once, after the 3 seconds.
+    ///   - onFinished: Called once, after the 2 seconds.
     /// - Returns: The view with the celebration overlay attached.
     func correctAnswerCelebration(
         isActive: Bool,

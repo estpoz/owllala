@@ -59,12 +59,46 @@ struct SettingsView: View {
     /// overlay flag).
     let onDismiss: () -> Void
 
+    /// The confirmation currently on screen, if any: asking to apply the edits
+    /// (Save tapped) or to keep/discard them (Close tapped with unsaved edits).
+    @State private var confirmationMode: SettingsChangesConfirmation.Mode?
+
     var body: some View {
-        Group {
-            if isModal {
-                modalPresentation
-            } else {
-                SettingsSurface(viewModel: viewModel, onDismiss: onDismiss)
+        ZStack {
+            Group {
+                if isModal {
+                    modalPresentation
+                } else {
+                    SettingsSurface(
+                        viewModel: viewModel,
+                        onDismiss: onDismiss,
+                        onRequestSave: requestSave,
+                        onRequestClose: requestClose
+                    )
+                }
+            }
+
+            // Presented above the surface (not inside it, so it is never clipped
+            // by the modal card) whenever a decision about the edits is needed.
+            if let confirmationMode {
+                SettingsChangesConfirmation(
+                    mode: confirmationMode,
+                    onSave: {
+                        viewModel.save()
+                        onDismiss()
+                    },
+                    onDiscard: {
+                        viewModel.cancel()
+                        onDismiss()
+                    },
+                    onCancel: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.confirmationMode = nil
+                        }
+                    }
+                )
+                .environmentObject(viewModel)
+                .transition(.opacity)
             }
         }
         // Apply the draft category directly so both presentations and isolated
@@ -75,6 +109,31 @@ struct SettingsView: View {
             viewModel.beginEditing()
         }
         .navigationBarBackButtonHidden(true)
+    }
+
+    /// Called by the surface's Save control. Confirms before applying the edits;
+    /// with nothing changed there is nothing to confirm, so it just closes.
+    private func requestSave() {
+        if viewModel.hasUnsavedChanges {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                confirmationMode = .confirmSave
+            }
+        } else {
+            onDismiss()
+        }
+    }
+
+    /// Called by the surface's close control. Confirms before discarding when
+    /// there are unsaved edits; otherwise closes straight away.
+    private func requestClose() {
+        if viewModel.hasUnsavedChanges {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                confirmationMode = .unsavedOnClose
+            }
+        } else {
+            viewModel.cancel()
+            onDismiss()
+        }
     }
 
     /// The modal state uses the same responsive surface at the card's actual
@@ -95,7 +154,9 @@ struct SettingsView: View {
                     viewModel: viewModel,
                     navigationSystemImageName: "xmark",
                     navigationAccessibilityLabel: "Tutup",
-                    onDismiss: onDismiss
+                    onDismiss: onDismiss,
+                    onRequestSave: requestSave,
+                    onRequestClose: requestClose
                 )
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -131,6 +192,14 @@ struct SettingsSurface: View {
     /// Invoked after save/cancel; the host removes the surface from the tree.
     let onDismiss: () -> Void
 
+    /// Invoked when the Save control is tapped. The host confirms the change
+    /// before it is applied.
+    let onRequestSave: () -> Void
+
+    /// Invoked when the close control is tapped. The host decides whether to
+    /// confirm (unsaved changes) or dismiss immediately.
+    let onRequestClose: () -> Void
+
     /// Normal sizes fit the original fixed surface. Accessibility sizes need
     /// vertical scrolling to preserve Apple's native AX text dimensions.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -143,6 +212,9 @@ struct SettingsSurface: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let navigationTopInset = geometry.safeAreaInsets.top
+                + min(navigationTopMargin, 36)
+
             ZStack(alignment: .topLeading) {
                 if dynamicTypeSize.isAccessibilitySize {
                     // The UIKit-backed scroll surface must stay outside a shader.
@@ -157,18 +229,32 @@ struct SettingsSurface: View {
                             .scaledToFill()
                             .ignoresSafeArea()
                     } content: {
-                        panelContent
+                        panelContent()
                     }
                 } else {
                     // X Small through XXX Large fit without scrolling, allowing the
                     // complete pure-SwiftUI panel to retain its live color preview.
+                    // Pin the panel to the top like the AX1–AX5 scroll layout and
+                    // leave any unused space below the settings content.
                     AppScreen {
                         Image("bgPattern")
                             .resizable()
                             .scaledToFill()
                             .ignoresSafeArea()
                     } content: {
-                        panelContent
+                        VStack(spacing: 0) {
+                            panelContent(
+                                regularHeaderTopInset: navigationTopInset,
+                                regularHeaderMinimumHeight:
+                                    navigationTopInset + 98
+                            )
+                            Spacer(minLength: 0)
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity,
+                            alignment: .top
+                        )
                     }
                 }
 
@@ -177,16 +263,14 @@ struct SettingsSurface: View {
                         systemImageName: navigationSystemImageName,
                         accessibilityLabel: navigationAccessibilityLabel
                     ) {
-                        viewModel.cancel()
-                        onDismiss()
+                        onRequestClose()
                     }
                     .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
 
                     Spacer()
 
                     SaveChangesButton(hasChanges: viewModel.hasUnsavedChanges) {
-                        viewModel.save()
-                        onDismiss()
+                        onRequestSave()
                     }
                     .scaleEffect(min(max(navigationDiameter / 98, 0.72), 1))
                 }
@@ -200,15 +284,22 @@ struct SettingsSurface: View {
                 )
                 .padding(
                     .top,
-                    geometry.safeAreaInsets.top + min(navigationTopMargin, 36)
+                    navigationTopInset
                 )
                 .appAdaptiveColorFilter()
             }
         }
     }
 
-    private var panelContent: some View {
-        SettingsPanelContent(viewModel: viewModel)
+    private func panelContent(
+        regularHeaderTopInset: CGFloat? = nil,
+        regularHeaderMinimumHeight: CGFloat? = nil
+    ) -> some View {
+        SettingsPanelContent(
+            viewModel: viewModel,
+            regularHeaderTopInset: regularHeaderTopInset,
+            regularHeaderMinimumHeight: regularHeaderMinimumHeight
+        )
         .frame(maxWidth: .infinity)
     }
 }
@@ -228,6 +319,14 @@ struct SettingsPanelContent: View {
 
     /// Asset-catalog name of the preview image.
     var previewImageAssetName: String = "settingReference"
+
+    /// Matches the navigation controls' top inset so the regular title can be
+    /// vertically centered on the buttons rather than at the top of the page.
+    var regularHeaderTopInset: CGFloat? = nil
+
+    /// Reserves the navigation-button band above the regular layout so the
+    /// controls and preview cannot rise underneath the overlaid buttons.
+    var regularHeaderMinimumHeight: CGFloat? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -271,14 +370,7 @@ struct SettingsPanelContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("Pengaturan")
-                .font(.owlRounded(titleFontSize, .bold))
-                .foregroundStyle(.black)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 110)
-                .padding(.top, min(titleTopPadding, 44))
-                .colorVisionFilter(accessibilityContentSimulation)
+            title
 
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
@@ -290,6 +382,38 @@ struct SettingsPanelContent: View {
             .padding(.bottom, min(contentBottomPadding, 72))
         }
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var title: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            titleText
+                .padding(.top, min(titleTopPadding, 44))
+        } else if let regularHeaderTopInset,
+                  let regularHeaderMinimumHeight {
+            titleText
+                .frame(
+                    height: max(
+                        regularHeaderMinimumHeight - regularHeaderTopInset,
+                        0
+                    ),
+                    alignment: .center
+                )
+                .padding(.top, regularHeaderTopInset)
+        } else {
+            titleText
+                .padding(.top, min(titleTopPadding, 44))
+        }
+    }
+
+    private var titleText: some View {
+        Text("Pengaturan")
+            .font(.owlRounded(titleFontSize, .bold))
+            .foregroundStyle(.black)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 110)
+            .colorVisionFilter(accessibilityContentSimulation)
     }
 
     /// Side-by-side layout used from X Small through XXX Large. Both columns

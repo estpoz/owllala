@@ -144,7 +144,18 @@ struct TrainingModeView: View {
                                         .scaleEffect(offset == 0 ? pulseScale : 1.0)
                                         .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulseScale)
                                         
-                                        // MARK: 2. Top Stars Component (Standard Mode)
+                                        // MARK: 2. Locked Training Speech Bubble (Only when locked/coming soon & in center)
+                                        if offset == 0 && (!selectionItem.isUnlocked || isComingSoon) {
+                                            Image("lockedTraining")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: nodeDiameter * 1.05)
+                                                .offset(x: nodeDiameter * 0.52, y: -nodeDiameter * 0.38)
+                                                .transition(.scale.combined(with: .opacity))
+                                                .accessibilityLabel("Selesaikan cerita untuk membuka mode berlatih")
+                                        }
+                                        
+                                        // MARK: 3. Top Stars Component (Standard Mode)
                                         if !isLargeLayout {
                                             HStack(spacing: 6) {
                                                 ForEach(0..<3) { starIndex in
@@ -169,7 +180,7 @@ struct TrainingModeView: View {
                                         }
                                     }
                                     
-                                    // MARK: 3. Two-Line Title Typography
+                                    // MARK: 4. Two-Line Title Typography
                                     VStack(spacing: -2) {
                                         Text(storyTitleText)
                                             .font(.system(size: babLabelSize * 0.85, weight: .bold, design: .rounded))
