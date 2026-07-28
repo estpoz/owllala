@@ -7,7 +7,8 @@ This document defines ViewModel ownership and data flow for the OwlLala MVP.
 Use it together with:
 
 - `AGENTS.md`
-- `Docs/DataModelsAndBusinessRules.md`
+- `DataModelsandBusinessRules.md`
+- `SETTINGS_AND_ACCESSIBILITY.md`
 
 Do not modify the documented responsibilities without confirmation.
 
@@ -344,32 +345,82 @@ This content is not persisted.
 
 ```swift
 @Published private(set) var savedSettings: Settings
-@Published var draftSettings: Settings
+@Published private(set) var draftSettings: Settings
+@Published private(set) var isEditing: Bool
 ```
 
-The final visibility may be tightened after inspecting View bindings.
+Derived state:
+
+```swift
+var activeDisplaySettings: Settings
+var hasUnsavedChanges: Bool
+var isFilterEnabled: Bool
+```
+
+- `activeDisplaySettings` returns the draft while editing and saved settings
+  while idle.
+- `hasUnsavedChanges` compares the complete draft with saved settings.
+- `isFilterEnabled` is derived from the draft's active color simulation. It is
+  not stored separately, which prevents the switch and filter value from
+  becoming inconsistent.
+
+Views must not assign `draftSettings` directly. Every mutation goes through a
+focused ViewModel method.
 
 ### Begin Editing
 
-Copy saved settings into the draft.
+- Refresh saved settings from the shared `StorageService`.
+- Copy saved settings into the draft.
+- Mark the editing session as active.
+- Ignore repeated calls while already editing so a SwiftUI subtree rebuild
+  cannot erase in-progress changes.
+
+### Draft Mutations
+
+The ViewModel owns methods for:
+
+- Updating brightness.
+- Updating the app text-size category.
+- Enabling or disabling the color filter.
+- Selecting one of the three color-vision simulations.
+
+Draft changes are available immediately through `activeDisplaySettings` for
+live preview, but are not persisted before Save.
 
 ### Save
 
 - Normalize brightness using the `Settings` API.
 - Persist the draft through `StorageService`.
-- Update saved settings.
-- Close the Settings presentation.
+- Update saved and draft settings.
+- End the editing session.
+
+The View owns confirmation and dismissal presentation. The ViewModel does not
+own SwiftUI navigation or modal state.
 
 ### Cancel
 
-- Restore the draft from saved settings.
-- Close without persisting.
+- Read the newest persisted settings from `StorageService`.
+- Restore saved and draft state.
+- End the editing session without persisting the draft.
+
+### Shared Storage Synchronization
+
+The ViewModel observes `StorageService.settings`.
+
+- While idle, an external update refreshes saved settings and the draft.
+- While editing, an external update refreshes saved settings without
+  overwriting the active draft.
+- Cancel restores the latest persisted value.
+- Save commits the active draft.
 
 ### Shared Use
 
 The Main Settings screen and gameplay overlay use the same persisted settings source.
 
 Each presentation may begin a new draft-editing session, but both must save to the same `StorageService`.
+
+See `SETTINGS_AND_ACCESSIBILITY.md` for display-filter boundaries, Dynamic Type
+mapping, stationary navigation layout, and the complete test matrix.
 
 ## Navigation
 
