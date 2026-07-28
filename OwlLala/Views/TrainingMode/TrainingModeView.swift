@@ -43,7 +43,7 @@ struct TrainingModeView: View {
             let innerCoreDiameter = nodeDiameter * 0.93
             
             // MARK: Adaptive Layout & Font Size Hard Caps
-            let isLargeLayout = dynamicTypeSize >= .accessibility2
+            let isLargeLayout = dynamicTypeSize >= .accessibility1
             
             // Hard-stops font metric growth past AX3 scale factor to prevent vertical overflow
             let effectiveTitleSize: CGFloat = {
@@ -55,7 +55,7 @@ struct TrainingModeView: View {
             
             // Curve anchor coordinates for quadratic Bézier layout math
             let startPointY = screenHeight * (isLargeLayout ? 0.86 : 0.79)
-            let peakPointY = screenHeight * (isLargeLayout ? 0.58 : 0.55)
+            let peakPointY = screenHeight * (isLargeLayout ? 0.65 : 0.55)
             let controlPointY = peakPointY - (startPointY - peakPointY)
             
             AppScreen {
@@ -144,7 +144,7 @@ struct TrainingModeView: View {
                                         .scaleEffect(offset == 0 ? pulseScale : 1.0)
                                         .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulseScale)
                                         
-                                        // MARK: 2. Locked Training Speech Bubble (Only when locked/coming soon & in center)
+                                        // MARK: 2. Locked Training Speech Bubble
                                         if offset == 0 && (!selectionItem.isUnlocked || isComingSoon) {
                                             Image("lockedTraining")
                                                 .resizable()
@@ -225,7 +225,7 @@ struct TrainingModeView: View {
                         .zIndex(1)
                     }
                     
-                    // MARK: Navigation Header & Footer Hint Layer
+                    // MARK: Navigation Header & Footer Hint Layer (Aligned with ChapterSelectionView)
                     VStack(spacing: 0) {
                         // Header
                         ZStack(alignment: .top) {
@@ -277,14 +277,7 @@ struct TrainingModeView: View {
                     viewModel.recordChapterCompletion(completedID)
                 }
             )
-            // A fullScreenCover is a separate presentation that does NOT inherit
-            // the root's app-wide text sizing, so re-apply it here — gameplay now
-            // follows the "Ukuran Teks" setting like the rest of the app.
             .appTextSizeAdjustment()
-            // Gameplay is presented in a separate render layer. Reset the
-            // inherited ownership flag so its AppScreen applies the active
-            // color filter exactly once.
-            .appIndependentColorFilterScope()
             .environmentObject(settingsViewModel)
         }
         .onAppear {
@@ -295,7 +288,6 @@ struct TrainingModeView: View {
     
     // MARK: - Auto-Focus Engine
     
-    /// Smoothly scrolls the roadmap track to center on the appropriate chapter upon appearance.
     private func focusOnLatestUnlockedChapter() {
         guard !viewModel.items.isEmpty else { return }
 
@@ -307,19 +299,15 @@ struct TrainingModeView: View {
             let didFinishChapter = (viewModel.lastCompletedChapterID == playedID)
             
             if didFinishChapter {
-                // Rule 1: Finished training chapter -> advance to next index
                 let nextIndex = playedIndex + 1
                 targetIndex = min(nextIndex, viewModel.items.count - 1)
             } else {
-                // Rule 2: Exited / Canceled -> keep current index
                 targetIndex = playedIndex
             }
         } else {
-            // Fresh launch fallback: Focus on highest unlocked chapter
             targetIndex = viewModel.items.lastIndex(where: { $0.isUnlocked }) ?? 0
         }
 
-        // Align with modular virtualIndex baseline (1000)
         let baseOffset = 1000
         let remainder = baseOffset % viewModel.items.count
         let alignedBase = baseOffset - remainder
@@ -333,7 +321,6 @@ struct TrainingModeView: View {
     
     // MARK: - Math Helpers
     
-    /// Wraps arbitrary virtual index offsets into a valid array index bounds.
     private func determineModularIndex(_ index: Int, total: Int) -> Int {
         let remainder = index % total
         return remainder >= 0 ? remainder : remainder + total
