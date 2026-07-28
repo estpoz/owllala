@@ -44,6 +44,7 @@ struct StatisticsView: View {
     @ScaledMetric(relativeTo: .body) private var scrollIndicatorStripHeight: CGFloat = 22
     @ScaledMetric(relativeTo: .body) private var navigationDiameter: CGFloat = 70
     @ScaledMetric(relativeTo: .body) private var navigationPadding: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var pageIndicatorDotSize: CGFloat = 10
 
     // MARK: Body
 
@@ -123,6 +124,15 @@ struct StatisticsView: View {
         }
 
         return viewModel.competencyItems.first
+    }
+
+    private var selectedCompetencyIndex: Int {
+        guard let selectedItem,
+              let index = viewModel.competencyItems.firstIndex(where: { $0.competency == selectedItem.competency }) else {
+            return 0
+        }
+
+        return index
     }
 
     private func selectDefaultCompetencyIfNeeded() {
@@ -313,10 +323,15 @@ struct StatisticsView: View {
             )
             .scaleEffect(0.58)
 
-            if let selectedItem {
-                compactCompetencyCard(selectedItem)
-                    .frame(maxWidth: .infinity)
+            VStack(spacing: 10) {
+                if let selectedItem {
+                    compactCompetencyCard(selectedItem)
+                        .frame(maxWidth: .infinity)
+                }
+
+                competencyPageIndicator
             }
+            .frame(maxWidth: .infinity)
 
             CircleIconButton(
                 systemImageName: "chevron.right",
@@ -326,6 +341,16 @@ struct StatisticsView: View {
             .scaleEffect(0.58)
         }
         .appAdaptiveColorFilter()
+    }
+
+    private var competencyPageIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(viewModel.competencyItems.indices, id: \.self) { index in
+                Circle()
+                    .fill(index == selectedCompetencyIndex ? AppColor.primary : Color.gray.opacity(0.35))
+                    .frame(width: pageIndicatorDotSize, height: pageIndicatorDotSize)
+            }
+        }
     }
 
     private func compactCompetencyCard(_ item: CompetencyProgressItem) -> some View {
