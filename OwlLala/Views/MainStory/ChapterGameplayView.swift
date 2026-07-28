@@ -14,6 +14,7 @@ struct ChapterGamePlayView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @StateObject private var viewModel: ChapterGameplayViewModel
     var onChapterCompleted: ((String) -> Void)?
+    var onStoryCompleted: (() -> Void)?
     @State private var isVoiceOverEnabled = true
     @State private var isShowingExitConfirmation = false
     @State private var isShowingSettings = false
@@ -22,10 +23,12 @@ struct ChapterGamePlayView: View {
 
     init(
         viewModel: ChapterGameplayViewModel,
-        onChapterCompleted: ((String) -> Void)? = nil
+        onChapterCompleted: ((String) -> Void)? = nil,
+        onStoryCompleted: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.onChapterCompleted = onChapterCompleted
+        self.onStoryCompleted = onStoryCompleted
     }
 
     private var totalGameplayPages: Int {
@@ -193,10 +196,15 @@ struct ChapterGamePlayView: View {
             onContinue: {
                 stopGameplayAudio()
                 viewModel.finishStageCleared()
+                let destination = viewModel.destination
                 isShowingSuccessOverlay = false
 
                 onChapterCompleted?(viewModel.chapter.id)
-                                
+
+                if destination == .storyCompletion {
+                    onStoryCompleted?()
+                }
+
                 dismiss()
             }
         )
