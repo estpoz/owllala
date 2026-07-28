@@ -204,14 +204,12 @@ struct SettingsSurface: View {
     /// vertical scrolling to preserve Apple's native AX text dimensions.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    /// Fixed header geometry keeps the navigation controls and centered title
-    /// stationary while the settings content responds to Dynamic Type.
-    private let navigationTopMargin: CGFloat = 24
-
     var body: some View {
         GeometryReader { geometry in
-            let navigationTopInset = geometry.safeAreaInsets.top
-                + min(navigationTopMargin, 36)
+            // Match Chapter Selection's standard navigation placement and keep
+            // the same position at every Dynamic Type size. This header stays
+            // outside the settings content so it never scrolls.
+            let navigationTopInset = geometry.size.height * 0.04
 
             ZStack(alignment: .topLeading) {
                 if dynamicTypeSize.isAccessibilitySize {
@@ -280,11 +278,9 @@ struct SettingsSurface: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 98)
-                // Use the actual presentation inset rather than a fixed guess.
-                // Full-screen Settings clears the clock/battery area, while the
-                // gameplay card naturally reports zero and keeps the same roomy
-                // top margin inside its rounded surface.
-                .padding(.horizontal, geometry.size.width * 0.045)
+                // Chapter Selection uses four-percent side margins for its
+                // navigation controls.
+                .padding(.horizontal, geometry.size.width * 0.04)
                 .padding(
                     .top,
                     navigationTopInset
@@ -704,6 +700,65 @@ struct SettingsPanelContent: View {
 
 // MARK: - Shader-Safe Controls
 
+/// Pure value calculations shared by `SettingsSlider` and its unit tests.
+///
+/// Keeping coordinate conversion and snapping outside the SwiftUI gesture
+/// closure makes edge cases deterministic without changing the rendered
+/// control.
+enum SettingsSliderValue {
+
+    static func adjusted(
+        _ proposedValue: Double,
+        in range: ClosedRange<Double>,
+        step: Double? = nil
+    ) -> Double {
+        let clamped = min(max(proposedValue, range.lowerBound), range.upperBound)
+        guard let step, step > 0 else {
+            return clamped
+        }
+
+        let offset = ((clamped - range.lowerBound) / step).rounded() * step
+        return min(max(range.lowerBound + offset, range.lowerBound), range.upperBound)
+    }
+
+    static func fraction(
+        for value: Double,
+        in range: ClosedRange<Double>
+    ) -> Double {
+        let length = range.upperBound - range.lowerBound
+        guard length > 0 else {
+            return 0
+        }
+
+        let adjustedValue = adjusted(value, in: range)
+        return (adjustedValue - range.lowerBound) / length
+    }
+
+    static func value(
+        at location: Double,
+        trackWidth: Double,
+        thumbSize: Double,
+        in range: ClosedRange<Double>,
+        step: Double? = nil
+    ) -> Double {
+        let travel = max(trackWidth - thumbSize, 1)
+        let rawFraction = (location - thumbSize / 2) / travel
+        let clampedFraction = min(max(rawFraction, 0), 1)
+        let proposedValue =
+            range.lowerBound
+            + clampedFraction * (range.upperBound - range.lowerBound)
+
+        return adjusted(proposedValue, in: range, step: step)
+    }
+
+    static func percentage(
+        for value: Double,
+        in range: ClosedRange<Double>
+    ) -> Int {
+        Int((fraction(for: value, in: range) * 100).rounded())
+    }
+}
+
 /// A pure-SwiftUI slider used instead of the system `Slider`, which is
 /// UIKit-backed and disappears under the whole-screen color filter. Supports
 /// drag, tap-to-set, and VoiceOver increment/decrement.
@@ -736,8 +791,7 @@ struct SettingsSlider: View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let travel = max(width - thumbSize, 1)
-            let rangeLength = max(range.upperBound - range.lowerBound, 0.000_001)
-            let fraction = (value - range.lowerBound) / rangeLength
+            let fraction = SettingsSliderValue.fraction(for: value, in: range)
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -758,10 +812,12 @@ struct SettingsSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        let tapped = (gesture.location.x - thumbSize / 2) / travel
-                        let clamped = min(max(tapped, 0), 1)
-                        value = adjustedValue(
-                            range.lowerBound + clamped * rangeLength
+                        value = SettingsSliderValue.value(
+                            at: gesture.location.x,
+                            trackWidth: width,
+                            thumbSize: thumbSize,
+                            in: range,
+                            step: step
                         )
                     }
             )
@@ -776,9 +832,17 @@ struct SettingsSlider: View {
             let adjustment = step ?? (range.upperBound - range.lowerBound) / 10
             switch direction {
             case .increment:
-                value = adjustedValue(value + adjustment)
+                value = SettingsSliderValue.adjusted(
+                    value + adjustment,
+                    in: range,
+                    step: step
+                )
             case .decrement:
-                value = adjustedValue(value - adjustment)
+                value = SettingsSliderValue.adjusted(
+                    value - adjustment,
+                    in: range,
+                    step: step
+                )
             @unknown default:
                 break
             }
@@ -790,19 +854,8 @@ struct SettingsSlider: View {
             return accessibilityValue
         }
 
-        let rangeLength = max(range.upperBound - range.lowerBound, 0.000_001)
-        let percentage = Int(((value - range.lowerBound) / rangeLength) * 100)
+        let percentage = SettingsSliderValue.percentage(for: value, in: range)
         return "\(percentage) persen"
-    }
-
-    private func adjustedValue(_ proposedValue: Double) -> Double {
-        let clamped = min(max(proposedValue, range.lowerBound), range.upperBound)
-        guard let step, step > 0 else {
-            return clamped
-        }
-
-        let offset = ((clamped - range.lowerBound) / step).rounded() * step
-        return min(max(range.lowerBound + offset, range.lowerBound), range.upperBound)
     }
 }
 

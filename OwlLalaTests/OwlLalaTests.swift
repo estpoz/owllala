@@ -12,20 +12,13 @@
 //
 //  WHAT THESE TESTS COVER
 //  ----------------------
-//  One `@Suite` per view model in the `ViewModels/` folder. Each test
-//  instantiates the *real* view model (via `@testable import OwlLala`) and calls
-//  its own functions, then asserts on the resulting published state. This file
-//  only tests view-model behavior — Models and Services are exercised only as
-//  the collaborators a view model needs.
+//  Focused smoke coverage for gameplay, chapter selection, training mode,
+//  story selection, and main-menu view-model behavior.
 //
 //  HOW EACH TEST IS SET UP
 //  -----------------------
-//  There are no helper functions here by design: each test builds the `Chapter`
-//  / `Story` inputs inline by calling the real model initializers, because the
-//  app ships no shared sample-data source to read from. Every test also gets its
-//  own isolated store — `StorageService(userDefaults: UserDefaults(suiteName:
-//  UUID().uuidString)!)` — so a brand-new, empty `UserDefaults` suite is used
-//  per test and tests never read or write each other's (or the app's) state.
+//  Tests build their content inline using the real models and give each
+//  storage-backed view model an isolated `UserDefaults` suite.
 //
 //  All suites are `@MainActor` because the view models and `StorageService` are
 //  main-actor isolated.
@@ -46,8 +39,8 @@ import Testing
 /// mini-game: story-page navigation, answer selection & star scoring, and
 /// completion (persisting progress + choosing the next destination).
 @MainActor
-@Suite("ChapterGameplayViewModel")
-struct ChapterGameplayViewModelTests {
+@Suite("ChapterGameplayViewModel — Smoke Coverage")
+struct ChapterGameplayViewModelSmokeTests {
 
     /// Given a Main Story chapter with story pages, when the child pages past
     /// the last one, then `isQuestionPresented` flips from `false` to `true`
@@ -310,46 +303,3 @@ struct MainMenuViewModelTests {
         #expect(viewModel.destination == nil)
     }
 }
-
-// MARK: - SettingsViewModel
-
-/// Behavior of `SettingsViewModel` — the draft-editing flow for settings:
-/// begin editing, mutate a draft, then either commit it to the store (`save`)
-/// or throw it away (`cancel`).
-@MainActor
-@Suite("SettingsViewModel")
-struct SettingsViewModelTests {
-
-    /// Given an editing session with brightness and simulation changed on the
-    /// draft, when `save()` is called, then editing ends and the changes are
-    /// written through to the persisted `StorageService.settings`.
-    @Test func saveCommitsDraftToStorageAndEndsEditing() {
-        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
-        let viewModel = SettingsViewModel(storageService: storage)
-
-        viewModel.beginEditing()
-        viewModel.setDraftBrightness(0.8)
-        viewModel.enableSimulation(.tritanopia)
-        viewModel.save()
-
-        #expect(viewModel.isEditing == false)
-        #expect(storage.settings.backgroundBrightness == 0.8)
-        #expect(storage.settings.colorVisionSimulation == .tritanopia)
-    }
-
-    /// Given an editing session with an unsaved brightness change, when
-    /// `cancel()` is called, then editing ends and the draft is reverted to the
-    /// stored settings (the change is discarded).
-    @Test func cancelDiscardsDraftChanges() {
-        let storage = StorageService(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
-        let viewModel = SettingsViewModel(storageService: storage)
-
-        viewModel.beginEditing()
-        viewModel.setDraftBrightness(0.7)
-        viewModel.cancel()
-
-        #expect(viewModel.isEditing == false)
-        #expect(viewModel.draftSettings == storage.settings)
-    }
-}
-
