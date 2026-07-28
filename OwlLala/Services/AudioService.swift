@@ -31,6 +31,7 @@
 //
 
 import AVFoundation
+import Combine
 import Foundation
 
 // MARK: - Audio Service
@@ -40,10 +41,16 @@ import Foundation
 /// A shared instance keeps one `AVAudioPlayer` cached per sound so repeated
 /// plays (e.g. several wrong answers) don't re-read the file from disk.
 @MainActor
-final class AudioService {
+final class AudioService: ObservableObject {
 
     /// The app-wide shared instance.
     static let shared = AudioService()
+
+    /// Whether story narration is enabled for the current app session.
+    ///
+    /// This intentionally is not persisted because audio preferences are
+    /// session-scoped in the MVP.
+    @Published private(set) var isVoiceOverEnabled = true
 
     /// Cached players, keyed by sound name.
     private var players: [String: AVAudioPlayer] = [:]
@@ -138,6 +145,23 @@ final class AudioService {
             backgroundMusicBaseVolume,
             fadeDuration: 0.25
         )
+    }
+
+    /// Toggles narration for the current app session.
+    ///
+    /// Disabling narration immediately stops the active story voice-over.
+    /// The returned value lets the gameplay view resume the current page when
+    /// narration is turned back on.
+    @discardableResult
+    func toggleVoiceOver() -> Bool {
+        isVoiceOverEnabled.toggle()
+        updateBackgroundMusicVolume(isVoiceOverEnabled: isVoiceOverEnabled)
+
+        if !isVoiceOverEnabled {
+            stopVoiceOver()
+        }
+
+        return isVoiceOverEnabled
     }
 
     /// Temporarily lowers gameplay music while wrong-answer feedback is audible.

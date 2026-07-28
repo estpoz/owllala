@@ -13,9 +13,9 @@ struct ChapterGamePlayView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @StateObject private var viewModel: ChapterGameplayViewModel
+    @ObservedObject private var audioService = AudioService.shared
     var onChapterCompleted: ((String) -> Void)?
     var onStoryCompleted: (() -> Void)?
-    @State private var isVoiceOverEnabled = true
     @State private var isShowingExitConfirmation = false
     @State private var isShowingSettings = false
     @State private var isShowingSuccessOverlay = false
@@ -335,7 +335,7 @@ struct ChapterGamePlayView: View {
                     GameplayTopBar(
                         currentPage: currentGameplayPage,
                         totalPages: totalGameplayPages,
-                        isVoiceOverEnabled: isVoiceOverEnabled,
+                        isVoiceOverEnabled: audioService.isVoiceOverEnabled,
                         onShowExitConfirmation: {
                             showExitConfirmation()
                         },
@@ -373,7 +373,7 @@ struct ChapterGamePlayView: View {
                 GameplayTopBar(
                     currentPage: currentGameplayPage,
                     totalPages: totalGameplayPages,
-                    isVoiceOverEnabled: isVoiceOverEnabled,
+                    isVoiceOverEnabled: audioService.isVoiceOverEnabled,
                     onShowExitConfirmation: {
                         showExitConfirmation()
                     },
@@ -666,26 +666,19 @@ struct ChapterGamePlayView: View {
         hasStartedChapter = true
         startBackgroundMusic()
 
-        guard isVoiceOverEnabled,
+        guard audioService.isVoiceOverEnabled,
               viewModel.source == .mainStory,
               let assetName = viewModel.currentStoryPage?.voiceOverAssetName
         else {
             return
         }
 
-        AudioService.shared.playVoiceOver(named: assetName)
+        audioService.playVoiceOver(named: assetName)
     }
 
     private func toggleVoiceOver() {
-        isVoiceOverEnabled.toggle()
-        AudioService.shared.updateBackgroundMusicVolume(
-            isVoiceOverEnabled: isVoiceOverEnabled
-        )
-
-        if isVoiceOverEnabled {
+        if audioService.toggleVoiceOver() {
             playCurrentStoryVoiceOverIfNeeded()
-        } else {
-            stopStoryVoiceOver()
         }
     }
 
@@ -705,7 +698,7 @@ struct ChapterGamePlayView: View {
     }
 
     private func playCurrentStoryVoiceOverIfNeeded() {
-        guard isVoiceOverEnabled,
+        guard audioService.isVoiceOverEnabled,
               viewModel.source == .mainStory,
               hasStartedChapter,
               !viewModel.isQuestionPresented,
@@ -716,16 +709,16 @@ struct ChapterGamePlayView: View {
             return
         }
 
-        AudioService.shared.playVoiceOver(named: assetName)
+        audioService.playVoiceOver(named: assetName)
     }
 
     private func stopStoryVoiceOver() {
-        AudioService.shared.stopVoiceOver()
+        audioService.stopVoiceOver()
     }
 
     private func startBackgroundMusic() {
-        AudioService.shared.playBackgroundMusic(
-            isVoiceOverEnabled: isVoiceOverEnabled
+        audioService.playBackgroundMusic(
+            isVoiceOverEnabled: audioService.isVoiceOverEnabled
         )
     }
 
@@ -741,7 +734,7 @@ struct ChapterGamePlayView: View {
 
     private func stopGameplayAudio() {
         stopStoryVoiceOver()
-        AudioService.shared.restoreBackgroundMusicForApp()
+        audioService.restoreBackgroundMusicForApp()
     }
 
 }
