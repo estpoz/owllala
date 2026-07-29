@@ -51,16 +51,26 @@ storage, and navigation logic.
 
 ### Settings
 - Stores only:
-  - background brightness;
+  - background brightness from `0.6` through `1.0`;
   - whether a color-vision simulation is active;
   - the most recently selected color-vision simulation;
   - the preferred app text size from X Small through Accessibility 5.
+- Values below or above the brightness range are clamped by the `Settings`
+  model.
+- Brightness applies only to designated background layers. It must not dim
+  foreground text, controls, or learning illustrations.
 - Disabling the color-vision simulation retains its most recently selected
   type, and enabling it again restores that selection.
 - Text size uses the matching native iPadOS Dynamic Type category throughout
   the app, including Accessibility 1–5.
+- The larger of the device Dynamic Type category and the in-app text-size
+  preference wins.
+- Legacy multiplier-based `textScale` values are migrated during decoding. A
+  modern `textSize` value takes priority when both keys exist.
 - Exit confirmation is always enabled and is not configurable.
 - Audio settings are not persisted in the MVP.
+- Detailed implementation and migration rules are documented in
+  `SETTINGS_AND_ACCESSIBILITY.md`.
 
 ## Gameplay Rules
 
