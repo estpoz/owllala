@@ -17,6 +17,7 @@ struct ChapterSelectionView: View {
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var onStoryCompleted: (() -> Void)? = nil
     
     // MARK: - View State
     
@@ -260,12 +261,19 @@ struct ChapterSelectionView: View {
                 ),
                 onChapterCompleted: { completedID in
                     viewModel.recordChapterCompletion(completedID)
+                },
+                onStoryCompleted: {
+                    onStoryCompleted?()
                 }
             )
             // A fullScreenCover is a separate presentation that does NOT inherit
             // the root's app-wide text sizing, so re-apply it here — gameplay now
             // follows the "Ukuran Teks" setting like the rest of the app.
             .appTextSizeAdjustment()
+            // Gameplay is presented in a separate render layer. Reset the
+            // inherited ownership flag so its AppScreen applies the active
+            // color filter exactly once.
+            .appIndependentColorFilterScope()
             .environmentObject(settingsViewModel)
         }
         .onAppear {

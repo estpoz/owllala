@@ -13,8 +13,9 @@ struct ChapterGamePlayView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @EnvironmentObject private var settingsViewModel: SettingsViewModel
     @StateObject private var viewModel: ChapterGameplayViewModel
+    @ObservedObject private var audioService = AudioService.shared
     var onChapterCompleted: ((String) -> Void)?
-    @State private var isVoiceOverEnabled = true
+    var onStoryCompleted: (() -> Void)?
     @State private var isShowingExitConfirmation = false
     @State private var isShowingSettings = false
     @State private var isShowingSuccessOverlay = false
@@ -22,10 +23,12 @@ struct ChapterGamePlayView: View {
 
     init(
         viewModel: ChapterGameplayViewModel,
-        onChapterCompleted: ((String) -> Void)? = nil
+        onChapterCompleted: ((String) -> Void)? = nil,
+        onStoryCompleted: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.onChapterCompleted = onChapterCompleted
+        self.onStoryCompleted = onStoryCompleted
     }
 
     private var totalGameplayPages: Int {
@@ -193,10 +196,15 @@ struct ChapterGamePlayView: View {
             onContinue: {
                 stopGameplayAudio()
                 viewModel.finishStageCleared()
+                let destination = viewModel.destination
                 isShowingSuccessOverlay = false
 
                 onChapterCompleted?(viewModel.chapter.id)
-                                
+
+                if destination == .storyCompletion {
+                    onStoryCompleted?()
+                }
+
                 dismiss()
             }
         )
@@ -327,7 +335,7 @@ struct ChapterGamePlayView: View {
                     GameplayTopBar(
                         currentPage: currentGameplayPage,
                         totalPages: totalGameplayPages,
-                        isVoiceOverEnabled: isVoiceOverEnabled,
+                        isVoiceOverEnabled: audioService.isVoiceOverEnabled,
                         onShowExitConfirmation: {
                             showExitConfirmation()
                         },
@@ -365,7 +373,7 @@ struct ChapterGamePlayView: View {
                 GameplayTopBar(
                     currentPage: currentGameplayPage,
                     totalPages: totalGameplayPages,
-                    isVoiceOverEnabled: isVoiceOverEnabled,
+                    isVoiceOverEnabled: audioService.isVoiceOverEnabled,
                     onShowExitConfirmation: {
                         showExitConfirmation()
                     },
@@ -415,6 +423,29 @@ struct ChapterGamePlayView: View {
         viewModel.chapter.order == 5
     }
 
+    /// Chapter 1's bag silhouette grows with Dynamic Type so the visual hint
+    /// remains as prominent as the enlarged question text. Chapter 4 keeps its
+    /// existing compact prompt-image sizing.
+    private var promptImageWidthFraction: CGFloat {
+        if viewModel.chapter.order == 1 {
+            return 0.18 + dynamicTypeProgress * 0.06
+        }
+
+        return dynamicTypeSize.isAccessibilitySize
+            ? 0.11
+            : (usesCompactPromptImageLayout ? 0.15 : 0.18)
+    }
+
+    private var promptImageHeightFraction: CGFloat {
+        if viewModel.chapter.order == 1 {
+            return 0.24 + dynamicTypeProgress * 0.06
+        }
+
+        return dynamicTypeSize.isAccessibilitySize
+            ? 0.12
+            : (usesCompactPromptImageLayout ? 0.17 : 0.24)
+    }
+
     private var topQuestionSpacing: CGFloat {
         // Tighten the two-column layout at accessibility sizes so the hint line
         // has room to grow.
@@ -435,13 +466,17 @@ struct ChapterGamePlayView: View {
         usesTwoColumnAnswerLayout ? "Tekan penanda yang sesuai" : "Tekan objek yang sesuai"
     }
 
+    private var questionPromptBaseFontSize: CGFloat {
+        viewModel.chapter.order == 1 ? 38 : 30
+    }
+
     /// Shared question typography for every chapter. The prompt follows the
     /// app's complete Dynamic Type range, wraps instead of truncating, and
     /// keeps priority over the decorative owl when horizontal space is tight.
     private var questionPromptText: some View {
         Text(viewModel.question.prompt)
             .appScaledFont(
-                size: 30,
+                size: questionPromptBaseFontSize,
                 relativeTo: .headline,
                 weight: .bold
             )
@@ -468,11 +503,9 @@ struct ChapterGamePlayView: View {
                     Image(promptImageAssetName)
                         .resizable()
                         .scaledToFit()
-                        // The prompt image shrinks at accessibility sizes to give
-                        // the hint line room to grow. The owl stays fixed.
                         .frame(
-                            width: geometry.size.width * (dynamicTypeSize.isAccessibilitySize ? 0.11 : (usesCompactPromptImageLayout ? 0.15 : 0.18)),
-                            height: geometry.size.height * (dynamicTypeSize.isAccessibilitySize ? 0.12 : (usesCompactPromptImageLayout ? 0.17 : 0.24))
+                            width: geometry.size.width * promptImageWidthFraction,
+                            height: geometry.size.height * promptImageHeightFraction
                         )
                         .accessibilityLabel("Gambar petunjuk")
 
@@ -519,7 +552,7 @@ struct ChapterGamePlayView: View {
 
                 VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
                     Text("Bentuk : Kotak")
-                    Text("Warna : Biru")
+                    Text("Gambar : Burung Hantu")
                     Text("Pola : Bergaris")
                 }
                 // Same size as the prompt so the whole hint reads at one size,
@@ -633,26 +666,19 @@ struct ChapterGamePlayView: View {
         hasStartedChapter = true
         startBackgroundMusic()
 
-        guard isVoiceOverEnabled,
+        guard audioService.isVoiceOverEnabled,
               viewModel.source == .mainStory,
               let assetName = viewModel.currentStoryPage?.voiceOverAssetName
         else {
             return
         }
 
-        AudioService.shared.playVoiceOver(named: assetName)
+        audioService.playVoiceOver(named: assetName)
     }
 
     private func toggleVoiceOver() {
-        isVoiceOverEnabled.toggle()
-        AudioService.shared.updateBackgroundMusicVolume(
-            isVoiceOverEnabled: isVoiceOverEnabled
-        )
-
-        if isVoiceOverEnabled {
+        if audioService.toggleVoiceOver() {
             playCurrentStoryVoiceOverIfNeeded()
-        } else {
-            stopStoryVoiceOver()
         }
     }
 
@@ -672,7 +698,7 @@ struct ChapterGamePlayView: View {
     }
 
     private func playCurrentStoryVoiceOverIfNeeded() {
-        guard isVoiceOverEnabled,
+        guard audioService.isVoiceOverEnabled,
               viewModel.source == .mainStory,
               hasStartedChapter,
               !viewModel.isQuestionPresented,
@@ -683,16 +709,16 @@ struct ChapterGamePlayView: View {
             return
         }
 
-        AudioService.shared.playVoiceOver(named: assetName)
+        audioService.playVoiceOver(named: assetName)
     }
 
     private func stopStoryVoiceOver() {
-        AudioService.shared.stopVoiceOver()
+        audioService.stopVoiceOver()
     }
 
     private func startBackgroundMusic() {
-        AudioService.shared.playBackgroundMusic(
-            isVoiceOverEnabled: isVoiceOverEnabled
+        audioService.playBackgroundMusic(
+            isVoiceOverEnabled: audioService.isVoiceOverEnabled
         )
     }
 
@@ -708,7 +734,7 @@ struct ChapterGamePlayView: View {
 
     private func stopGameplayAudio() {
         stopStoryVoiceOver()
-        AudioService.shared.restoreBackgroundMusicForApp()
+        audioService.restoreBackgroundMusicForApp()
     }
 
 }

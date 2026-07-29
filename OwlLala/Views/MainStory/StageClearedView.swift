@@ -75,8 +75,13 @@ struct StageClearedView: View {
                             cardHeight: cardHeight
                         )
                     }
-                    .frame(width: cardWidth, height: cardHeight)
-                    .padding(.top, 30)
+                    .frame(
+                        width: cardWidth,
+                        height: max(cardHeight - 30, 0),
+                        alignment: .top
+                    )
+                    .offset(y: 30)
+                    .clipped()
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: baseUnit * 0.018, style: .continuous))
@@ -96,8 +101,9 @@ struct StageClearedView: View {
     ) -> some View {
         textColumn(baseUnit: baseUnit, cardWidth: cardWidth)
             .padding(.leading, cardWidth * 0.075)
-            .padding(.top, cardHeight * 0.1)
-            .padding(.bottom, cardHeight * 0.08)
+            .padding(.trailing, cardWidth * 0.05)
+            .padding(.top, cardHeight * 0.07)
+            .padding(.bottom, cardHeight * 0.1)
             .frame(width: cardWidth, alignment: .topLeading)
     }
 
