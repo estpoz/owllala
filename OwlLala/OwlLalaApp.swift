@@ -2,7 +2,7 @@
 //  OwlLalaApp.swift
 //  OwlLala
 //
-//  Created by Heidy Mudita Sutedjo on 10/07/26.
+//  Created by Farrell Sudjatmiko on 13/07/26.
 //
 
 import SwiftUI

@@ -7,40 +7,72 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
-		C1C8799E3000B2E700C20BAD /* PBXContainerItemProxy */ = {
+		D365F98C300475C800F0D436 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = C1C879883000B2E600C20BAD /* Project object */;
+			containerPortal = D365F976300475C800F0D436 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = C1C8798F3000B2E600C20BAD;
+			remoteGlobalIDString = D365F97D300475C800F0D436;
 			remoteInfo = OwlLala;
 		};
-		C1C879A83000B2E700C20BAD /* PBXContainerItemProxy */ = {
+		D365F996300475C800F0D436 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = C1C879883000B2E600C20BAD /* Project object */;
+			containerPortal = D365F976300475C800F0D436 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = C1C8798F3000B2E600C20BAD;
+			remoteGlobalIDString = D365F97D300475C800F0D436;
 			remoteInfo = OwlLala;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		C1C879903000B2E600C20BAD /* OwlLala.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OwlLala.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C1C8799D3000B2E700C20BAD /* OwlLalaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwlLalaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C1C879A73000B2E700C20BAD /* OwlLalaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwlLalaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		33732B02300DB98D00E8550B /* OwlLala.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = OwlLala.xcodeproj; sourceTree = "<group>"; };
+		D365F97E300475C800F0D436 /* OwlLala.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OwlLala.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D365F98B300475C800F0D436 /* OwlLalaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwlLalaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D365F995300475C800F0D436 /* OwlLalaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OwlLalaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B91B12E13004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				UnitTesting.swift,
+			);
+			target = D365F98A300475C800F0D436 /* OwlLalaTests */;
+		};
+		B91B12E23004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				UnitTesting.swift,
+			);
+			target = D365F994300475C800F0D436 /* OwlLalaUITests */;
+		};
+		C1F0C1143007307900735085 /* Exceptions for "OwlLala" folder in "OwlLala" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D365F97D300475C800F0D436 /* OwlLala */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C1C879923000B2E600C20BAD /* OwlLala */ = {
+		D365F980300475C800F0D436 /* OwlLala */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C1F0C1143007307900735085 /* Exceptions for "OwlLala" folder in "OwlLala" target */,
+			);
 			path = OwlLala;
 			sourceTree = "<group>";
 		};
-		C1C879A03000B2E700C20BAD /* OwlLalaTests */ = {
+		D365F98E300475C800F0D436 /* OwlLalaTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B91B12E13004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaTests" target */,
+				B91B12E23004ABAB008BFE5F /* Exceptions for "OwlLalaTests" folder in "OwlLalaUITests" target */,
+			);
 			path = OwlLalaTests;
 			sourceTree = "<group>";
 		};
-		C1C879AA3000B2E700C20BAD /* OwlLalaUITests */ = {
+		D365F998300475C800F0D436 /* OwlLalaUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OwlLalaUITests;
 			sourceTree = "<group>";
@@ -48,21 +80,21 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		C1C8798D3000B2E600C20BAD /* Frameworks */ = {
+		D365F97B300475C800F0D436 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C8799A3000B2E700C20BAD /* Frameworks */ = {
+		D365F988300475C800F0D436 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C879A43000B2E700C20BAD /* Frameworks */ = {
+		D365F992300475C800F0D436 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -72,22 +104,27 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		C1C879873000B2E600C20BAD = {
+		33732B04300DB98D00E8550B /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D365F975300475C800F0D436 = {
 			isa = PBXGroup;
 			children = (
-				C1C879923000B2E600C20BAD /* OwlLala */,
-				C1C879A03000B2E700C20BAD /* OwlLalaTests */,
-				C1C879AA3000B2E700C20BAD /* OwlLalaUITests */,
-				C1C879913000B2E600C20BAD /* Products */,
+				D365F980300475C800F0D436 /* OwlLala */,
+				D365F98E300475C800F0D436 /* OwlLalaTests */,
+				D365F998300475C800F0D436 /* OwlLalaUITests */,
+				D365F97F300475C800F0D436 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		C1C879913000B2E600C20BAD /* Products */ = {
+		D365F97F300475C800F0D436 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C1C879903000B2E600C20BAD /* OwlLala.app */,
-				C1C8799D3000B2E700C20BAD /* OwlLalaTests.xctest */,
-				C1C879A73000B2E700C20BAD /* OwlLalaUITests.xctest */,
+				D365F97E300475C800F0D436 /* OwlLala.app */,
+				D365F98B300475C800F0D436 /* OwlLalaTests.xctest */,
+				D365F995300475C800F0D436 /* OwlLalaUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,134 +132,140 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		C1C8798F3000B2E600C20BAD /* OwlLala */ = {
+		D365F97D300475C800F0D436 /* OwlLala */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C1C879B13000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLala" */;
+			buildConfigurationList = D365F99F300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLala" */;
 			buildPhases = (
-				C1C8798C3000B2E600C20BAD /* Sources */,
-				C1C8798D3000B2E600C20BAD /* Frameworks */,
-				C1C8798E3000B2E600C20BAD /* Resources */,
+				D365F97A300475C800F0D436 /* Sources */,
+				D365F97B300475C800F0D436 /* Frameworks */,
+				D365F97C300475C800F0D436 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C1C879923000B2E600C20BAD /* OwlLala */,
+				D365F980300475C800F0D436 /* OwlLala */,
 			);
 			name = OwlLala;
 			packageProductDependencies = (
 			);
 			productName = OwlLala;
-			productReference = C1C879903000B2E600C20BAD /* OwlLala.app */;
+			productReference = D365F97E300475C800F0D436 /* OwlLala.app */;
 			productType = "com.apple.product-type.application";
 		};
-		C1C8799C3000B2E700C20BAD /* OwlLalaTests */ = {
+		D365F98A300475C800F0D436 /* OwlLalaTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C1C879B43000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLalaTests" */;
+			buildConfigurationList = D365F9A2300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLalaTests" */;
 			buildPhases = (
-				C1C879993000B2E700C20BAD /* Sources */,
-				C1C8799A3000B2E700C20BAD /* Frameworks */,
-				C1C8799B3000B2E700C20BAD /* Resources */,
+				D365F987300475C800F0D436 /* Sources */,
+				D365F988300475C800F0D436 /* Frameworks */,
+				D365F989300475C800F0D436 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C1C8799F3000B2E700C20BAD /* PBXTargetDependency */,
+				D365F98D300475C800F0D436 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				C1C879A03000B2E700C20BAD /* OwlLalaTests */,
+				D365F98E300475C800F0D436 /* OwlLalaTests */,
 			);
 			name = OwlLalaTests;
 			packageProductDependencies = (
 			);
 			productName = OwlLalaTests;
-			productReference = C1C8799D3000B2E700C20BAD /* OwlLalaTests.xctest */;
+			productReference = D365F98B300475C800F0D436 /* OwlLalaTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		C1C879A63000B2E700C20BAD /* OwlLalaUITests */ = {
+		D365F994300475C800F0D436 /* OwlLalaUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C1C879B73000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLalaUITests" */;
+			buildConfigurationList = D365F9A5300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLalaUITests" */;
 			buildPhases = (
-				C1C879A33000B2E700C20BAD /* Sources */,
-				C1C879A43000B2E700C20BAD /* Frameworks */,
-				C1C879A53000B2E700C20BAD /* Resources */,
+				D365F991300475C800F0D436 /* Sources */,
+				D365F992300475C800F0D436 /* Frameworks */,
+				D365F993300475C800F0D436 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C1C879A93000B2E700C20BAD /* PBXTargetDependency */,
+				D365F997300475C800F0D436 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				C1C879AA3000B2E700C20BAD /* OwlLalaUITests */,
+				D365F998300475C800F0D436 /* OwlLalaUITests */,
 			);
 			name = OwlLalaUITests;
 			packageProductDependencies = (
 			);
 			productName = OwlLalaUITests;
-			productReference = C1C879A73000B2E700C20BAD /* OwlLalaUITests.xctest */;
+			productReference = D365F995300475C800F0D436 /* OwlLalaUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		C1C879883000B2E600C20BAD /* Project object */ = {
+		D365F976300475C800F0D436 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
-					C1C8798F3000B2E600C20BAD = {
+					D365F97D300475C800F0D436 = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					C1C8799C3000B2E700C20BAD = {
+					D365F98A300475C800F0D436 = {
 						CreatedOnToolsVersion = 26.6;
-						TestTargetID = C1C8798F3000B2E600C20BAD;
+						TestTargetID = D365F97D300475C800F0D436;
 					};
-					C1C879A63000B2E700C20BAD = {
+					D365F994300475C800F0D436 = {
 						CreatedOnToolsVersion = 26.6;
-						TestTargetID = C1C8798F3000B2E600C20BAD;
+						TestTargetID = D365F97D300475C800F0D436;
 					};
 				};
 			};
-			buildConfigurationList = C1C8798B3000B2E600C20BAD /* Build configuration list for PBXProject "OwlLala" */;
+			buildConfigurationList = D365F979300475C800F0D436 /* Build configuration list for PBXProject "OwlLala" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = C1C879873000B2E600C20BAD;
+			mainGroup = D365F975300475C800F0D436;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = C1C879913000B2E600C20BAD /* Products */;
+			productRefGroup = D365F97F300475C800F0D436 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 33732B04300DB98D00E8550B /* Products */;
+					ProjectRef = 33732B02300DB98D00E8550B /* OwlLala.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
-				C1C8798F3000B2E600C20BAD /* OwlLala */,
-				C1C8799C3000B2E700C20BAD /* OwlLalaTests */,
-				C1C879A63000B2E700C20BAD /* OwlLalaUITests */,
+				D365F97D300475C800F0D436 /* OwlLala */,
+				D365F98A300475C800F0D436 /* OwlLalaTests */,
+				D365F994300475C800F0D436 /* OwlLalaUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		C1C8798E3000B2E600C20BAD /* Resources */ = {
+		D365F97C300475C800F0D436 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C8799B3000B2E700C20BAD /* Resources */ = {
+		D365F989300475C800F0D436 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C879A53000B2E700C20BAD /* Resources */ = {
+		D365F993300475C800F0D436 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -232,21 +275,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		C1C8798C3000B2E600C20BAD /* Sources */ = {
+		D365F97A300475C800F0D436 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C879993000B2E700C20BAD /* Sources */ = {
+		D365F987300475C800F0D436 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C1C879A33000B2E700C20BAD /* Sources */ = {
+		D365F991300475C800F0D436 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -256,20 +299,20 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		C1C8799F3000B2E700C20BAD /* PBXTargetDependency */ = {
+		D365F98D300475C800F0D436 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = C1C8798F3000B2E600C20BAD /* OwlLala */;
-			targetProxy = C1C8799E3000B2E700C20BAD /* PBXContainerItemProxy */;
+			target = D365F97D300475C800F0D436 /* OwlLala */;
+			targetProxy = D365F98C300475C800F0D436 /* PBXContainerItemProxy */;
 		};
-		C1C879A93000B2E700C20BAD /* PBXTargetDependency */ = {
+		D365F997300475C800F0D436 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = C1C8798F3000B2E600C20BAD /* OwlLala */;
-			targetProxy = C1C879A83000B2E700C20BAD /* PBXContainerItemProxy */;
+			target = D365F97D300475C800F0D436 /* OwlLala */;
+			targetProxy = D365F996300475C800F0D436 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		C1C879AF3000B2E700C20BAD /* Debug */ = {
+		D365F99D300475C800F0D436 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -304,7 +347,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -333,7 +376,7 @@
 			};
 			name = Debug;
 		};
-		C1C879B03000B2E700C20BAD /* Release */ = {
+		D365F99E300475C800F0D436 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -368,7 +411,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -390,81 +433,101 @@
 			};
 			name = Release;
 		};
-		C1C879B23000B2E700C20BAD /* Debug */ = {
+		D365F9A0300475C800F0D436 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Owl";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = YJ855C323A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OwlLala/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLala";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLala;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
-		C1C879B33000B2E700C20BAD /* Release */ = {
+		D365F9A1300475C800F0D436 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Owl";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = YJ855C323A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OwlLala/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.educational-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLala";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLala;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};
-		C1C879B53000B2E700C20BAD /* Debug */ = {
+		D365F9A3300475C800F0D436 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLalaTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLalaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -476,17 +539,17 @@
 			};
 			name = Debug;
 		};
-		C1C879B63000B2E700C20BAD /* Release */ = {
+		D365F9A4300475C800F0D436 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLalaTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLalaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -498,15 +561,15 @@
 			};
 			name = Release;
 		};
-		C1C879B83000B2E700C20BAD /* Debug */ = {
+		D365F9A6300475C800F0D436 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLalaUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLalaUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -518,15 +581,15 @@
 			};
 			name = Debug;
 		};
-		C1C879B93000B2E700C20BAD /* Release */ = {
+		D365F9A7300475C800F0D436 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YJ855C323A;
+				DEVELOPMENT_TEAM = XC567ML7TF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Apple-Developer.OwlLalaUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mahakam.OwlLalaUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -541,43 +604,43 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C1C8798B3000B2E600C20BAD /* Build configuration list for PBXProject "OwlLala" */ = {
+		D365F979300475C800F0D436 /* Build configuration list for PBXProject "OwlLala" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C1C879AF3000B2E700C20BAD /* Debug */,
-				C1C879B03000B2E700C20BAD /* Release */,
+				D365F99D300475C800F0D436 /* Debug */,
+				D365F99E300475C800F0D436 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C1C879B13000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLala" */ = {
+		D365F99F300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLala" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C1C879B23000B2E700C20BAD /* Debug */,
-				C1C879B33000B2E700C20BAD /* Release */,
+				D365F9A0300475C800F0D436 /* Debug */,
+				D365F9A1300475C800F0D436 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C1C879B43000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLalaTests" */ = {
+		D365F9A2300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLalaTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C1C879B53000B2E700C20BAD /* Debug */,
-				C1C879B63000B2E700C20BAD /* Release */,
+				D365F9A3300475C800F0D436 /* Debug */,
+				D365F9A4300475C800F0D436 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C1C879B73000B2E700C20BAD /* Build configuration list for PBXNativeTarget "OwlLalaUITests" */ = {
+		D365F9A5300475C800F0D436 /* Build configuration list for PBXNativeTarget "OwlLalaUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C1C879B83000B2E700C20BAD /* Debug */,
-				C1C879B93000B2E700C20BAD /* Release */,
+				D365F9A6300475C800F0D436 /* Debug */,
+				D365F9A7300475C800F0D436 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = C1C879883000B2E600C20BAD /* Project object */;
+	rootObject = D365F976300475C800F0D436 /* Project object */;
 }
