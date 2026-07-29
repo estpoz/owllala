@@ -180,7 +180,9 @@ struct ChapterGamePlayView: View {
 
     private var stageClearedOverlay: some View {
         StageClearedView(
-            subtitle: "Kamu berhasil menyelesaikan \(viewModel.chapter.title)",
+            // Name the chapter by its number ("Bab 2") rather than its title,
+            // so the line stays short and reads the same for every chapter.
+            subtitle: "Kamu berhasil menyelesaikan Bab \(viewModel.chapter.order)",
             starCount: viewModel.earnedStars ?? Chapter.maximumStars,
             maxStars: 3,
             summaryText: viewModel.chapter.learningSummary.explanation,
