@@ -273,7 +273,7 @@ enum StoryCatalog {
                             id: "chapter-3-page-1",
                             order: 1,
                             illustrationAssetName: "page3-1",
-                            narration: "Lala mencari bekalnya di area loker, tetapi karena suasananya gelap, Lala sulit melihat dengan jelas barang-barang di sekitarnya.",
+                            narration: "Lala mencari bekalnya di area loker, tetapi karena suasananya gelap, Lala sulit melihat dengan jelas, dan harus mengikuti tanda-tanda untuk menemukan lokernya.",
                             voiceOverAssetName: "chapter3-1"
                         ),
                         StoryPage(
@@ -378,7 +378,7 @@ enum StoryCatalog {
                             id: "chapter-5-page-2",
                             order: 2,
                             illustrationAssetName: "page5-2",
-                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan semua petunjuk: bentuk, warna, dan pola.",
+                            narration: "Cluey datang membantu Lala dan mengajarkannya untuk mencari benda berdasarkan semua sudah ia pelajari, bukan warna.",
                             voiceOverAssetName: "chapter5-2"
                         ),
                         StoryPage(
