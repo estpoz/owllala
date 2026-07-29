@@ -552,7 +552,7 @@ struct ChapterGamePlayView: View {
 
                 VStack(alignment: .leading, spacing: geometry.size.height * 0.006) {
                     Text("Bentuk : Kotak")
-                    Text("Warna : Biru")
+                    Text("Gambar : Burung Hantu")
                     Text("Pola : Bergaris")
                 }
                 // Same size as the prompt so the whole hint reads at one size,
