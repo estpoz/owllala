@@ -6,7 +6,6 @@ This document defines ViewModel ownership and data flow for the OwlLala MVP.
 
 Use it together with:
 
-- `AGENTS.md`
 - `DataModelsandBusinessRules.md`
 - `SETTINGS_AND_ACCESSIBILITY.md`
 
